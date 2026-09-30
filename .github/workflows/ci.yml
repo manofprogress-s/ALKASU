@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: ["**", "!ci-rapor"]
   pull_request:
   workflow_dispatch:
 
@@ -37,6 +37,8 @@ jobs:
   app:
     name: Lint, tip kontrolü, test, build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
@@ -48,17 +50,34 @@ jobs:
           node-version: 24
       - name: Bağımlılıklar
         run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
-      - name: Kilit dosyası (ilk kurulum için)
-        if: hashFiles('package-lock.json') == ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-lock
-          path: package-lock.json
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test
-      - run: npm run build
+          mkdir -p ci-out
+          if [ -f package-lock.json ]; then npm ci 2>&1 | tee ci-out/install.txt; else npm install --no-audit --no-fund 2>&1 | tee ci-out/install.txt; fi
+          npm ls --depth=0 > ci-out/versions.txt 2>&1 || true
+      - name: Kontroller
+        id: checks
+        run: |
+          set +e
+          fail=0
+          run() { name=$1; shift; "$@" > "ci-out/$name.txt" 2>&1; c=$?; echo "$name: $c" >> ci-out/summary.txt; [ $c -ne 0 ] && fail=1; tail -40 "ci-out/$name.txt"; }
+          run lint npm run lint
+          run typecheck npm run typecheck
+          run test npm run test
+          run build npm run build
+          echo "fail=$fail" >> "$GITHUB_OUTPUT"
+          cat ci-out/summary.txt
+      - name: Raporu ci-rapor dalına yaz
+        if: always()
+        run: |
+          cp package-lock.json ci-out/ 2>/dev/null || true
+          echo "${GITHUB_SHA}" > ci-out/sha.txt
+          cd ci-out
+          git init -q -b ci-rapor
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "CI raporu ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-rapor
+      - name: Sonuç
+        if: steps.checks.outputs.fail != '0'
+        run: exit 1
       - name: Bağımlılık güvenlik denetimi
         run: npm audit --omit=dev --audit-level=high || true
 

@@ -22,7 +22,7 @@ jobs:
           BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
         run: |
           set -euo pipefail
-          if [ -z "${SUPABASE_DB_URL:-}" ] || [ -z "${BACKUP_AGE_RECIPIENT:-}" ]; then echo "Gizli değerler tanımlı değil"; exit 1; fi
+          if [ -z "${SUPABASE_DB_URL:-}" ] || [ -z "${BACKUP_AGE_RECIPIENT:-}" ]; then echo "::warning::Yedek atlandı: SUPABASE_DB_URL / BACKUP_AGE_RECIPIENT tanımlı değil (docs/BACKUP_RESTORE.md)"; exit 0; fi
           STAMP=$(TZ=Europe/Istanbul date +%Y-%m-%d_%H%M)
           /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --format=custom --no-owner --no-privileges \
             --schema=public --schema=audit --schema=app --schema=auth -f "alkasu_${STAMP}.dump"
@@ -30,6 +30,7 @@ jobs:
           rm "alkasu_${STAMP}.dump"
           ls -lh
       - uses: actions/upload-artifact@v4
+        if: hashFiles('*.dump.age') != ''
         with:
           name: yedek-${{ github.run_id }}
           path: "*.dump.age"
