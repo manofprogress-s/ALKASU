@@ -10,8 +10,12 @@ import { flushQueue } from "@/lib/offline/sync";
 export default function PendingSales() {
   const toast = useToast();
   const [items, setItems] = useState<QueuedSale[]>([]);
+  const [now, setNow] = useState(0);
   useEffect(() => {
-    const load = async () => setItems(await listQueue());
+    const load = async () => {
+      setItems(await listQueue());
+      setNow(Date.now());
+    };
     void load();
     return onQueueChange(() => void load());
   }, []);
@@ -21,7 +25,7 @@ export default function PendingSales() {
     toast(r.sent ? `${r.sent} satış gönderildi` : "Gönderilecek satış yok veya bağlantı yok", r.sent ? "ok" : "info");
   }
 
-  const stale = items.filter((i) => Date.now() - new Date(i.createdAt).getTime() > 72 * 3600_000);
+  const stale = items.filter((i) => now > 0 && now - new Date(i.createdAt).getTime() > 72 * 3600_000);
 
   return (
     <div className="space-y-4">

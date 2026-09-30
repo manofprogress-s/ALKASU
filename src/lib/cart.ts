@@ -66,7 +66,7 @@ export function computeCart(
   const beforeBillK = grossK - lineDiscK;
   const billK = toKurus(billDiscount || 0);
   if (billK < 0) errors.push("İndirim negatif olamaz");
-  if (billK > beforeBillK) errors.push("Fiş indirimi tutarı aşıyor");
+  if (billK > 0 && billK > beforeBillK) errors.push("Fiş indirimi tutarı aşıyor");
 
   if (billK > 0 && beforeBillK > 0) {
     let left = billK;
@@ -115,7 +115,7 @@ export function computeCart(
   }
   const depositK = deposits.reduce((s, d) => s + d.amountK, 0);
   const grandK = goodsNetK + depositK;
-  if (grandK < 0) errors.push("Fiş toplamı negatif olamaz; fazla boş kap için Depozito iadesi işlemini kullanın");
+  if (grandK < 0 && errors.length === 0) errors.push("Fiş toplamı negatif olamaz; fazla boş kap için Depozito iadesi işlemini kullanın");
 
   return { lines: computed, grossK, discountK: lineDiscK + billK, goodsNetK, deposits, depositK, grandK, errors };
 }

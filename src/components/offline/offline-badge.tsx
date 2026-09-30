@@ -5,7 +5,7 @@ import { CloudOff, RefreshCw } from "lucide-react";
 import { listQueue, onQueueChange } from "@/lib/offline/queue";
 
 export function OfflineBadge() {
-  const [online, setOnline] = useState(true);
+  const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [pending, setPending] = useState(0);
   const [problems, setProblems] = useState(0);
   useEffect(() => {
@@ -14,7 +14,6 @@ export function OfflineBadge() {
       setPending(q.filter((x) => x.status === "bekliyor").length);
       setProblems(q.filter((x) => x.status === "sorunlu").length);
     };
-    setOnline(navigator.onLine);
     void update();
     const on = () => setOnline(true);
     const off = () => setOnline(false);
