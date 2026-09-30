@@ -8,3 +8,8 @@ out/
 supabase/.temp/
 supabase/.branches/
 __pycache__/
+next-env.d.ts
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/

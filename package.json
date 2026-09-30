@@ -1,0 +1,42 @@
+{
+  "name": "alkasu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Alay Ticaret stok, satış, kasa ve yönetim uygulaması",
+  "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:db": "bash scripts/test-db.sh",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "db:types": "supabase gen types typescript --linked --schema public > src/lib/database.types.ts",
+    "seed:demo": "node --env-file=.env.local scripts/seed-demo.mjs",
+    "template": "python3 templates/generate_template.py"
+  },
+  "dependencies": {
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest",
+    "exceljs": "latest",
+    "lucide-react": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "latest",
+    "@tailwindcss/postcss": "latest",
+    "@types/node": "^24",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "^9",
+    "eslint-config-next": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

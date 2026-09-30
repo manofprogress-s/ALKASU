@@ -65,3 +65,15 @@
 | T-020 | Denetim kaydı, `audit.log` şemasında tutulur ve yalnızca `SECURITY DEFINER` fonksiyonlar tarafından yazılır. Kritik tablolarda tetikleyici ile önceki/yeni değer JSON olarak saklanır. | L-01..L-03. |
 | T-021 | Kullanıcı daveti: Yönetici e-posta ve rol girer, sunucu `auth.admin.inviteUserByEmail` çağırır, üyelik kaydı rol ile oluşturulur. Açık kayıt kapalıdır. | — |
 | T-022 | Klasör yapısı: `src/app` (rotalar), `src/features/<modül>` (ekran, bileşen, sorgu), `src/lib` (ortak), `supabase/migrations`, `supabase/tests`, `docs`, `templates`. | Modül bazlı ayrım, aşamalı geliştirmeye uygun. |
+
+## Uygulama sırasında alınan kararlar (30.09.2026)
+
+| Kod | Karar | Gerekçe |
+|---|---|---|
+| T-023 | Derleme, lint, tip kontrolü ve testler **GitHub Actions**'ta çalışır; geliştirme ortamında npm paket sunucusuna erişim yoktur. | Çalışma ortamının ağ politikası. CI aynı zamanda her değişikliğin kalite kapısıdır (T-016). |
+| T-024 | Veritabanı testleri pgTAP yerine düz SQL ile yazılmış küçük bir test yardımcısıyla (`supabase/tests/_helpers.sql`) çalışır; her test dosyası bir işlem içinde çalışıp geri alınır. | pgTAP eklentisi gerektirmez; herhangi bir PostgreSQL 15+ üzerinde (CI dahil) çalışır. T-015'in yerine geçer. |
+| T-025 | UI bileşenleri shadcn/TanStack yerine projede elle yazıldı (Tailwind v4 + lucide). Service worker Serwist yerine elle yazıldı (`public/sw.js`). CSV Papaparse yerine kendi yardımcımızla. | Bağımlılık sayısını ve yükseltme riskini azaltmak. T-011, T-012, T-013'ü günceller. |
+| T-026 | Next.js 16 ile `middleware.ts` yerine `src/proxy.ts` kullanılır. | Next.js 16 adlandırması. Sürüm 15'e düşülürse dosya adı `middleware.ts`, fonksiyon adı `middleware` olur. |
+| T-027 | Çevrimdışı satış ekranı: katalog ve müşteri listesi IndexedDB'de önbelleğe alınır; `/` ve `/satis` sayfaları service worker ile çevrimdışı açılır. Çıkışta tüm önbellek silinir. | D-004, C-01..C-05. Paylaşılan cihazda veri sızıntısını önler. |
+| D-029 | Fazla getirilen boş kap için geri verilen depozito, müşterinin **ödediği ortalama depozito** üzerinden hesaplanır (güncel depozito tutarı değil). | Depozito tutarı zamanla değişirse müşteriye ödediğinden fazla/az iade yapılmaz. |
+| D-030 | Kasa kapanışında POS farkı kaydedilir ama açıklama zorunlu değildir; nakit farkı tolerans üstündeyse zorunludur. | POS farkı çoğunlukla gün sonu/batch zamanlamasından kaynaklanır. |

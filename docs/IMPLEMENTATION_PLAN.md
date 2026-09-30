@@ -4,6 +4,19 @@
 > İlke: **En kısa sürede telefonda denenebilir bir sürüm.** Satış akışı en başta gelir, ayrıntılar geri bildirimle şekillenir.
 > Her aşamanın sonunda şunlar hazır olur: çalışan kod, testler, `npm run check` yeşil, kısa belge güncellemesi ve açıklayıcı Git commit'i.
 
+## Durum (30.09.2026)
+
+| Aşama | Veritabanı | Arayüz | Not |
+|---|---|---|---|
+| 0 | ✅ | ✅ yazıldı | Derleme CI'da doğrulanacak |
+| 1 | ✅ | ✅ yazıldı | İçe aktarma dahil |
+| 2 | ✅ | ✅ yazıldı | Satış, veresiye, depozito, iptal/iade |
+| 3 | ✅ | ✅ yazıldı | Kasa, gider, gün sonu |
+| 4 | ✅ | ✅ yazıldı | Fire, sayım, raporlar, dışa aktarma |
+| 5 | ✅ | 🟡 | PWA + çevrimdışı kuyruk yazıldı; uçtan uca testler ve canlıya geçiş bekliyor |
+
+Veritabanı testleri: 5 dosya, 221 kontrol, tamamı geçiyor. Arayüz derlemesi GitHub Actions'ta yapılacak (T-023).
+
 ## 0. Yol haritası
 
 | Aşama | İçerik | Çıktı | Tahmini süre |

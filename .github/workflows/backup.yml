@@ -1,0 +1,36 @@
+name: Günlük yedek
+
+on:
+  schedule:
+    - cron: "15 0 * * *" # 03:15 İstanbul
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Araçlar
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17 age
+      - name: Yedek al ve şifrele
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ] || [ -z "${BACKUP_AGE_RECIPIENT:-}" ]; then echo "Gizli değerler tanımlı değil"; exit 1; fi
+          STAMP=$(TZ=Europe/Istanbul date +%Y-%m-%d_%H%M)
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --format=custom --no-owner --no-privileges \
+            --schema=public --schema=audit --schema=app --schema=auth -f "alkasu_${STAMP}.dump"
+          age -r "$BACKUP_AGE_RECIPIENT" -o "alkasu_${STAMP}.dump.age" "alkasu_${STAMP}.dump"
+          rm "alkasu_${STAMP}.dump"
+          ls -lh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yedek-${{ github.run_id }}
+          path: "*.dump.age"
+          retention-days: 30
