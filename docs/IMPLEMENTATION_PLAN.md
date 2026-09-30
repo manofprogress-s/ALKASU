@@ -16,7 +16,8 @@
 | 5 | ✅ | 🟡 | PWA + çevrimdışı kuyruk yazıldı; uçtan uca testler ve canlıya geçiş bekliyor |
 
 Veritabanı testleri: 5 dosya, 221 kontrol, tamamı geçiyor. CI (GitHub Actions): lint, tip kontrolü, birim testleri, build ve DB testleri yeşil.
-Yayın: Supabase (Frankfurt) şeması kuruldu; demo işletmesi ve verisi yüklendi; Vercel projesi `alkasu` bağlandı.
+Yayın: Supabase (Frankfurt) şeması kuruldu; demo işletmesi ve verisi yüklendi; Vercel projesi `alkasu` yayında: https://alkasu.vercel.app (🎯 Demo 1).
+Kalan: Vercel'e `SUPABASE_SERVICE_ROLE_KEY` (kullanıcı daveti için), GitHub `production` ortamına `SUPABASE_DB_URL` + `BACKUP_AGE_RECIPIENT` (otomatik migration ve yedek), uçtan uca (Playwright) testler.
 
 ## 0. Yol haritası
 
