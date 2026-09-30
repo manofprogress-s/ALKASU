@@ -15,7 +15,8 @@
 | 4 | ✅ | ✅ yazıldı | Fire, sayım, raporlar, dışa aktarma |
 | 5 | ✅ | 🟡 | PWA + çevrimdışı kuyruk yazıldı; uçtan uca testler ve canlıya geçiş bekliyor |
 
-Veritabanı testleri: 5 dosya, 221 kontrol, tamamı geçiyor. Arayüz derlemesi GitHub Actions'ta yapılacak (T-023).
+Veritabanı testleri: 5 dosya, 221 kontrol, tamamı geçiyor. CI (GitHub Actions): lint, tip kontrolü, birim testleri, build ve DB testleri yeşil.
+Yayın: Supabase (Frankfurt) şeması kuruldu; demo işletmesi ve verisi yüklendi; Vercel projesi `alkasu` bağlandı.
 
 ## 0. Yol haritası
 
