@@ -45,3 +45,8 @@ cp .env.example .env.local   # değerleri doldurun
 npm run dev
 ```
 Veritabanı testleri yerel PostgreSQL 15+ ile: `PGHOST=... PGUSER=... npm run test:db`
+
+## Ek: SQL Editor ile kurulum (CLI erişimi yoksa)
+`supabase/kurulum.sql` tüm migrationları tek işlemde uygular ve `supabase_migrations.schema_migrations` tablosuna kaydeder;
+böylece sonraki migrationlar CLI/CI ile (`supabase db push`) kaldığı yerden devam eder. Dosya şu komutla yeniden üretilir:
+`bash scripts/build-setup-sql.sh`
