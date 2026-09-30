@@ -18,7 +18,7 @@ export default async function StockHistory({ params }: { params: Promise<{ id: s
     supabase.from("memberships").select("user_id, display_name").eq("business_id", ctx.businessId),
   ]);
   if (!p) notFound();
-  const names = new Map((members ?? []).map((m: { user_id: string; display_name: string }) => [m.user_id, m.display_name]));
+  const names = new Map((members ?? []).map((m: { user_id: string; display_name: string }): [string, string] => [m.user_id, m.display_name]));
   const rows = (mv ?? []) as { id: number; qty: number; type: string; note: string | null; created_at: string; created_by: string | null }[];
   return (
     <div className="space-y-4">

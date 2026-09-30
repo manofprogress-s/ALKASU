@@ -29,7 +29,7 @@ export function normalizeNumberText(s: string): string {
 
 export async function readWorkbook(file: File): Promise<Record<string, Record<string, string>[]>> {
   if (/\.csv$/i.test(file.name)) return { "Ürünler": parseCsv(await file.text()) };
-  const ExcelJS = (await import("exceljs")).default;
+  const ExcelJS = await import("exceljs");
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(await file.arrayBuffer());
   const out: Record<string, Record<string, string>[]> = {};

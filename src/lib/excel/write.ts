@@ -25,7 +25,7 @@ export function downloadCsv(rows: ExportRow[], filename: string) {
 }
 
 export async function downloadXlsx(rows: ExportRow[], filename: string, sheet = "Rapor") {
-  const ExcelJS = (await import("exceljs")).default;
+  const ExcelJS = await import("exceljs");
   const wb = new ExcelJS.Workbook();
   wb.creator = "ALKASU";
   const ws = wb.addWorksheet(sheet.slice(0, 31));
@@ -42,5 +42,5 @@ export async function downloadXlsx(rows: ExportRow[], filename: string, sheet = 
     if (rows.some((r) => typeof r[h] === "number" && !Number.isInteger(r[h]))) ws.getColumn(i + 1).numFmt = "#,##0.00";
   });
   const buf = await wb.xlsx.writeBuffer();
-  download(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `${filename}.xlsx`);
+  download(new Blob([buf as ArrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `${filename}.xlsx`);
 }

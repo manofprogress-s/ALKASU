@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Alay Ticaret stok, satış, kasa ve yönetim uygulaması",
-  "engines": { "node": ">=24 <25" },
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -25,10 +27,10 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "zod": "latest"
+    "zod": "latest",
+    "server-only": "latest"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "latest",
     "@tailwindcss/postcss": "latest",
     "@types/node": "^24",
     "@types/react": "latest",

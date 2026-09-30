@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, PageHeader } from "@/components/ui/card";
@@ -46,8 +47,8 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         ))}
       </ul>
       <div className="flex justify-between">
-        {page > 0 ? <a className="text-brand" href={`?sayfa=${page - 1}`}>← Daha yeni</a> : <span />}
-        {rows.length === 100 ? <a className="text-brand" href={`?sayfa=${page + 1}`}>Daha eski →</a> : null}
+        {page > 0 ? <Link className="text-brand" href={`?sayfa=${page - 1}`}>← Daha yeni</Link> : <span />}
+        {rows.length === 100 ? <Link className="text-brand" href={`?sayfa=${page + 1}`}>Daha eski →</Link> : null}
       </div>
     </div>
   );

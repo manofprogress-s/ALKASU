@@ -23,7 +23,7 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
   let costs = new Map<string, { unit_cost: number; line_total: number }>();
   if (ctx.role === "yonetici") {
     const { data: c } = await supabase.from("purchase_item_costs").select("purchase_item_id, unit_cost, line_total").in("purchase_item_id", p.purchase_items.map((i) => i.id));
-    costs = new Map((c ?? []).map((x: { purchase_item_id: string; unit_cost: number; line_total: number }) => [x.purchase_item_id, x]));
+    costs = new Map((c ?? []).map((x: { purchase_item_id: string; unit_cost: number; line_total: number }): [string, { unit_cost: number; line_total: number }] => [x.purchase_item_id, x]));
   }
   const total = [...costs.values()].reduce((s, c) => s + Number(c.line_total), 0);
   return (

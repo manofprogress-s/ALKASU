@@ -27,7 +27,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   if (!sp.pasif) q = q.eq("active", true);
   if (sp.q) q = q.or(`name.ilike.%${sp.q.replace(/[%,()]/g, "")}%,code.ilike.%${sp.q.replace(/[%,()]/g, "")}%`);
   const [{ data }, { data: levels }] = await Promise.all([q, supabase.from("stock_levels").select("product_id, qty").eq("business_id", ctx.businessId)]);
-  const stock = new Map((levels ?? []).map((l: { product_id: string; qty: number }) => [l.product_id, l.qty]));
+  const stock = new Map((levels ?? []).map((l: { product_id: string; qty: number }): [string, number] => [l.product_id, l.qty]));
   const rows = (data ?? []) as unknown as Row[];
   const admin = can(ctx.role, "productEdit");
 

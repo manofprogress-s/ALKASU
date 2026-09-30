@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, PageHeader, Stat } from "@/components/ui/card";
@@ -28,7 +29,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   ];
   const q = (t: Tab) => `/raporlar?tab=${t}&from=${from}&to=${to}`;
 
-  let body: React.ReactNode = null;
+  let body: ReactNode = null;
   if (tab === "gunluk") {
     const { data, error } = await supabase.rpc("report_daily_sales", { p_business: ctx.businessId, p_from: from, p_to: to });
     const rows = (data ?? []) as { day: string; sales_count: number; net_revenue: number; discount: number; returns_total: number; deposit: number; cash: number; pos: number; credit: number; cost: number | null; gross_profit: number | null }[];

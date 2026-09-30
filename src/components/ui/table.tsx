@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -40,7 +41,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, empty, mobileT
                 <tr key={rowKey(r)} className={cn(href && "cursor-pointer hover:bg-surface-2")}>
                   {columns.map((c) => (
                     <td key={c.key} className={cn("px-3 py-2", c.align === "right" && "num text-right", c.align === "center" && "text-center", c.className)}>
-                      {href ? <a href={href} className="block">{c.render(r)}</a> : c.render(r)}
+                      {href ? <Link href={href} className="block">{c.render(r)}</Link> : c.render(r)}
                     </td>
                   ))}
                 </tr>
@@ -67,7 +68,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, empty, mobileT
               </dl>
             </div>
           );
-          return <li key={rowKey(r)}>{href ? <a href={href}>{body}</a> : body}</li>;
+          return <li key={rowKey(r)}>{href ? <Link href={href}>{body}</Link> : body}</li>;
         })}
       </ul>
     </>

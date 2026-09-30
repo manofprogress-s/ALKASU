@@ -18,7 +18,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     supabase.from("customer_balances").select("customer_id, balance").eq("business_id", ctx.businessId),
     supabase.from("container_balances").select("customer_id, qty").eq("business_id", ctx.businessId),
   ]);
-  const b = new Map((bal ?? []).map((x: { customer_id: string; balance: number }) => [x.customer_id, Number(x.balance)]));
+  const b = new Map((bal ?? []).map((x: { customer_id: string; balance: number }): [string, number] => [x.customer_id, Number(x.balance)]));
   const k = new Map<string, number>();
   for (const c of (cont ?? []) as { customer_id: string | null; qty: number }[]) if (c.customer_id) k.set(c.customer_id, (k.get(c.customer_id) ?? 0) + c.qty);
   let rows = ((cs ?? []) as { id: string; code: string; name: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; active: boolean }[])
