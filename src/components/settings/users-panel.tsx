@@ -50,7 +50,7 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
         toast("Önce Müşteriler bölümünde kanalı 'Bayi' olan bir müşteri kartı oluşturun.", "danger");
         return;
       }
-      cust = dealers[0].id;
+      cust = dealers[0]!.id;
     }
     void call("update_member", { p_membership: m.id, p_role: r, p_name: m.display_name, p_active: m.active, p_customer: r === "bayi" ? cust : null }, { success: "Rol güncellendi" });
   }

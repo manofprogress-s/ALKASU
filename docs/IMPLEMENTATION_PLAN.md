@@ -4,7 +4,7 @@
 > İlke: **En kısa sürede telefonda denenebilir bir sürüm.** Satış akışı en başta gelir, ayrıntılar geri bildirimle şekillenir.
 > Her aşamanın sonunda şunlar hazır olur: çalışan kod, testler, `npm run check` yeşil, kısa belge güncellemesi ve açıklayıcı Git commit'i.
 
-## Durum (30.09.2026)
+## Durum (01.10.2026)
 
 | Aşama | Veritabanı | Arayüz | Not |
 |---|---|---|---|
@@ -14,10 +14,11 @@
 | 3 | ✅ | ✅ yazıldı | Kasa, gider, gün sonu |
 | 4 | ✅ | ✅ yazıldı | Fire, sayım, raporlar, dışa aktarma |
 | 5 | ✅ | 🟡 | PWA + çevrimdışı kuyruk yazıldı; uçtan uca testler ve canlıya geçiş bekliyor |
+| 6 — Bayi ve sipariş | ✅ | ✅ yazıldı | Fiyat listeleri (perakende/bayi/palet), sevkiyat ve bayi rolleri, sipariş → atama → teslimat (otomatik satış), kullanıcı adıyla giriş |
 
-Veritabanı testleri: 5 dosya, 221 kontrol, tamamı geçiyor. CI (GitHub Actions): lint, tip kontrolü, birim testleri, build ve DB testleri yeşil.
+Veritabanı testleri: 6 dosya, 293 kontrol, tamamı geçiyor. CI (GitHub Actions): lint, tip kontrolü, birim testleri, build ve DB testleri yeşil.
 Yayın: Supabase (Frankfurt) şeması kuruldu; demo işletmesi ve verisi yüklendi; Vercel projesi `alkasu` yayında: https://alkasu.vercel.app (🎯 Demo 1).
-Kalan: Vercel'e `SUPABASE_SERVICE_ROLE_KEY` (kullanıcı daveti için), GitHub `production` ortamına `SUPABASE_DB_URL` + `BACKUP_AGE_RECIPIENT` (otomatik migration ve yedek), uçtan uca (Playwright) testler.
+Kalan: Vercel'e `SUPABASE_SERVICE_ROLE_KEY` (kullanıcı oluşturma için — zorunlu), GitHub `production` ortamına `SUPABASE_DB_URL` + `BACKUP_AGE_RECIPIENT` (otomatik migration ve yedek), uçtan uca (Playwright) testler.
 
 ## 0. Yol haritası
 

@@ -29,7 +29,7 @@ Diğer kullanıcıları uygulamada **Ayarlar → Davet et** ile ekleyin.
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public anahtarı |
-   | `SUPABASE_SERVICE_ROLE_KEY` | service_role anahtarı (**yalnızca Vercel'e**, asla koda/sohbete değil) |
+   | `SUPABASE_SERVICE_ROLE_KEY` | service_role anahtarı (**yalnızca Vercel'e**, asla koda/sohbete değil). Ayarlar → Kullanıcılar ekranında kullanıcı oluşturmak ve geçici şifre vermek için gerekir. Ekledikten sonra Vercel'de **Redeploy** yapın. |
    | `NEXT_PUBLIC_SITE_URL` | `https://<proje>.vercel.app` |
 3. Node.js sürümü: Settings → General → Node.js Version = **24.x**.
 4. Preview ortamı demo Supabase projesine, Production ortamı canlı projeye bağlanır (Vercel'de ortam bazında değişken tanımlanır).
