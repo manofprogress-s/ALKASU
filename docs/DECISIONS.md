@@ -105,3 +105,9 @@
 | D-046 | Yönetici kullanıcıyı geçici şifreyle oluşturur; kullanıcı ilk girişte şifresini değiştirmek zorundadır. Ortak tek şifre kalıcı kullanılmaz. | ✅ |
 | T-028 | Rol kalıtımı veritabanında `app.role_covers` ile yapılır; `has_role(…,'satis')` sevkiyat için de doğrudur. Enum değerleri ayrı migration'da (0010) eklenir. | ✅ |
 | T-029 | Kullanıcı oluşturma sunucu tarafında `service_role` anahtarıyla (`auth.admin.createUser`) yapılır; anahtar yalnızca Vercel ortam değişkenindedir. | ✅ |
+
+## Performans (01.10.2026)
+
+| Kod | Karar | Gerekçe |
+|---|---|---|
+| T-030 | Vercel sunucu fonksiyonları **fra1 (Frankfurt)** bölgesinde çalışır (`vercel.json` → `regions`). | Veritabanı Frankfurt'ta. Fonksiyonlar varsayılan iad1'de (ABD) çalışırken her sorgu Atlantik'i geçiyordu (~90 ms × sayfa başına 5-10 sorgu). |
