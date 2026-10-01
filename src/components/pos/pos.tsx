@@ -8,7 +8,8 @@ import { useToast } from "@/components/ui/toast";
 import { useAppContext } from "@/components/shell/context";
 import { cn } from "@/lib/cn";
 import { computeCart, type CartLine, type ContainerBalances } from "@/lib/cart";
-import { searchKey, type CatalogProduct, type PosCustomer, type PosData, loadPosData } from "@/lib/catalog";
+import { searchKey, unitPrice, type CatalogProduct, type PosCustomer, type PosData, loadPosData } from "@/lib/catalog";
+import { PRICE_LISTS } from "@/lib/roles";
 import { formatNumber, formatTRY, fromKurus } from "@/lib/format";
 import { loadCache, saveCache } from "@/lib/offline/queue";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -74,12 +75,27 @@ export function Pos({ initial }: { initial: PosData }) {
     return m;
   }, [data.containers, customer]);
 
+  const priceList = customer?.priceList ?? "perakende";
+  /** F-10: müşteri değişince sepet o müşterinin fiyat listesine göre yeniden fiyatlanır. */
+  function chooseCustomer(c: PosCustomer | null) {
+    setCustomer(c);
+    const list = c?.priceList ?? "perakende";
+    setCart((cur) =>
+      cur.map((l) => {
+        const u = byId.get(l.productId)?.units.find((x) => x.id === l.unitId);
+        const pr = u ? unitPrice(u, list) : null;
+        return pr === null ? l : { ...l, unitPrice: pr };
+      }),
+    );
+  }
+
   const totals = useMemo(() => computeCart(cart, billDiscount, empties, balances), [cart, billDiscount, empties, balances]);
   const itemCount = cart.reduce((s, l) => s + l.qty, 0);
 
   function addProduct(p: CatalogProduct, unitId?: string | null) {
     const unit = p.units.find((u) => u.id === unitId && u.price !== null) ?? p.units.find((u) => u.price !== null);
-    if (!unit || unit.price === null) return toast(`${p.name} için satış fiyatı tanımlı değil`, "danger");
+    const price = unit ? unitPrice(unit, priceList) : null;
+    if (!unit || price === null) return toast(`${p.name} için satış fiyatı tanımlı değil`, "danger");
     setCart((c) => {
       const i = c.findIndex((l) => l.productId === p.id && l.unitId === unit.id);
       if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
@@ -93,7 +109,7 @@ export function Pos({ initial }: { initial: PosData }) {
           unitName: unit.name,
           factor: unit.factor,
           qty: 1,
-          unitPrice: unit.price as number,
+          unitPrice: price,
           lineDiscount: 0,
           depositAmount: p.deposit,
           emptyProductId: p.emptyProductId,
@@ -125,8 +141,9 @@ export function Pos({ initial }: { initial: PosData }) {
       c.map((l) => {
         if (l.key !== key) return l;
         const u = byId.get(l.productId)?.units.find((x) => x.id === unitId);
-        if (!u || u.price === null) return l;
-        return { ...l, unitId: u.id, unitName: u.name, factor: u.factor, unitPrice: u.price };
+        const pr = u ? unitPrice(u, priceList) : null;
+        if (!u || pr === null) return l;
+        return { ...l, unitId: u.id, unitName: u.name, factor: u.factor, unitPrice: pr };
       }),
     );
   }
@@ -164,6 +181,7 @@ export function Pos({ initial }: { initial: PosData }) {
                 <span className="font-medium">{customer.name}</span>
                 <span className="block text-xs text-muted">
                   Bakiye {formatTRY(customer.balance)} · Limit {customer.unlimited ? "limitsiz" : formatTRY(customer.creditLimit)}
+                  {customer.priceList && customer.priceList !== "perakende" ? ` · ${PRICE_LISTS[customer.priceList]} fiyatı` : ""}
                 </span>
               </>
             ) : (
@@ -172,7 +190,7 @@ export function Pos({ initial }: { initial: PosData }) {
           </span>
         </button>
         {customer ? (
-          <Button variant="ghost" size="icon" onClick={() => setCustomer(null)} aria-label="Müşteriyi kaldır">
+          <Button variant="ghost" size="icon" onClick={() => chooseCustomer(null)} aria-label="Müşteriyi kaldır">
             <UserX className="h-5 w-5" />
           </Button>
         ) : null}
@@ -325,6 +343,7 @@ export function Pos({ initial }: { initial: PosData }) {
         <div className="grid grid-cols-2 gap-2 px-3 pb-32 sm:grid-cols-3 md:overflow-y-auto md:pb-4 lg:grid-cols-4">
           {filtered.map((p) => {
             const base = p.units.find((u) => u.price !== null);
+            const basePrice = base ? unitPrice(base, priceList) : null;
             const inCart = cart.filter((l) => l.productId === p.id).reduce((s, l) => s + l.qty, 0);
             return (
               <button
@@ -337,7 +356,7 @@ export function Pos({ initial }: { initial: PosData }) {
               >
                 <span className="line-clamp-2 text-[15px] leading-tight font-medium">{p.name}</span>
                 <span className="mt-2 flex items-end justify-between gap-1">
-                  <span className="num text-sm font-semibold">{base ? formatTRY(base.price) : "—"}</span>
+                  <span className="num text-sm font-semibold">{basePrice !== null ? formatTRY(basePrice) : "—"}</span>
                   <span className={cn("num text-xs", p.stock <= 0 ? "text-danger" : "text-muted")}>
                     {formatNumber(p.stock)} {p.baseUnit.toLocaleLowerCase("tr-TR")}
                   </span>
@@ -380,12 +399,12 @@ export function Pos({ initial }: { initial: PosData }) {
         onClose={() => setPickCustomer(false)}
         customers={data.customers}
         onPick={(c) => {
-          setCustomer(c);
+          chooseCustomer(c);
           setPickCustomer(false);
         }}
         onCreated={(c) => {
           setData((d) => ({ ...d, customers: [...d.customers, c] }));
-          setCustomer(c);
+          chooseCustomer(c);
           setPickCustomer(false);
         }}
       />

@@ -50,7 +50,7 @@ export function CustomerPicker({
     });
     setSaving(false);
     if (error) return setError(errorMessage(error));
-    onCreated({ id: data as string, code: "", name: name.trim(), phone: phone.trim() || null, creditLimit: 0, unlimited: false, balance: 0 });
+    onCreated({ id: data as string, code: "", name: name.trim(), phone: phone.trim() || null, creditLimit: 0, unlimited: false, balance: 0, priceList: "perakende" });
     setCreating(false);
     setName("");
     setPhone("");

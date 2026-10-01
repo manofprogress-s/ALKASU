@@ -2,38 +2,129 @@
 import { z } from "zod";
 import { getContext } from "@/lib/session";
 import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
-import { SITE_URL } from "@/lib/env";
+import { loginEmail, normalizeUsername } from "@/lib/username";
+import { ROLES } from "@/lib/roles";
 
-const InviteSchema = z.object({
-  email: z.string().trim().toLowerCase().email("Geçerli bir e-posta girin"),
-  name: z.string().trim().min(2, "Ad en az 2 karakter olmalı"),
-  role: z.enum(["yonetici", "satis", "depo", "izleyici"]),
-});
+type Result = { ok: boolean; message: string };
 
-/** Kullanıcı daveti (T-021): yalnızca yönetici; service_role anahtarı yalnızca burada, sunucuda kullanılır. */
-export async function inviteUser(input: { email: string; name: string; role: string }): Promise<{ ok: boolean; message: string }> {
+const PasswordSchema = z
+  .string()
+  .min(8, "Geçici şifre en az 8 karakter olmalı")
+  .max(72, "Şifre çok uzun");
+
+const CreateSchema = z
+  .object({
+    login: z.string().trim().min(3, "Kullanıcı adı en az 3 karakter olmalı"),
+    name: z.string().trim().min(2, "Ad en az 2 karakter olmalı"),
+    role: z.enum(ROLES as [string, ...string[]]),
+    customerId: z.string().uuid().nullable(),
+    password: PasswordSchema,
+  })
+  .refine((v) => v.role !== "bayi" || !!v.customerId, { message: "Bayi kullanıcısı için bayi müşteri kartını seçin", path: ["customerId"] })
+  .refine((v) => v.login.includes("@") || normalizeUsername(v.login).length >= 3, { message: "Kullanıcı adı yalnızca harf ve rakam içermeli", path: ["login"] });
+
+function serviceKeyMissing(): Result | null {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? null
+    : { ok: false, message: "Sunucu ayarı eksik: SUPABASE_SERVICE_ROLE_KEY Vercel ortam değişkenlerine eklenmeli (bkz. docs/SETUP.md)." };
+}
+
+async function findUserId(email: string): Promise<string | null> {
+  const admin = supabaseAdmin();
+  for (let page = 1; page <= 20; page++) {
+    const { data } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    const hit = data.users.find((u) => u.email?.toLowerCase() === email);
+    if (hit) return hit.id;
+    if (data.users.length < 200) break;
+  }
+  return null;
+}
+
+/**
+ * Kullanıcı oluşturma (R-08, T-029): yalnızca yönetici. Kullanıcı adı ve geçici şifreyle hesap açılır,
+ * ilk girişte şifre değiştirmek zorunludur. service_role anahtarı yalnızca burada, sunucuda kullanılır.
+ */
+export async function createUser(input: {
+  login: string;
+  name: string;
+  role: string;
+  customerId: string | null;
+  password: string;
+}): Promise<Result> {
   const ctx = await getContext();
   if (ctx.role !== "yonetici") return { ok: false, message: "Bu işlem için yetkiniz yok" };
-  const parsed = InviteSchema.safeParse(input);
+  const missing = serviceKeyMissing();
+  if (missing) return missing;
+  const parsed = CreateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Geçersiz bilgi" };
-  const { email, name, role } = parsed.data;
+  const { login, name, role, customerId, password } = parsed.data;
+  const email = loginEmail(login);
+  const username = login.includes("@") ? null : normalizeUsername(login);
   const admin = supabaseAdmin();
 
   let userId: string | null = null;
-  const inv = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${SITE_URL}/auth/callback` });
-  if (inv.data?.user) userId = inv.data.user.id;
-  else if (inv.error && /already|registered|exists/i.test(inv.error.message)) {
-    for (let page = 1; page <= 20 && !userId; page++) {
-      const { data } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-      userId = data.users.find((u) => u.email?.toLowerCase() === email)?.id ?? null;
-      if (data.users.length < 200) break;
-    }
-  } else if (inv.error) return { ok: false, message: inv.error.message };
+  let created = false;
+  const res = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { display_name: name, username },
+  });
+  if (res.data?.user) {
+    userId = res.data.user.id;
+    created = true;
+  } else if (res.error && /already|registered|exists/i.test(res.error.message)) {
+    userId = await findUserId(email);
+  } else if (res.error) {
+    return { ok: false, message: res.error.message };
+  }
   if (!userId) return { ok: false, message: "Kullanıcı oluşturulamadı" };
 
-  // Üyeliği, yöneticinin kendi yetkisiyle ekle (veritabanı yetki kontrolü de yapar)
+  // Üyelik, yöneticinin kendi oturumuyla eklenir (veritabanı yetkiyi tekrar kontrol eder)
   const supabase = await supabaseServer();
-  const { error } = await supabase.rpc("add_member", { p_business: ctx.businessId, p_user: userId, p_role: role, p_name: name });
+  const { error } = await supabase.rpc("add_member", {
+    p_business: ctx.businessId,
+    p_user: userId,
+    p_role: role,
+    p_name: name,
+    p_customer: role === "bayi" ? customerId : null,
+    p_username: username,
+    p_must_change: created,
+  });
+  if (error) {
+    if (created) await admin.auth.admin.deleteUser(userId); // yarım hesap bırakma
+    return { ok: false, message: error.message };
+  }
+  return {
+    ok: true,
+    message: created
+      ? `Kullanıcı oluşturuldu. Giriş: ${username ?? email} — ilk girişte şifresini değiştirecek.`
+      : "Bu kullanıcı zaten vardı; işletmeye eklendi (şifresi değişmedi).",
+  };
+}
+
+/** Yönetici bir kullanıcıya yeni geçici şifre verir; kullanıcı ilk girişte değiştirmek zorundadır. */
+export async function resetUserPassword(input: { membershipId: string; password: string }): Promise<Result> {
+  const ctx = await getContext();
+  if (ctx.role !== "yonetici") return { ok: false, message: "Bu işlem için yetkiniz yok" };
+  const missing = serviceKeyMissing();
+  if (missing) return missing;
+  const pw = PasswordSchema.safeParse(input.password);
+  if (!pw.success) return { ok: false, message: pw.error.issues[0]?.message ?? "Geçersiz şifre" };
+
+  const supabase = await supabaseServer();
+  const { data: m } = await supabase
+    .from("memberships")
+    .select("user_id")
+    .eq("id", input.membershipId)
+    .eq("business_id", ctx.businessId)
+    .maybeSingle();
+  if (!m) return { ok: false, message: "Kullanıcı bulunamadı" };
+  if (m.user_id === ctx.userId) return { ok: false, message: "Kendi şifrenizi Şifre değiştir sayfasından değiştirin" };
+
+  const { error: rpcError } = await supabase.rpc("require_password_change", { p_membership: input.membershipId });
+  if (rpcError) return { ok: false, message: rpcError.message };
+  const { error } = await supabaseAdmin().auth.admin.updateUserById(m.user_id as string, { password: pw.data });
   if (error) return { ok: false, message: error.message };
-  return { ok: true, message: inv.data?.user ? "Davet e-postası gönderildi" : "Mevcut kullanıcı işletmeye eklendi" };
+  return { ok: true, message: "Geçici şifre verildi; kullanıcı girişte yeni şifre belirleyecek." };
 }

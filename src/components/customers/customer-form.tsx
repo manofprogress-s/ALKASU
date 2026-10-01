@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
-import { Field, Input, Textarea } from "@/components/ui/field";
+import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { CHANNELS, PRICE_LISTS, type Channel, type PriceList } from "@/lib/roles";
 import { useAppContext } from "@/components/shell/context";
 import { useToast } from "@/components/ui/toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -13,13 +14,19 @@ import { parseAmount } from "@/lib/format";
 export interface CustomerValue {
   id?: string; code: string; name: string; phone: string | null; address: string | null; tax_no: string | null; note: string | null;
   credit_limit: number; unlimited_credit: boolean; active: boolean;
+  channel: Channel; price_list: PriceList; regions: string | null; default_assignee: string | null;
 }
 
-export function CustomerForm({ initial, canSetLimit }: { initial: CustomerValue | null; canSetLimit: boolean }) {
+export interface AssigneeOption {
+  user_id: string;
+  display_name: string;
+}
+
+export function CustomerForm({ initial, canSetLimit, assignees = [] }: { initial: CustomerValue | null; canSetLimit: boolean; assignees?: AssigneeOption[] }) {
   const ctx = useAppContext();
   const router = useRouter();
   const toast = useToast();
-  const [v, setV] = useState<CustomerValue>(initial ?? { code: "", name: "", phone: "", address: "", tax_no: "", note: "", credit_limit: 0, unlimited_credit: false, active: true });
+  const [v, setV] = useState<CustomerValue>(initial ?? { code: "", name: "", phone: "", address: "", tax_no: "", note: "", credit_limit: 0, unlimited_credit: false, active: true, channel: "perakende", price_list: "perakende", regions: "", default_assignee: null });
   const [limit, setLimit] = useState(String(v.credit_limit).replace(".", ","));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +55,26 @@ export function CustomerForm({ initial, canSetLimit }: { initial: CustomerValue 
         <Field label="Telefon"><Input inputMode="tel" value={v.phone ?? ""} onChange={(e) => set("phone", e.target.value)} /></Field>
         <Field label="Vergi no"><Input value={v.tax_no ?? ""} onChange={(e) => set("tax_no", e.target.value)} /></Field>
         <Field label="Adres / teslimat notu" className="md:col-span-2"><Textarea value={v.address ?? ""} onChange={(e) => set("address", e.target.value)} /></Field>
+        <Field label="Kanal">
+          <Select value={v.channel} onChange={(e) => {
+            const ch = e.target.value as Channel;
+            setV((x) => ({ ...x, channel: ch, price_list: canSetLimit && ch === "bayi" && x.price_list === "perakende" ? "bayi" : x.price_list }));
+          }}>
+            {(Object.keys(CHANNELS) as Channel[]).map((k) => <option key={k} value={k}>{CHANNELS[k]}</option>)}
+          </Select>
+        </Field>
+        <Field label="Fiyat listesi" hint={canSetLimit ? "Satış ve siparişte bu liste uygulanır" : "Yalnızca yönetici değiştirir"}>
+          <Select value={v.price_list} disabled={!canSetLimit} onChange={(e) => set("price_list", e.target.value as PriceList)}>
+            {(Object.keys(PRICE_LISTS) as PriceList[]).map((k) => <option key={k} value={k}>{PRICE_LISTS[k]}</option>)}
+          </Select>
+        </Field>
+        <Field label="Bölgeler" hint="Örn. Kartepe, Sapanca"><Input value={v.regions ?? ""} onChange={(e) => set("regions", e.target.value)} /></Field>
+        <Field label="Varsayılan sevkiyat sorumlusu" hint="Bu müşterinin siparişleri otomatik atanır">
+          <Select value={v.default_assignee ?? ""} onChange={(e) => set("default_assignee", e.target.value || null)}>
+            <option value="">Yok</option>
+            {assignees.map((a) => <option key={a.user_id} value={a.user_id}>{a.display_name}</option>)}
+          </Select>
+        </Field>
         {canSetLimit ? (
           <>
             <Field label="Veresiye limiti ₺" hint="0 = veresiye kapalı"><Input inputMode="decimal" value={limit} disabled={v.unlimited_credit} onChange={(e) => setLimit(e.target.value)} /></Field>

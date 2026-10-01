@@ -20,13 +20,15 @@ export default function SetPasswordPage() {
     const { error } = await supabaseBrowser().auth.updateUser({ password: p1 });
     setLoading(false);
     if (error) return setError(errorMessage(error));
+    await supabaseBrowser().rpc("password_changed"); // R-08: ilk giriş zorunluluğu kalkar
     window.location.href = "/";
   }
 
   return (
     <main className="flex min-h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-sm p-6">
-        <h1 className="mb-4 text-xl font-semibold">Şifrenizi belirleyin</h1>
+        <h1 className="mb-2 text-xl font-semibold">Şifrenizi belirleyin</h1>
+        <p className="mb-4 text-sm text-muted">Size verilen geçici şifre yerine yalnızca sizin bildiğiniz yeni bir şifre belirleyin.</p>
         <form onSubmit={submit} className="space-y-4">
           <Field label="Yeni şifre" hint="En az 8 karakter">
             <Input type="password" autoComplete="new-password" value={p1} onChange={(e) => setP1(e.target.value)} />

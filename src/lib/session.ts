@@ -14,6 +14,8 @@ export interface AppContext {
   membershipId: string;
   role: Role;
   displayName: string;
+  customerId: string | null;
+  mustChangePassword: boolean;
 }
 
 interface ContextRow {
@@ -23,6 +25,8 @@ interface ContextRow {
   membership_id: string;
   role: Role;
   display_name: string;
+  customer_id: string | null;
+  must_change_password: boolean | null;
 }
 
 /** Oturumdaki kullanıcının işletme bağlamı. Oturum yoksa girişe, üyelik yoksa uyarı sayfasına yönlendirir. */
@@ -46,6 +50,8 @@ export const getContext = cache(async (): Promise<AppContext> => {
     membershipId: row.membership_id,
     role: row.role,
     displayName: row.display_name,
+    customerId: row.customer_id ?? null,
+    mustChangePassword: !!row.must_change_password,
   };
 });
 

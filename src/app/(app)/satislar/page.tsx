@@ -47,7 +47,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
     <div>
       <PageHeader
         title="Satışlar"
-        subtitle={`${rows.length} fiş · ${formatTRY(total)}${ctx.role === "satis" ? " · yalnızca sizin satışlarınız" : ""}`}
+        subtitle={`${rows.length} fiş · ${formatTRY(total)}${ctx.role === "satis" || ctx.role === "sevkiyat" ? " · yalnızca sizin satışlarınız" : ""}`}
         actions={<Link href="/satislar/bekleyen" className="text-sm text-brand">Gönderilmeyenler →</Link>}
       />
       <DateFilter from={from} to={to} />

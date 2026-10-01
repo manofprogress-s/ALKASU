@@ -1,25 +1,30 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Card, PageHeader, Stat } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
 import { formatDateTime, formatTRY } from "@/lib/format";
-import { CustomerForm } from "@/components/customers/customer-form";
+import { CustomerForm, type AssigneeOption } from "@/components/customers/customer-form";
+import { Badge } from "@/components/ui/card";
+import { CHANNELS, PRICE_LISTS, type Channel, type PriceList } from "@/lib/roles";
 import { CustomerActions } from "@/components/customers/customer-actions";
 import { ExportButton } from "@/components/reports/export-button";
 
 export default async function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requirePermission("customers");
   const { id } = await params;
+  const supabase = await supabaseServer();
+  const { data: au } = await supabase.rpc("assignable_users", { p_business: ctx.businessId });
+  const assignees = (au ?? []) as AssigneeOption[];
   if (id === "yeni") {
     return (
       <div className="space-y-4">
         <PageHeader title="Yeni müşteri" />
-        <CustomerForm initial={null} canSetLimit={ctx.role === "yonetici"} />
+        <CustomerForm initial={null} canSetLimit={ctx.role === "yonetici"} assignees={assignees} />
       </div>
     );
   }
-  const supabase = await supabaseServer();
   const [{ data: c }, { data: sum }, { data: st }, { data: pays }] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).maybeSingle(),
     supabase.rpc("customer_summary", { p_customer: id }),
@@ -32,7 +37,18 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-4">
-      <PageHeader title={c.name} subtitle={`${c.code}${c.phone ? ` · ${c.phone}` : ""}`} />
+      <PageHeader
+        title={c.name}
+        subtitle={
+          <span className="flex flex-wrap items-center gap-2">
+            {c.code}{c.phone ? ` · ${c.phone}` : ""}
+            <Badge tone={c.channel === "bayi" ? "brand" : "neutral"}>{CHANNELS[c.channel as Channel]}</Badge>
+            {c.price_list !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[c.price_list as PriceList]} fiyatı</Badge> : null}
+            {c.regions ? <span className="text-xs">Bölge: {c.regions}</span> : null}
+          </span>
+        }
+        actions={<Link href={`/siparisler/yeni?musteri=${c.id}`} className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Sipariş gir</Link>}
+      />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Veresiye bakiyesi" value={formatTRY(summary.balance)} tone={summary.balance > 0 ? "warn" : undefined} />
         <Stat label="Limit" value={c.unlimited_credit ? "Limitsiz" : formatTRY(c.credit_limit)} />
@@ -65,9 +81,10 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
       <details className="rounded-2xl border border-border bg-surface p-4">
         <summary className="cursor-pointer font-semibold">Müşteri bilgilerini düzenle</summary>
         <div className="mt-3">
-          <CustomerForm canSetLimit={ctx.role === "yonetici"} initial={{
+          <CustomerForm canSetLimit={ctx.role === "yonetici"} assignees={assignees} initial={{
             id: c.id, code: c.code, name: c.name, phone: c.phone, address: c.address, tax_no: c.tax_no, note: c.note,
             credit_limit: Number(c.credit_limit), unlimited_credit: c.unlimited_credit, active: c.active,
+            channel: c.channel, price_list: c.price_list, regions: c.regions, default_assignee: c.default_assignee,
           }} />
         </div>
       </details>

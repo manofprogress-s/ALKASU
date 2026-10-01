@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getContext } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Badge, PageHeader, Stat } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
@@ -20,7 +20,7 @@ interface Row {
 const SPEED: Record<string, string> = { hizli: "Hızlı", yavas: "Yavaş", normal: "Normal" };
 
 export default async function StockPage({ searchParams }: { searchParams: Promise<{ q?: string; durum?: string; hiz?: string }> }) {
-  const ctx = await getContext();
+  const ctx = await requirePermission("catalog");
   const sp = await searchParams;
   const supabase = await supabaseServer();
   const { data, error } = await supabase.rpc("report_stock", { p_business: ctx.businessId, p_days: 30 });

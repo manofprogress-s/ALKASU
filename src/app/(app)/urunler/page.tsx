@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getContext } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Badge, PageHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
@@ -16,7 +16,7 @@ interface Row {
 }
 
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ q?: string; pasif?: string }> }) {
-  const ctx = await getContext();
+  const ctx = await requirePermission("catalog");
   const sp = await searchParams;
   const supabase = await supabaseServer();
   let q = supabase
@@ -38,6 +38,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         subtitle={`${rows.length} ürün`}
         actions={admin ? (
           <>
+            <Link href="/urunler/fiyatlar" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Fiyat listeleri</Link>
             <Link href="/urunler/ice-aktar" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Excel&apos;den aktar</Link>
             <Link href="/urunler/yeni" className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Yeni ürün</Link>
           </>

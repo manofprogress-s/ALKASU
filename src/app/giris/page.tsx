@@ -7,6 +7,7 @@ import { Alert, Card } from "@/components/ui/card";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { SITE_URL } from "@/lib/env";
+import { loginEmail } from "@/lib/username";
 
 function LoginForm() {
   const params = useSearchParams();
@@ -20,10 +21,10 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await supabaseBrowser().auth.signInWithPassword({ email: email.trim(), password });
+    const { error } = await supabaseBrowser().auth.signInWithPassword({ email: loginEmail(email), password });
     setLoading(false);
     if (error) {
-      setError(/invalid login/i.test(error.message) ? "E-posta veya şifre hatalı." : errorMessage(error));
+      setError(/invalid login/i.test(error.message) ? "Kullanıcı adı veya şifre hatalı." : errorMessage(error));
       return;
     }
     const next = params.get("next");
@@ -33,6 +34,10 @@ function LoginForm() {
   async function reset() {
     if (!email.trim()) {
       setError("Şifre sıfırlama için önce e-posta adresinizi yazın.");
+      return;
+    }
+    if (!email.includes("@")) {
+      setError("Kullanıcı adıyla giriş yapanların şifresini yönetici sıfırlar. Lütfen yöneticinize başvurun.");
       return;
     }
     setError(null);
@@ -45,8 +50,8 @@ function LoginForm() {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <Field label="E-posta">
-        <Input type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+      <Field label="Kullanıcı adı veya e-posta">
+        <Input type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
       <Field label="Şifre">
         <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />

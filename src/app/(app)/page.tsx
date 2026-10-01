@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ShoppingCart, Truck } from "lucide-react";
+import { AlertTriangle, ClipboardList, ShoppingCart, Truck } from "lucide-react";
 import { getContext } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Card, PageHeader, Stat } from "@/components/ui/card";
@@ -24,6 +24,12 @@ interface Dashboard {
   my_sales_count?: number;
   my_sales_total?: number;
   cash_session?: { status: string; expected_cash?: number; opening_cash?: number };
+  orders_today?: number;
+  my_open_orders?: number;
+  unassigned_orders?: number;
+  balance?: number;
+  open_orders?: number;
+  containers?: number;
 }
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ yetki?: string }> }) {
@@ -44,7 +50,28 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <ShoppingCart className="h-6 w-6" /> Yeni satış
         </Link>
       ) : null}
-      {ctx.role === "depo" ? (
+      {ctx.role === "bayi" ? (
+        <>
+          <Link href="/siparisler/yeni" className="flex items-center justify-center gap-3 rounded-2xl bg-brand p-5 text-lg font-semibold text-white shadow-sm active:scale-[0.99]">
+            <ClipboardList className="h-6 w-6" /> Yeni sipariş
+          </Link>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            <Stat label="Cari bakiyem" value={formatTRY(d.balance)} hint={<Link href="/hesabim" className="text-brand">Ekstre →</Link>} tone={(d.balance ?? 0) > 0 ? "warn" : undefined} />
+            <Stat label="Açık siparişlerim" value={d.open_orders ?? 0} hint={<Link href="/siparisler" className="text-brand">Siparişler →</Link>} />
+            <Stat label="Bendeki damacana/kap" value={d.containers ?? 0} />
+          </div>
+        </>
+      ) : null}
+      {ctx.role !== "bayi" && d.my_open_orders !== undefined && can(ctx.role, "orders") ? (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <Stat label="Bana atanan açık sipariş" value={d.my_open_orders ?? 0} hint={<Link href="/siparisler?atanan=ben" className="text-brand">Teslimatlarım →</Link>} tone={d.my_open_orders ? "warn" : undefined} />
+          <Stat label="Bugün teslim edilecek" value={d.orders_today ?? 0} hint={<Link href="/siparisler" className="text-brand">Siparişler →</Link>} />
+          {d.unassigned_orders !== undefined ? (
+            <Stat label="Atanmamış sipariş" value={d.unassigned_orders} hint={<Link href="/siparisler?atanan=yok" className="text-brand">Ata →</Link>} tone={d.unassigned_orders ? "warn" : undefined} />
+          ) : null}
+        </div>
+      ) : null}
+      {ctx.role === "depo" || ctx.role === "sevkiyat" ? (
         <Link href="/mal-kabul/yeni" className="flex items-center justify-center gap-3 rounded-2xl bg-brand p-5 text-lg font-semibold text-white">
           <Truck className="h-6 w-6" /> Mal kabul
         </Link>
@@ -92,7 +119,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </Link>
       ) : null}
       {d.offline_limit_alerts ? (
-        <Alert tone="warn">Son 7 günde {d.offline_limit_alerts} çevrimdışı satış veresiye limitini aştı.</Alert>
+        <Alert tone="warn">Son 7 günde {d.offline_limit_alerts} satış (çevrimdışı satış veya sipariş teslimatı) veresiye limitini aştı.</Alert>
       ) : null}
     </div>
   );

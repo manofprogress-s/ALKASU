@@ -41,15 +41,15 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
     const [{ data: cost }, { data: ch }, { data: ph }] = await Promise.all([
       supabase.from("product_costs").select("avg_cost, has_cost").eq("product_id", id).maybeSingle(),
       supabase.from("cost_history").select("old_cost, new_cost, source, created_at").eq("product_id", id).order("created_at", { ascending: false }).limit(20),
-      supabase.from("product_prices").select("price, valid_from, product_units!inner(name, product_id)").eq("product_units.product_id", id).order("valid_from", { ascending: false }).limit(20),
+      supabase.from("product_prices").select("price, price_list, valid_from, product_units!inner(name, product_id)").eq("product_units.product_id", id).order("valid_from", { ascending: false }).limit(20),
     ]);
     avgCost = cost?.has_cost ? Number(cost.avg_cost) : null;
     history = [
       ...((ch ?? []) as { old_cost: number | null; new_cost: number; source: string; created_at: string }[]).map((c) => ({
         at: c.created_at, text: `Maliyet ${c.old_cost === null ? "" : `${formatTRY(c.old_cost)} → `}${formatTRY(c.new_cost)} (${c.source === "mal_kabul" ? "mal kabul" : c.source})`,
       })),
-      ...((ph ?? []) as unknown as { price: number | null; valid_from: string; product_units: { name: string } }[]).map((p) => ({
-        at: p.valid_from, text: `${p.product_units.name} satış fiyatı ${p.price === null ? "kaldırıldı" : formatTRY(p.price)}`,
+      ...((ph ?? []) as unknown as { price: number | null; price_list: string | null; valid_from: string; product_units: { name: string } }[]).map((p) => ({
+        at: p.valid_from, text: `${p.product_units.name} ${p.price_list && p.price_list !== "perakende" ? `${p.price_list} fiyatı` : "satış fiyatı"} ${p.price === null ? "kaldırıldı" : formatTRY(p.price)}`,
       })),
     ].sort((a, b) => b.at.localeCompare(a.at));
   }
