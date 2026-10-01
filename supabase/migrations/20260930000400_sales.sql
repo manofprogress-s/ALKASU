@@ -638,7 +638,7 @@ begin
       update _sale_lines set share = v_share where line_no = rec.line_no;
     end loop;
   end if;
-  update _sale_lines set line_net = line_gross - line_discount - share;
+  update _sale_lines set line_net = line_gross - line_discount - share where true;  -- pg_safeupdate: WHERE zorunlu
   select coalesce(sum(line_net), 0) into v_goods_net from _sale_lines;
 
   -- F-06: indirim limiti
