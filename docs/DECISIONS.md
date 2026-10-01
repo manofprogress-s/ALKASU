@@ -77,3 +77,16 @@
 | T-027 | Çevrimdışı satış ekranı: katalog ve müşteri listesi IndexedDB'de önbelleğe alınır; `/` ve `/satis` sayfaları service worker ile çevrimdışı açılır. Çıkışta tüm önbellek silinir. | D-004, C-01..C-05. Paylaşılan cihazda veri sızıntısını önler. |
 | D-029 | Fazla getirilen boş kap için geri verilen depozito, müşterinin **ödediği ortalama depozito** üzerinden hesaplanır (güncel depozito tutarı değil). | Depozito tutarı zamanla değişirse müşteriye ödediğinden fazla/az iade yapılmaz. |
 | D-030 | Kasa kapanışında POS farkı kaydedilir ama açıklama zorunlu değildir; nakit farkı tolerans üstündeyse zorunludur. | POS farkı çoğunlukla gün sonu/batch zamanlamasından kaynaklanır. |
+
+## Gerçek ürün listesine geçiş (01.10.2026)
+
+| Kod | Karar | Durum |
+|---|---|---|
+| D-031 | Listede verilen fiyatlar **paket/koli fiyatıdır**. Stok şişe/bidon cinsinden tutulur; tek şişe fiyatı tanımlanmadığı için tek şişe satılmaz (gerekirse ürün kartından fiyat eklenir). | ✅ |
+| D-032 | Paket içerikleri: 0,33 L → 12, 0,5 L → 12, 1 L → 12, 1,5 L → 6, 5 L → 2 bidon, bardak su → 60'lı koli, Beypazarı → 24'lü koli. 0,33/1,5/5 L kullanıcıdan; diğerleri tahmin. | 🔁 0,5 L, 1 L, bardak, Beypazarı teyit edilecek |
+| D-033 | Damacana fiyatı **değişim fiyatıdır** (boş getir, dolu götür). Her marka ayrı boş kap ürünüyle izlenir. 19 L Pet kullan-at, depozitosuz. | ✅ |
+| D-034 | Başlangıç stoğu: her damacana ürünü 30 palet × 36 = 1080; diğer her ürün 1 palet = 200 paket/koli/adet (geçici, sayımla düzeltilecek). | 🔁 |
+| D-035 | Damacana depozito tutarı **geçici olarak 250 ₺** (kullanıcı tutar belirtmedi). | 🔁 teyit edilecek |
+| D-036 | Tüpler (küçük/büyük) damacana gibi depozitolu: fiyat boş getir dolu götür fiyatı; depozito küçük 500 ₺, büyük 1500 ₺. | ✅ |
+| D-037 | KDV: su ve damacana %1, Beypazarı maden suyu %10, tüp/pompa/bardak %20. Beypazarı Sade alış 230 ₺ (yazım düzeltmesi). | 🔁 maden suyu oranı muhasebeciyle teyit |
+| D-038 | Deneme verisi (ürün, müşteri, satış, kasa, işlem geçmişi) kullanıcı onayıyla silindi; işletme adı "Alay Ticaret". | ✅ |
