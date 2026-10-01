@@ -7,6 +7,8 @@ import { formatDate, formatDateTime, formatTRY } from "@/lib/format";
 import { loadAssignees, ORDER_STATUS, type OrderStatus } from "@/lib/orders";
 import { can, PRICE_LISTS, type PriceList } from "@/lib/roles";
 import { OrderActions, type DeliverItem } from "@/components/orders/order-actions";
+import { LocationView } from "@/components/geo/location-view";
+import { toLatLng } from "@/lib/geo";
 
 interface OrderRow {
   id: string;
@@ -25,7 +27,7 @@ interface OrderRow {
   sale_id: string | null;
   cancelled_at: string | null;
   cancel_reason: string | null;
-  customers: { name: string; code: string; phone: string | null; credit_limit: number; unlimited_credit: boolean } | null;
+  customers: { name: string; code: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; latitude: number | null; longitude: number | null } | null;
   order_items: {
     id: string;
     line_no: number;
@@ -45,7 +47,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const { data } = await supabase
     .from("orders")
     .select(
-      "*, customers(name, code, phone, credit_limit, unlimited_credit), order_items(id, line_no, product_id, unit_id, qty, unit_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
+      "*, customers(name, code, phone, credit_limit, unlimited_credit, latitude, longitude), order_items(id, line_no, product_id, unit_id, qty, unit_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -105,6 +107,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             {o.customers?.phone ? <div className="text-sm"><a className="text-brand" href={`tel:${o.customers.phone}`}>{o.customers.phone}</a></div> : null}
           </div>
           {o.address ? <div><div className="text-sm text-muted">Adres</div><div className="whitespace-pre-line">{o.address}</div></div> : null}
+          <LocationView point={toLatLng(o.customers?.latitude, o.customers?.longitude)} />
           {o.note ? <div><div className="text-sm text-muted">Not</div><div>{o.note}</div></div> : null}
           <table className="w-full text-sm">
             <thead className="text-left text-xs text-muted">

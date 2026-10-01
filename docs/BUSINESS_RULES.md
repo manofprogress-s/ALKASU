@@ -202,3 +202,9 @@
 - **R-06** **Sevkiyat** (depo yöneticisi): depo ve satış personelinin tüm yetkilerine sahiptir; kendisine atanan siparişleri teslim edip kapatır. Maliyet ve kâr göremez.
 - **R-07** **Bayi**: yalnızca kendi müşteri kartını, carisini, ekstresini, kap bakiyesini, kendisine yapılan satışları ve kendi siparişlerini görür. Sipariş verebilir ve açık siparişini iptal edebilir; fiyat belirleyemez, atama yapamaz, satış yapamaz.
 - **R-08** Kullanıcılar kullanıcı adı ve geçici şifreyle oluşturulur; ilk girişte şifre değiştirmek zorunludur. Kullanıcıyı yalnızca yönetici oluşturur ve geçici şifre atar.
+
+## 19. Konum, tedarikçi ve müşteri ekipmanı
+
+- **G-10** Müşteri ve tedarikçi kartında adres, telefon ve konum (enlem/boylam) tutulur. Konum Google Maps bağlantısı, koordinat veya cihazın bulunduğu konumla girilir; kartta "Haritada aç" ve "Yol tarifi" bağlantıları gösterilir. Siparişte müşterinin konumu teslim edecek kişiye gösterilir.
+- **G-11** Müşteri kanalları ekranda **Ev müşterisi**, **Kurumsal** ve **Bayi** olarak gruplanır.
+- **G-12** Kurumsal müşterilerde müşterideki **sebil** sayısı ve **damacana/kap** sayısı tutulur. Kap sayısı satış ve iade hareketleriyle kendiliğinden değişir; açılış ve sayım farkını yalnızca yönetici "Kap sayısını düzelt" ile girer. Düzeltme fark hareketi olarak yazılır, geçmiş silinmez, depo stoğunu etkilemez.

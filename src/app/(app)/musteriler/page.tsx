@@ -16,14 +16,14 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const supabase = await supabaseServer();
   const [{ data: cs }, { data: bal }, { data: cont }] = await Promise.all([
-    supabase.from("customers").select("id, code, name, phone, credit_limit, unlimited_credit, active, channel, price_list, regions").eq("business_id", ctx.businessId).order("name"),
+    supabase.from("customers").select("id, code, name, phone, credit_limit, unlimited_credit, active, channel, price_list, regions, dispenser_count").eq("business_id", ctx.businessId).order("name"),
     supabase.from("customer_balances").select("customer_id, balance").eq("business_id", ctx.businessId),
     supabase.from("container_balances").select("customer_id, qty").eq("business_id", ctx.businessId),
   ]);
   const b = new Map((bal ?? []).map((x: { customer_id: string; balance: number }): [string, number] => [x.customer_id, Number(x.balance)]));
   const k = new Map<string, number>();
   for (const c of (cont ?? []) as { customer_id: string | null; qty: number }[]) if (c.customer_id) k.set(c.customer_id, (k.get(c.customer_id) ?? 0) + c.qty);
-  let rows = ((cs ?? []) as { id: string; code: string; name: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; active: boolean; channel: Channel; price_list: PriceList; regions: string | null }[])
+  let rows = ((cs ?? []) as { id: string; code: string; name: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; active: boolean; channel: Channel; price_list: PriceList; regions: string | null; dispenser_count: number }[])
     .map((c) => ({ ...c, balance: b.get(c.id) ?? 0, containers: k.get(c.id) ?? 0 }));
   if (sp.q) { const s = searchKey(sp.q); const d = sp.q.replace(/\D/g, ""); rows = rows.filter((r) => searchKey(`${r.name} ${r.code}`).includes(s) || (d.length >= 3 && (r.phone ?? "").replace(/\D/g, "").includes(d))); }
   if (sp.borclu) rows = rows.filter((r) => r.balance > 0);
@@ -33,10 +33,11 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   return (
     <div>
       <PageHeader title="Müşteriler" subtitle={`${rows.length} müşteri · alacak ${formatTRY(totalDebt)}`}
-        actions={<Link href="/musteriler/yeni" className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Yeni müşteri</Link>} />
+        actions={<Link href={`/musteriler/yeni${sp.kanal ? `?kanal=${sp.kanal}` : ""}`} className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Yeni müşteri</Link>} />
       <div className="no-print mb-3 flex gap-2">
         <Link href="/musteriler" className={`rounded-full px-3 py-1.5 text-sm ${!sp.borclu && !sp.kanal ? "bg-brand text-white" : "bg-surface-2"}`}>Tümü</Link>
         <Link href="/musteriler?borclu=1" className={`rounded-full px-3 py-1.5 text-sm ${sp.borclu ? "bg-brand text-white" : "bg-surface-2"}`}>Borçlular</Link>
+        <Link href="/musteriler?kanal=perakende" className={`rounded-full px-3 py-1.5 text-sm ${sp.kanal === "perakende" ? "bg-brand text-white" : "bg-surface-2"}`}>Ev müşterileri</Link>
         <Link href="/musteriler?kanal=bayi" className={`rounded-full px-3 py-1.5 text-sm ${sp.kanal === "bayi" ? "bg-brand text-white" : "bg-surface-2"}`}>Bayiler</Link>
         <Link href="/musteriler?kanal=kurumsal" className={`rounded-full px-3 py-1.5 text-sm ${sp.kanal === "kurumsal" ? "bg-brand text-white" : "bg-surface-2"}`}>Kurumsal</Link>
       </div>
@@ -55,6 +56,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           { key: "bal", label: "Bakiye", align: "right", render: (r) => <span className={r.balance > 0 ? "text-warn" : ""}>{formatTRY(r.balance)}</span> },
           { key: "lim", label: "Limit", align: "right", render: (r) => (r.unlimited_credit ? "Limitsiz" : formatTRY(r.credit_limit)) },
           { key: "k", label: "Kap", align: "right", render: (r) => r.containers || "—" },
+          { key: "sb", label: "Sebil", align: "right", hideOnMobile: true, render: (r) => r.dispenser_count || "—" },
         ]}
         empty="Müşteri yok" />
     </div>

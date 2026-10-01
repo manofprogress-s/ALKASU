@@ -46,5 +46,5 @@ export function can(role: Role | null | undefined, p: Permission): boolean {
 export const PRICE_LISTS = { perakende: "Perakende", bayi: "Bayi", palet: "Palet" } as const;
 export type PriceList = keyof typeof PRICE_LISTS;
 
-export const CHANNELS = { perakende: "Perakende", kurumsal: "Kurumsal", bayi: "Bayi" } as const;
+export const CHANNELS = { perakende: "Ev müşterisi", kurumsal: "Kurumsal", bayi: "Bayi" } as const;
 export type Channel = keyof typeof CHANNELS;

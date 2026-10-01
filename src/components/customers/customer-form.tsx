@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { CHANNELS, PRICE_LISTS, type Channel, type PriceList } from "@/lib/roles";
+import { LocationField } from "@/components/geo/location-field";
+import type { LatLng } from "@/lib/geo";
 import { useAppContext } from "@/components/shell/context";
 import { useToast } from "@/components/ui/toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -15,6 +17,7 @@ export interface CustomerValue {
   id?: string; code: string; name: string; phone: string | null; address: string | null; tax_no: string | null; note: string | null;
   credit_limit: number; unlimited_credit: boolean; active: boolean;
   channel: Channel; price_list: PriceList; regions: string | null; default_assignee: string | null;
+  location: LatLng | null; dispenser_count: number;
 }
 
 export interface AssigneeOption {
@@ -22,11 +25,11 @@ export interface AssigneeOption {
   display_name: string;
 }
 
-export function CustomerForm({ initial, canSetLimit, assignees = [] }: { initial: CustomerValue | null; canSetLimit: boolean; assignees?: AssigneeOption[] }) {
+export function CustomerForm({ initial, canSetLimit, assignees = [], defaultChannel }: { initial: CustomerValue | null; canSetLimit: boolean; assignees?: AssigneeOption[]; defaultChannel?: string }) {
   const ctx = useAppContext();
   const router = useRouter();
   const toast = useToast();
-  const [v, setV] = useState<CustomerValue>(initial ?? { code: "", name: "", phone: "", address: "", tax_no: "", note: "", credit_limit: 0, unlimited_credit: false, active: true, channel: "perakende", price_list: "perakende", regions: "", default_assignee: null });
+  const [v, setV] = useState<CustomerValue>(initial ?? { code: "", name: "", phone: "", address: "", tax_no: "", note: "", credit_limit: 0, unlimited_credit: false, active: true, channel: defaultChannel && defaultChannel in CHANNELS ? (defaultChannel as Channel) : "perakende", price_list: "perakende", regions: "", default_assignee: null, location: null, dispenser_count: 0 });
   const [limit, setLimit] = useState(String(v.credit_limit).replace(".", ","));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +41,15 @@ export function CustomerForm({ initial, canSetLimit, assignees = [] }: { initial
     setError(null);
     const { data, error } = await supabaseBrowser().rpc("upsert_customer", {
       p_business: ctx.businessId,
-      p: { ...v, id: v.id ?? null, code: v.code || null, credit_limit: parseAmount(limit) ?? 0 },
+      p: {
+        ...v,
+        location: undefined,
+        id: v.id ?? null,
+        code: v.code || null,
+        credit_limit: parseAmount(limit) ?? 0,
+        latitude: v.location?.lat ?? null,
+        longitude: v.location?.lng ?? null,
+      },
     });
     setSaving(false);
     if (error) return setError(errorMessage(error));
@@ -55,6 +66,9 @@ export function CustomerForm({ initial, canSetLimit, assignees = [] }: { initial
         <Field label="Telefon"><Input inputMode="tel" value={v.phone ?? ""} onChange={(e) => set("phone", e.target.value)} /></Field>
         <Field label="Vergi no"><Input value={v.tax_no ?? ""} onChange={(e) => set("tax_no", e.target.value)} /></Field>
         <Field label="Adres / teslimat notu" className="md:col-span-2"><Textarea value={v.address ?? ""} onChange={(e) => set("address", e.target.value)} /></Field>
+        <div className="md:col-span-2">
+          <LocationField value={v.location} onChange={(p) => set("location", p)} address={v.address} />
+        </div>
         <Field label="Kanal">
           <Select value={v.channel} onChange={(e) => {
             const ch = e.target.value as Channel;
@@ -68,6 +82,11 @@ export function CustomerForm({ initial, canSetLimit, assignees = [] }: { initial
             {(Object.keys(PRICE_LISTS) as PriceList[]).map((k) => <option key={k} value={k}>{PRICE_LISTS[k]}</option>)}
           </Select>
         </Field>
+        {v.channel !== "perakende" ? (
+          <Field label="Müşterideki sebil sayısı" hint="Bizim verdiğimiz sebil / su makinesi adedi">
+            <Input inputMode="numeric" value={String(v.dispenser_count)} onChange={(e) => set("dispenser_count", Number.parseInt(e.target.value.replace(/\D/g, "") || "0", 10))} />
+          </Field>
+        ) : null}
         <Field label="Bölgeler" hint="Örn. Kartepe, Sapanca"><Input value={v.regions ?? ""} onChange={(e) => set("regions", e.target.value)} /></Field>
         <Field label="Varsayılan sevkiyat sorumlusu" hint="Bu müşterinin siparişleri otomatik atanır">
           <Select value={v.default_assignee ?? ""} onChange={(e) => set("default_assignee", e.target.value || null)}>

@@ -9,9 +9,12 @@ import { CustomerForm, type AssigneeOption } from "@/components/customers/custom
 import { Badge } from "@/components/ui/card";
 import { CHANNELS, PRICE_LISTS, type Channel, type PriceList } from "@/lib/roles";
 import { CustomerActions } from "@/components/customers/customer-actions";
+import { ContainerAdjust } from "@/components/customers/container-adjust";
+import { LocationView } from "@/components/geo/location-view";
+import { toLatLng } from "@/lib/geo";
 import { ExportButton } from "@/components/reports/export-button";
 
-export default async function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CustomerPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ kanal?: string }> }) {
   const ctx = await requirePermission("customers");
   const { id } = await params;
   const supabase = await supabaseServer();
@@ -21,15 +24,16 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     return (
       <div className="space-y-4">
         <PageHeader title="Yeni müşteri" />
-        <CustomerForm initial={null} canSetLimit={ctx.role === "yonetici"} assignees={assignees} />
+        <CustomerForm initial={null} defaultChannel={(await searchParams).kanal} canSetLimit={ctx.role === "yonetici"} assignees={assignees} />
       </div>
     );
   }
-  const [{ data: c }, { data: sum }, { data: st }, { data: pays }] = await Promise.all([
+  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).maybeSingle(),
     supabase.rpc("customer_summary", { p_customer: id }),
     supabase.rpc("customer_statement", { p_customer: id }),
     supabase.from("customer_payments").select("id, method, amount, status, created_at, note").eq("customer_id", id).order("created_at", { ascending: false }).limit(20),
+    supabase.from("products").select("id, name").eq("business_id", ctx.businessId).not("deposit_amount", "is", null).eq("active", true).order("name"),
   ]);
   if (!c) notFound();
   const summary = sum as { balance: number; containers: { product_id: string; product_name: string; qty: number; amount: number }[] };
@@ -55,7 +59,21 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
         {summary.containers.map((k) => (
           <Stat key={k.product_id} label={`Elindeki kap · ${k.product_name}`} value={k.qty} hint={`Ödenen depozito ${formatTRY(k.amount)}`} />
         ))}
+        {c.channel !== "perakende" || c.dispenser_count > 0 ? <Stat label="Sebil" value={c.dispenser_count} /> : null}
       </div>
+      {c.address || c.latitude !== null ? (
+        <Card className="space-y-2">
+          {c.address ? <div className="whitespace-pre-line text-sm">{c.address}</div> : null}
+          <LocationView point={toLatLng(c.latitude, c.longitude)} />
+        </Card>
+      ) : null}
+      {ctx.role === "yonetici" ? (
+        <ContainerAdjust
+          customerId={c.id}
+          products={(depProducts ?? []) as { id: string; name: string }[]}
+          current={Object.fromEntries(summary.containers.map((k) => [k.product_id, k.qty]))}
+        />
+      ) : null}
       <CustomerActions
         customerId={c.id}
         isAdmin={ctx.role === "yonetici"}
@@ -85,6 +103,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
             id: c.id, code: c.code, name: c.name, phone: c.phone, address: c.address, tax_no: c.tax_no, note: c.note,
             credit_limit: Number(c.credit_limit), unlimited_credit: c.unlimited_credit, active: c.active,
             channel: c.channel, price_list: c.price_list, regions: c.regions, default_assignee: c.default_assignee,
+            location: toLatLng(c.latitude, c.longitude), dispenser_count: c.dispenser_count ?? 0,
           }} />
         </div>
       </details>

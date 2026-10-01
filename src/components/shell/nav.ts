@@ -17,6 +17,7 @@ export const NAV: NavItem[] = [
   { href: "/stok", label: "Stok", icon: "boxes", perm: "catalog", mobile: true },
   { href: "/musteriler", label: "Müşteriler", icon: "users", perm: "customers", mobile: true },
   { href: "/mal-kabul", label: "Mal kabul", icon: "truck", perm: "receiveGoods" },
+  { href: "/tedarikciler", label: "Tedarikçiler", icon: "factory", perm: "receiveGoods" },
   { href: "/urunler", label: "Ürünler", icon: "tag", perm: "catalog" },
   { href: "/kasa", label: "Kasa", icon: "wallet", perm: "cash" },
   { href: "/raporlar", label: "Raporlar", icon: "chart", perm: "reports" },

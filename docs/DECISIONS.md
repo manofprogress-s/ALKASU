@@ -111,3 +111,12 @@
 | Kod | Karar | Gerekçe |
 |---|---|---|
 | T-030 | Vercel sunucu fonksiyonları **fra1 (Frankfurt)** bölgesinde çalışır (`vercel.json` → `regions`). | Veritabanı Frankfurt'ta. Fonksiyonlar varsayılan iad1'de (ABD) çalışırken her sorgu Atlantik'i geçiyordu (~90 ms × sayfa başına 5-10 sorgu). |
+
+## Konum, tedarikçiler, müşteri grupları (01.10.2026)
+
+| Kod | Karar | Durum |
+|---|---|---|
+| D-047 | Konum Google Maps ile **API anahtarsız** çalışır: koordinat bağlantıdan ayrıştırılır, kısa bağlantılar (maps.app.goo.gl) sunucuda açılır; gösterim ve yol tarifi Google Maps'in herkese açık adresleriyle yapılır. Ücretli Maps API gerekmez. | ✅ |
+| D-048 | "Ev müşterisi" = perakende kanalı (veritabanı değeri `perakende`, ekranda "Ev müşterisi"). | ✅ |
+| D-049 | Müşterideki kap sayısı ayrı bir alan değil, kap hareketlerinden hesaplanır; açılış/sayım farkı yönetici tarafından fark hareketiyle girilir (`set_customer_containers`). | ✅ |
+| D-050 | Sebil sayısı müşteri kartında tek alan olarak tutulur (değişiklikler işlem geçmişine yazılır). Seri no / zimmet takibi gerekirse ileride ayrı tabloya taşınır. | 🔁 |
