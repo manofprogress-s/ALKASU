@@ -22,8 +22,19 @@ export async function supabaseServer(): Promise<SupabaseClient> {
 }
 
 /** Yalnızca sunucuda, yalnızca kullanıcı daveti gibi yönetim işleri için (T-018). */
+export function serviceRoleKey(): string | null {
+  // Anahtarda boşluk/satır sonu olamaz; yapıştırırken araya girenleri temizle
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").replace(/\s+/g, "");
+  return key || null;
+}
+
+/** Hata mesajlarında gizli anahtar asla görünmesin */
+export function redactSecrets(message: string): string {
+  return message.replace(/sb_secret_[^\s"']*(\s+[^\s"']+)?/g, "[gizli anahtar]").replace(/eyJ[\w-]+\.[\w-]+\.[\w-]+/g, "[gizli anahtar]");
+}
+
 export function supabaseAdmin(): SupabaseClient {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = serviceRoleKey();
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY tanımlı değil");
   return createClient(SUPABASE_URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }

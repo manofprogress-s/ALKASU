@@ -1,7 +1,7 @@
 "use server";
 import { z } from "zod";
 import { getContext } from "@/lib/session";
-import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
+import { redactSecrets, serviceRoleKey, supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 import { loginEmail, normalizeUsername } from "@/lib/username";
 import { ROLES } from "@/lib/roles";
 
@@ -24,7 +24,7 @@ const CreateSchema = z
   .refine((v) => v.login.includes("@") || normalizeUsername(v.login).length >= 3, { message: "Kullanıcı adı yalnızca harf ve rakam içermeli", path: ["login"] });
 
 function serviceKeyMissing(): Result | null {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY
+  return serviceRoleKey()
     ? null
     : { ok: false, message: "Sunucu ayarı eksik: SUPABASE_SERVICE_ROLE_KEY Vercel ortam değişkenlerine eklenmeli (bkz. docs/SETUP.md)." };
 }
@@ -44,7 +44,7 @@ async function findUserId(email: string): Promise<string | null> {
  * Kullanıcı oluşturma (R-08, T-029): yalnızca yönetici. Kullanıcı adı ve geçici şifreyle hesap açılır,
  * ilk girişte şifre değiştirmek zorunludur. service_role anahtarı yalnızca burada, sunucuda kullanılır.
  */
-export async function createUser(input: {
+async function createUserImpl(input: {
   login: string;
   name: string;
   role: string;
@@ -104,7 +104,7 @@ export async function createUser(input: {
 }
 
 /** Yönetici bir kullanıcıya yeni geçici şifre verir; kullanıcı ilk girişte değiştirmek zorundadır. */
-export async function resetUserPassword(input: { membershipId: string; password: string }): Promise<Result> {
+async function resetUserPasswordImpl(input: { membershipId: string; password: string }): Promise<Result> {
   const ctx = await getContext();
   if (ctx.role !== "yonetici") return { ok: false, message: "Bu işlem için yetkiniz yok" };
   const missing = serviceKeyMissing();
@@ -127,4 +127,29 @@ export async function resetUserPassword(input: { membershipId: string; password:
   const { error } = await supabaseAdmin().auth.admin.updateUserById(m.user_id as string, { password: pw.data });
   if (error) return { ok: false, message: error.message };
   return { ok: true, message: "Geçici şifre verildi; kullanıcı girişte yeni şifre belirleyecek." };
+}
+
+function safe(r: Result): Result {
+  return { ok: r.ok, message: redactSecrets(r.message) };
+}
+
+function failure(e: unknown): Result {
+  console.error("Kullanıcı yönetimi hatası:", redactSecrets(e instanceof Error ? e.message : String(e)));
+  return { ok: false, message: "Sunucu Supabase'e bağlanamadı. SUPABASE_SERVICE_ROLE_KEY değerini kontrol edin (Vercel → Environment Variables)." };
+}
+
+export async function createUser(input: Parameters<typeof createUserImpl>[0]): Promise<Result> {
+  try {
+    return safe(await createUserImpl(input));
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+export async function resetUserPassword(input: Parameters<typeof resetUserPasswordImpl>[0]): Promise<Result> {
+  try {
+    return safe(await resetUserPasswordImpl(input));
+  } catch (e) {
+    return failure(e);
+  }
 }
