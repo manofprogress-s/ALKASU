@@ -178,3 +178,27 @@
 - **E-02** Ürün eşleştirme `urun_kodu` ile yapılır. Var olan kod güncellenir, yoksa yeni ürün oluşturulur. Güncelleme fiyat değişikliği içeriyorsa fiyat geçmişine yazılır.
 - **E-03** Açılış stoğu ve açılış maliyeti yalnızca ürünün hiç stok hareketi yoksa uygulanır. Aksi halde uyarı verilir ve bu alanlar yok sayılır.
 - **E-04** Marka ve kategori adları bulunamazsa otomatik oluşturulur (önizlemede "yeni" olarak işaretlenir).
+
+## 16. Fiyat listeleri ve bayiler
+
+- **F-10** Üç fiyat listesi vardır: **Perakende** (ürün kartındaki fiyat), **Bayi** ve **Palet**. Her müşteri kartında bir fiyat listesi seçilir (varsayılan perakende). Satış ve siparişte o müşterinin listesi uygulanır; listede fiyat yoksa perakende fiyat kullanılır.
+- **F-11** Liste fiyatları birim bazındadır (paket/koli/damacana). Palet ayrı bir satış birimi değil, fiyat listesidir: palet müşterisi paket/koli bazında palet fiyatından alır.
+- **F-12** Fiyat listesini müşteriye yalnızca yönetici atar; liste fiyatlarını yalnızca yönetici değiştirir. Her değişiklik fiyat geçmişine ve işlem geçmişine yazılır. Excel ile toplu fiyat aktarımında boş hücre mevcut fiyatı silmez.
+- **R-01** Bayi, bizden bayi fiyatıyla mal alan bir **müşteridir** (kanal: bayi). Bayinin kendi müşterilerine yaptığı satışlar sistemde izlenmez. Bayinin carisi, depozitolu kapları ve siparişleri normal müşteri gibi izlenir.
+- **R-02** Müşteri kanalı: Perakende, Kurumsal, Bayi. Bayi kartında satış bölgeleri ve varsayılan sevkiyat sorumlusu tutulur.
+
+## 17. Siparişler ve teslimat
+
+- **O-01** Sipariş; müşteri, teslim tarihi, adres, not ve kalemlerden (ürün, birim, miktar) oluşur. Fiyatlar sipariş anında müşterinin listesinden alınır; yalnızca yönetici sipariş fiyatını değiştirebilir.
+- **O-02** Sipariş stoğu ve cariyi etkilemez. Stok ve cari yalnızca teslimatla değişir.
+- **O-03** Sipariş bir kişiye (yönetici, satış veya sevkiyat) atanır. Atama yapılmazsa müşterinin varsayılan sorumlusu atanır. Atamayı yönetici ve satış personeli değiştirebilir.
+- **O-04** Siparişi yalnızca **atanan kişi veya yönetici** teslim edildi olarak kapatabilir. Teslimatta gerçek teslim miktarı (sipariş miktarından az olabilir), alınan boş kap ve ödeme şekli (nakit/POS/veresiye) girilir; sipariş otomatik olarak satışa dönüşür (stok düşer, depozito ve cari işlenir).
+- **O-05** Teslimatta veresiye limiti aşılırsa teslimat reddedilmez (mal teslim edilmiştir); satış "limit aşımı" olarak işaretlenir ve yöneticinin ana sayfasında uyarı görünür.
+- **O-06** Teslim edilmeyen sipariş iptal edilir; iptal nedeni zorunludur. Kapanmış (teslim edilmiş/iptal) sipariş değiştirilemez. Aynı teslimatın tekrar gönderilmesi ikinci satış oluşturmaz.
+- **O-07** Sipariş durumları: Açık → Teslim edildi / İptal.
+
+## 18. Yeni roller
+
+- **R-06** **Sevkiyat** (depo yöneticisi): depo ve satış personelinin tüm yetkilerine sahiptir; kendisine atanan siparişleri teslim edip kapatır. Maliyet ve kâr göremez.
+- **R-07** **Bayi**: yalnızca kendi müşteri kartını, carisini, ekstresini, kap bakiyesini, kendisine yapılan satışları ve kendi siparişlerini görür. Sipariş verebilir ve açık siparişini iptal edebilir; fiyat belirleyemez, atama yapamaz, satış yapamaz.
+- **R-08** Kullanıcılar kullanıcı adı ve geçici şifreyle oluşturulur; ilk girişte şifre değiştirmek zorunludur. Kullanıcıyı yalnızca yönetici oluşturur ve geçici şifre atar.

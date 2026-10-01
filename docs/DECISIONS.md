@@ -90,3 +90,18 @@
 | D-036 | Tüpler (küçük/büyük) damacana gibi depozitolu: fiyat boş getir dolu götür fiyatı; depozito küçük 500 ₺, büyük 1500 ₺. | ✅ |
 | D-037 | KDV: su ve damacana %1, Beypazarı maden suyu %10, tüp/pompa/bardak %20. Beypazarı Sade alış 230 ₺ (yazım düzeltmesi). | 🔁 maden suyu oranı muhasebeciyle teyit |
 | D-038 | Deneme verisi (ürün, müşteri, satış, kasa, işlem geçmişi) kullanıcı onayıyla silindi; işletme adı "Alay Ticaret". | ✅ |
+
+## Bayi sistemi ve siparişler (01.10.2026)
+
+| Kod | Karar | Durum |
+|---|---|---|
+| D-039 | Bayi = bizden bayi fiyatıyla alan müşteri (kullanıcı seçimi). Bayinin kendi satışları izlenmez. Bayi kullanıcısı bir bayi müşteri kartına bağlanır ve yalnızca o kartın verisini görür. | ✅ |
+| D-040 | Palet bir fiyat listesidir, birim değildir (kullanıcı seçimi). Palet müşterisi paket/koli bazında palet fiyatı öder. | ✅ |
+| D-041 | Sipariş teslim edildiğinde otomatik satışa dönüşür (kullanıcı seçimi): teslim eden gerçek miktarı, boş kapı ve ödemeyi girer. | ✅ |
+| D-042 | Yeni rol **sevkiyat** = depo + satış yetkileri + atanan siparişi kapatma. Hüseyin Topaloğlu bu rolde. | ✅ |
+| D-043 | Teslimatta liste fiyatı ve indirim kontrolü sipariş fiyatına güvenir (sipariş açılışında doğrulanmıştır); limit aşımı reddedilmez, işaretlenir (O-05). | ✅ |
+| D-044 | Teslimattaki nakit, işletmenin açık kasa gününe yazılır (ayrı araç kasası yok). Gerekirse sonra "araç kasası" eklenebilir. | 🔁 |
+| D-045 | Kullanıcı girişi **kullanıcı adı + şifre**. Kullanıcı adı Türkçe karakterler sadeleştirilip küçük harfe çevrilerek iç e-posta adresine dönüştürülür (`isaglam@kullanici.alkasu.app`); gerçek e-posta ile giriş de çalışır. | ✅ |
+| D-046 | Yönetici kullanıcıyı geçici şifreyle oluşturur; kullanıcı ilk girişte şifresini değiştirmek zorundadır. Ortak tek şifre kalıcı kullanılmaz. | ✅ |
+| T-028 | Rol kalıtımı veritabanında `app.role_covers` ile yapılır; `has_role(…,'satis')` sevkiyat için de doğrudur. Enum değerleri ayrı migration'da (0010) eklenir. | ✅ |
+| T-029 | Kullanıcı oluşturma sunucu tarafında `service_role` anahtarıyla (`auth.admin.createUser`) yapılır; anahtar yalnızca Vercel ortam değişkenindedir. | ✅ |
