@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import { sessionUser } from "./claims";
 
 const PUBLIC_PATHS = ["/giris", "/sifre", "/auth", "/manifest.webmanifest", "/sw.js", "/favicon.ico", "/templates"];
 
@@ -17,9 +18,7 @@ export async function updateSession(request: NextRequest) {
       },
     },
   });
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await sessionUser(supabase);
 
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));

@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
+import { sessionUser } from "@/lib/supabase/claims";
 import type { Permission, Role } from "@/lib/roles";
 import { can } from "@/lib/roles";
 
@@ -32,9 +33,7 @@ interface ContextRow {
 /** Oturumdaki kullanıcının işletme bağlamı. Oturum yoksa girişe, üyelik yoksa uyarı sayfasına yönlendirir. */
 export const getContext = cache(async (): Promise<AppContext> => {
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await sessionUser(supabase);
   if (!user) redirect("/giris");
   const { data, error } = await supabase.rpc("my_context");
   if (error) throw error;
@@ -43,7 +42,7 @@ export const getContext = cache(async (): Promise<AppContext> => {
   if (!row) redirect("/uyelik-yok");
   return {
     userId: user.id,
-    email: user.email ?? null,
+    email: user.email,
     businessId: row.business_id,
     businessName: row.business_name,
     locationId: row.location_id,
