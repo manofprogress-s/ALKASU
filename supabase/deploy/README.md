@@ -7,5 +7,9 @@ Sıra önemlidir (yeni rol değeri ayrı işlemde eklenmelidir):
 3. GitHub: `musteri-siparis` dalını `main`e birleştir → Vercel otomatik yayınlar (~1 dk)
 4. Kontrol: https://alkasu.vercel.app/giris → 3 seçenek; "Sipariş ver" sayfası ürünleri listeliyor
 
-Geri alma: 3. adım geri alınırsa (main önceki sürüme döner) veritabanı değişiklikleri eski uygulamayla da uyumludur;
-yalnızca `update public.businesses set public_ordering = false;` ile internet siparişi kapatılır.
+Not: 2. adımla 3. adım arasında (1–2 dk) eski uygulamanın Siparişler sayfası hata verir (siparişte ikinci müşteri
+bağlantısı eklendiği için). Bu yüzden 2. ve 3. adım art arda yapılır; satış ekranı bu sürede çalışmaya devam eder.
+
+Geri alma: internet siparişini kapatmak için `update public.businesses set public_ordering = false;`
+Uygulamayı önceki sürüme döndürmek gerekirse Vercel → Deployments → önceki yayın → "Promote to Production";
+bu durumda Siparişler sayfası için düzeltme gerekir (bkz. D-054 notu).
