@@ -2,8 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CatalogUnit } from "@/lib/catalog";
 import type { PriceList } from "@/lib/roles";
 
-export type OrderStatus = "acik" | "teslim_edildi" | "iptal";
-export const ORDER_STATUS: Record<OrderStatus, string> = { acik: "Açık", teslim_edildi: "Teslim edildi", iptal: "İptal" };
+export type OrderStatus = "onay_bekliyor" | "acik" | "teslim_edildi" | "iptal";
+export const ORDER_STATUS: Record<OrderStatus, string> = { onay_bekliyor: "Onay bekliyor", acik: "Açık", teslim_edildi: "Teslim edildi", iptal: "İptal" };
 
 export interface OrderProduct {
   id: string;
@@ -90,4 +90,14 @@ export async function loadOrderCustomers(supabase: SupabaseClient, businessId: s
 export async function loadAssignees(supabase: SupabaseClient, businessId: string): Promise<Assignee[]> {
   const { data } = await supabase.rpc("assignable_users", { p_business: businessId });
   return (data ?? []) as Assignee[];
+}
+
+export interface Dealer {
+  id: string;
+  name: string;
+}
+
+export async function loadDealers(supabase: SupabaseClient, businessId: string): Promise<Dealer[]> {
+  const { data } = await supabase.from("customers").select("id, name").eq("business_id", businessId).eq("channel", "bayi").eq("active", true).order("name");
+  return (data ?? []) as Dealer[];
 }

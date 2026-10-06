@@ -12,6 +12,7 @@ export const NAV: NavItem[] = [
   { href: "/", label: "Ana sayfa", icon: "home", mobile: true },
   { href: "/satis", label: "Satış", icon: "cart", perm: "sell", mobile: true },
   { href: "/siparisler", label: "Siparişler", icon: "orders", perm: "orders", mobile: true },
+  { href: "/rota", label: "Rota", icon: "route", perm: "routes", mobile: true },
   { href: "/hesabim", label: "Hesabım", icon: "account", perm: "myAccount", mobile: true },
   { href: "/satislar", label: "Satışlar", icon: "receipt", perm: "viewSales" },
   { href: "/stok", label: "Stok", icon: "boxes", perm: "catalog", mobile: true },

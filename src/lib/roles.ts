@@ -1,4 +1,4 @@
-export type Role = "yonetici" | "satis" | "depo" | "sevkiyat" | "izleyici" | "bayi";
+export type Role = "yonetici" | "satis" | "depo" | "sevkiyat" | "izleyici" | "bayi" | "musteri";
 
 export const ROLE_LABELS: Record<Role, string> = {
   yonetici: "Yönetici",
@@ -7,9 +7,12 @@ export const ROLE_LABELS: Record<Role, string> = {
   sevkiyat: "Sevkiyat / depo yöneticisi",
   izleyici: "İzleyici",
   bayi: "Bayi",
+  musteri: "Müşteri",
 };
 
 export const ROLES = Object.keys(ROLE_LABELS) as Role[];
+/** Ayarlar'dan oluşturulabilen roller; müşteri kendisi kayıt olur (D-052). */
+export const ASSIGNABLE_ROLES = ROLES.filter((r) => r !== "musteri");
 
 // BUSINESS_RULES §12, §18 — arayüz tarafı. Asıl kontrol veritabanındadır (Y-01).
 // Sevkiyat rolü depo + satış yetkilerinin tümünü kapsar (R-06).
@@ -31,10 +34,12 @@ export const PERMISSIONS = {
   reports: ["yonetici", "izleyici"],
   users: ["yonetici"],
   audit: ["yonetici"],
-  orders: ["yonetici", "satis", "sevkiyat", "bayi"],
+  orders: ["yonetici", "satis", "sevkiyat", "bayi", "musteri"],
+  approveOrders: ["yonetici", "satis", "sevkiyat"],
+  routes: ["yonetici", "satis", "sevkiyat", "bayi"],
   orderAssign: ["yonetici", "satis", "sevkiyat"],
   deliver: ["yonetici", "satis", "sevkiyat"],
-  myAccount: ["bayi"],
+  myAccount: ["bayi", "musteri"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

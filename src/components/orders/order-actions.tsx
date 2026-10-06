@@ -14,7 +14,7 @@ import { errorMessage } from "@/lib/errors";
 import { computeCart, type CartLine, type ContainerBalances, type PaymentMethod } from "@/lib/cart";
 import { formatTRY, fromKurus, parseAmount, toKurus } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import type { Assignee } from "@/lib/orders";
+import type { Assignee, Dealer } from "@/lib/orders";
 
 export interface DeliverItem {
   id: string;
@@ -47,6 +47,11 @@ export function OrderActions(props: {
   balance: number;
   creditLimit: number | null;
   containers: { productId: string; qty: number; amount: number }[];
+  dealers?: Dealer[];
+  dealerId?: string | null;
+  /** Ev müşterisi siparişi: bayiye verilebilir */
+  canAssignDealer?: boolean;
+  canCancel?: boolean;
 }) {
   const ctx = useAppContext();
   const router = useRouter();
@@ -63,7 +68,19 @@ export function OrderActions(props: {
           <CheckCircle2 className="h-5 w-5" /> Teslim edildi
         </Button>
       ) : null}
-      {props.canAssign ? (
+      {props.canAssignDealer && props.dealers?.length ? (
+        <Field label="Bayiye ver" hint="Bayi kendi stoğundan teslim eder; bizim stok ve kasa etkilenmez">
+          <Select
+            value={props.dealerId ?? ""}
+            disabled={busy}
+            onChange={(e) => void call("assign_order_dealer", { p_order: props.orderId, p_dealer: e.target.value || null }, { success: e.target.value ? "Sipariş bayiye verildi" : "Bayi ataması kaldırıldı" })}
+          >
+            <option value="">— Biz teslim ederiz</option>
+            {props.dealers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </Select>
+        </Field>
+      ) : null}
+      {props.canAssign && !props.dealerId ? (
         <Field label="Sorumlu">
           <Select
             value={props.assignee ?? ""}
@@ -75,9 +92,11 @@ export function OrderActions(props: {
           </Select>
         </Field>
       ) : null}
-      <Button variant="secondary" className="w-full" onClick={() => setCancelOpen(true)}>
-        <XCircle className="h-4 w-4" /> Siparişi iptal et
-      </Button>
+      {props.canCancel !== false ? (
+        <Button variant="secondary" className="w-full" onClick={() => setCancelOpen(true)}>
+          <XCircle className="h-4 w-4" /> Siparişi iptal et
+        </Button>
+      ) : null}
 
       <Dialog
         open={cancelOpen}
@@ -304,5 +323,66 @@ function DeliverDialog({
         {error ? <Alert>{error}</Alert> : null}
       </div>
     </Dialog>
+  );
+}
+
+/** İnternetten gelen ilk sipariş: onayla / reddet */
+export function ApprovalActions({ orderId, orderNo, phone }: { orderId: string; orderNo: number; phone: string | null }) {
+  const { call, busy } = useRpc();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  return (
+    <Card className="space-y-3">
+      <Alert tone="warn">Yeni internet müşterisinin ilk siparişi. {phone ? "Müşteriyi arayıp teyit edin, sonra onaylayın." : "Teyit edip onaylayın."}</Alert>
+      {phone ? <a href={`tel:${phone}`} className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-surface font-medium text-brand">Ara: {phone}</a> : null}
+      <Button size="lg" variant="ok" className="w-full" loading={busy} onClick={() => void call("approve_order", { p_order: orderId }, { success: `Sipariş #${orderNo} onaylandı` })}>
+        <CheckCircle2 className="h-5 w-5" /> Onayla
+      </Button>
+      <Button variant="secondary" className="w-full" onClick={() => setOpen(true)}>
+        <XCircle className="h-4 w-4" /> Reddet
+      </Button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={`Sipariş #${orderNo} reddet`}
+        footer={<Button variant="danger" className="w-full" loading={busy} disabled={!reason.trim()} onClick={async () => {
+          const ok = await call("cancel_order", { p_order: orderId, p_reason: `Reddedildi: ${reason}` }, { success: "Sipariş reddedildi" });
+          if (ok) setOpen(false);
+        }}>Reddet</Button>}>
+        <Field label="Neden" hint="Örn. telefona ulaşılamadı, adres hizmet bölgemiz dışında">
+          <Input value={reason} onChange={(e) => setReason(e.target.value)} />
+        </Field>
+      </Dialog>
+    </Card>
+  );
+}
+
+/** Bayi: kendisine atanan ev müşterisi teslimatı (bizim stok/kasa etkilenmez) */
+export function DealerActions({ orderId, orderNo }: { orderId: string; orderNo: number }) {
+  const { call, busy } = useRpc();
+  const [done, setDone] = useState(false);
+  const [release, setRelease] = useState(false);
+  const [note, setNote] = useState("");
+  const [reason, setReason] = useState("");
+  return (
+    <Card className="space-y-3">
+      <Button size="lg" variant="ok" className="w-full" onClick={() => setDone(true)}>
+        <CheckCircle2 className="h-5 w-5" /> Teslim edildi
+      </Button>
+      <Button variant="secondary" className="w-full" onClick={() => setRelease(true)}>
+        <XCircle className="h-4 w-4" /> Teslim edemiyorum
+      </Button>
+      <Dialog open={done} onClose={() => setDone(false)} title={`Sipariş #${orderNo} teslim edildi`}
+        footer={<Button variant="ok" className="w-full" loading={busy} onClick={async () => {
+          const ok = await call("dealer_complete_order", { p_order: orderId, p_note: note || null }, { success: "Teslimat kaydedildi" });
+          if (ok) setDone(false);
+        }}>Kaydet</Button>}>
+        <Field label="Not (isteğe bağlı)" hint="Örn. 2 boş damacana alındı, ödeme nakit"><Input value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+      </Dialog>
+      <Dialog open={release} onClose={() => setRelease(false)} title="Siparişi geri bırak"
+        footer={<Button variant="danger" className="w-full" loading={busy} disabled={!reason.trim()} onClick={async () => {
+          const ok = await call("dealer_release_order", { p_order: orderId, p_reason: reason }, { success: "Sipariş merkeze geri bırakıldı" });
+          if (ok) setRelease(false);
+        }}>Geri bırak</Button>}>
+        <Field label="Neden" hint="Merkez siparişi başka bayiye veya kendi aracına verir"><Input value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+      </Dialog>
+    </Card>
   );
 }

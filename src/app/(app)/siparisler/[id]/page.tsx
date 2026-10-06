@@ -4,9 +4,9 @@ import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Badge, Card, PageHeader } from "@/components/ui/card";
 import { formatDate, formatDateTime, formatTRY } from "@/lib/format";
-import { loadAssignees, ORDER_STATUS, type OrderStatus } from "@/lib/orders";
+import { loadAssignees, loadDealers, ORDER_STATUS, type OrderStatus, type Assignee, type Dealer } from "@/lib/orders";
 import { can, PRICE_LISTS, type PriceList } from "@/lib/roles";
-import { OrderActions, type DeliverItem } from "@/components/orders/order-actions";
+import { ApprovalActions, DealerActions, OrderActions, type DeliverItem } from "@/components/orders/order-actions";
 import { LocationView } from "@/components/geo/location-view";
 import { toLatLng } from "@/lib/geo";
 
@@ -25,6 +25,9 @@ interface OrderRow {
   delivered_by: string | null;
   delivered_at: string | null;
   sale_id: string | null;
+  dealer_customer_id: string | null;
+  dealer_note: string | null;
+  source: string;
   cancelled_at: string | null;
   cancel_reason: string | null;
   customers: { name: string; code: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; latitude: number | null; longitude: number | null } | null;
@@ -47,22 +50,30 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const { data } = await supabase
     .from("orders")
     .select(
-      "*, customers(name, code, phone, credit_limit, unlimited_credit, latitude, longitude), order_items(id, line_no, product_id, unit_id, qty, unit_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
+      "*, customers!orders_customer_id_fkey(name, code, phone, credit_limit, unlimited_credit, latitude, longitude), order_items(id, line_no, product_id, unit_id, qty, unit_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
     )
     .eq("id", id)
     .maybeSingle();
   if (!data) notFound();
   const o = data as unknown as OrderRow;
   const isDealer = ctx.role === "bayi";
-  const [assignees, bal, cont] = await Promise.all([
-    loadAssignees(supabase, ctx.businessId),
+  const isCustomer = ctx.role === "musteri";
+  const isStaff = !isDealer && !isCustomer;
+  const isMine = o.customer_id === ctx.customerId; // bayi/müşterinin kendi siparişi
+  const isMyDelivery = isDealer && !!ctx.customerId && o.dealer_customer_id === ctx.customerId;
+  const open = o.status === "acik" || o.status === "onay_bekliyor";
+  const [assignees, dealers, bal, cont] = await Promise.all([
+    isStaff ? loadAssignees(supabase, ctx.businessId) : Promise.resolve([] as Assignee[]),
+    isStaff ? loadDealers(supabase, ctx.businessId) : Promise.resolve([] as Dealer[]),
     supabase.from("customer_balances").select("balance").eq("customer_id", o.customer_id).maybeSingle(),
     supabase.from("container_balances").select("product_id, qty, amount").eq("customer_id", o.customer_id),
   ]);
   const names = new Map(assignees.map((a) => [a.user_id, a.display_name]));
   const items = [...o.order_items].sort((a, b) => a.line_no - b.line_no);
   const total = items.reduce((s, i) => s + Number(i.qty) * Number(i.unit_price), 0);
-  const canDeliver = o.status === "acik" && can(ctx.role, "deliver") && (ctx.role === "yonetici" || o.assignee === ctx.userId);
+  const canDeliver = o.status === "acik" && !o.dealer_customer_id && can(ctx.role, "deliver") && (ctx.role === "yonetici" || o.assignee === ctx.userId);
+  const canEdit = open && (isStaff || (isMine && !o.dealer_customer_id));
+  const dealerName = dealers.find((d) => d.id === o.dealer_customer_id)?.name;
 
   const deliverItems: DeliverItem[] = items.map((i) => ({
     id: i.id,
@@ -83,13 +94,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         title={`Sipariş #${o.no}`}
         subtitle={
           <span className="flex flex-wrap items-center gap-2">
-            <Badge tone={o.status === "acik" ? "brand" : o.status === "teslim_edildi" ? "ok" : "neutral"}>{ORDER_STATUS[o.status]}</Badge>
+            <Badge tone={o.status === "acik" ? "brand" : o.status === "teslim_edildi" ? "ok" : o.status === "onay_bekliyor" ? "warn" : "neutral"}>
+              {isCustomer && o.status === "acik" && o.dealer_customer_id ? "Yolda" : ORDER_STATUS[o.status]}
+            </Badge>
+            {o.source === "online" && isStaff ? <Badge>İnternet siparişi</Badge> : null}
             Teslim: {formatDate(o.delivery_date)}
             {o.price_list !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[o.price_list]} fiyatı</Badge> : null}
           </span>
         }
         actions={
-          o.status === "acik" && (isDealer ? o.created_by === ctx.userId || o.customer_id === ctx.customerId : true) ? (
+          canEdit ? (
             <Link href={`/siparisler/${o.id}/duzenle`} className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Düzenle</Link>
           ) : null
         }
@@ -99,7 +113,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         <Card className="space-y-3">
           <div>
             <div className="text-sm text-muted">Müşteri</div>
-            {isDealer ? (
+            {!isStaff ? (
               <div className="font-semibold">{o.customers?.name}</div>
             ) : (
               <Link href={`/musteriler/${o.customer_id}`} className="font-semibold text-brand">{o.customers?.name}</Link>
@@ -131,34 +145,44 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
 
         <div className="space-y-3">
           <Card className="space-y-1 text-sm">
-            {!isDealer ? (
-              <div className="flex justify-between gap-2"><span className="text-muted">Sorumlu</span><span>{o.assignee ? names.get(o.assignee) ?? "—" : <Badge tone="warn">Atanmadı</Badge>}</span></div>
+            {isStaff ? (
+              <div className="flex justify-between gap-2"><span className="text-muted">Teslim eden</span><span>{dealerName ? <Badge tone="brand">Bayi: {dealerName}</Badge> : o.assignee ? names.get(o.assignee) ?? "—" : <Badge tone="warn">Atanmadı</Badge>}</span></div>
             ) : null}
+            {o.dealer_note && (isStaff || isMyDelivery) ? <Alert tone="neutral">Bayi notu: {o.dealer_note}</Alert> : null}
             <div className="flex justify-between gap-2"><span className="text-muted">Oluşturma</span><span>{formatDateTime(o.created_at)}</span></div>
             {o.delivered_at ? (
               <div className="flex justify-between gap-2"><span className="text-muted">Teslim</span><span>{formatDateTime(o.delivered_at)}{o.delivered_by ? ` · ${names.get(o.delivered_by) ?? ""}` : ""}</span></div>
             ) : null}
-            {o.sale_id && !isDealer ? (
+            {o.sale_id && isStaff ? (
               <div className="flex justify-between gap-2"><span className="text-muted">Satış fişi</span><Link className="text-brand" href={`/satislar/${o.sale_id}`}>Görüntüle →</Link></div>
             ) : null}
             {o.cancelled_at ? <Alert tone="neutral">İptal: {formatDateTime(o.cancelled_at)} · {o.cancel_reason}</Alert> : null}
           </Card>
-          {o.status === "acik" ? (
+          {o.status === "onay_bekliyor" && isStaff ? <ApprovalActions orderId={o.id} orderNo={o.no} phone={o.customers?.phone ?? null} /> : null}
+          {o.status === "acik" && isMyDelivery ? <DealerActions orderId={o.id} orderNo={o.no} /> : null}
+          {open && (isStaff ? o.status === "acik" : isMine) ? (
             <OrderActions
               orderId={o.id}
               orderNo={o.no}
               customerName={o.customers?.name ?? ""}
               assignee={o.assignee}
               assignees={assignees}
-              canAssign={can(ctx.role, "orderAssign")}
+              canAssign={isStaff && can(ctx.role, "orderAssign")}
               canDeliver={canDeliver}
+              canAssignDealer={isStaff && can(ctx.role, "orderAssign")}
+              canCancel={isStaff || !o.dealer_customer_id}
+              dealers={dealers}
+              dealerId={o.dealer_customer_id}
               items={deliverItems}
               balance={Number(bal.data?.balance ?? 0)}
               creditLimit={o.customers?.unlimited_credit ? null : Number(o.customers?.credit_limit ?? 0)}
               containers={((cont.data ?? []) as { product_id: string; qty: number; amount: number }[]).map((c) => ({ productId: c.product_id, qty: c.qty, amount: Number(c.amount) }))}
             />
           ) : null}
-          {o.status === "acik" && !canDeliver && !isDealer ? (
+          {isCustomer && o.status === "onay_bekliyor" ? (
+            <Alert tone="warn">Siparişiniz alındı. İlk siparişinizi telefonla teyit edip yola çıkaracağız.</Alert>
+          ) : null}
+          {o.status === "acik" && !canDeliver && isStaff && !o.dealer_customer_id ? (
             <div className="text-xs text-muted">Teslimatı yalnızca atanan kişi veya yönetici kaydedebilir.</div>
           ) : null}
         </div>

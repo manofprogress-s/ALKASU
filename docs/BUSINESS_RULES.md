@@ -208,3 +208,20 @@
 - **G-10** Müşteri ve tedarikçi kartında adres, telefon ve konum (enlem/boylam) tutulur. Konum Google Maps bağlantısı, koordinat veya cihazın bulunduğu konumla girilir; kartta "Haritada aç" ve "Yol tarifi" bağlantıları gösterilir. Siparişte müşterinin konumu teslim edecek kişiye gösterilir.
 - **G-11** Müşteri kanalları ekranda **Ev müşterisi**, **Kurumsal** ve **Bayi** olarak gruplanır.
 - **G-12** Kurumsal müşterilerde müşterideki **sebil** sayısı ve **damacana/kap** sayısı tutulur. Kap sayısı satış ve iade hareketleriyle kendiliğinden değişir; açılış ve sayım farkını yalnızca yönetici "Kap sayısını düzelt" ile girer. Düzeltme fark hareketi olarak yazılır, geçmiş silinmez, depo stoğunu etkilemez.
+
+## 20. Müşterinin kendi siparişi (internet)
+
+- **W-01** Giriş sayfasında üç seçenek vardır: **Sipariş ver** (yeni müşteri), **Kayıtlı müşteri girişi** (telefon + şifre), **Çalışan girişi** (kullanıcı adı/e-posta + şifre).
+- **W-02** Yeni müşteri tek adımda ad soyad, cep telefonu, şifre, açık adres, isteğe bağlı Google Maps konumu ve ürünleri girer; kayıt ve sipariş birlikte oluşur. Kişisel verilerin teslimat için kullanılmasına onay zorunludur.
+- **W-03** İnternetten kayıt olan müşteri **ev müşterisi** (perakende fiyat) olarak açılır. İlk siparişi **onay bekliyor** durumundadır; personel müşteriyi arayıp onaylar veya reddeder. Onaydan sonra müşterinin siparişleri doğrudan açık olarak düşer.
+- **W-04** Müşteri yalnızca kendi kartını, siparişlerini, alımlarını ve ekstresini görür; stok, fiyat geçmişi, bayi/palet fiyatları ve ayarlar kapalıdır. Fiyatı müşteri belirleyemez; sipariş fiyatı sunucuda perakende listesinden alınır.
+- **W-05** Müşteri açık siparişini teslimata çıkana (bayiye verilene) kadar değiştirebilir veya iptal edebilir.
+- **W-06** Kötüye kullanıma karşı: aynı IP'den saatte en fazla 5, aynı telefondan günde en fazla 5 kayıt denemesi; görünmez bot tuzağı. Aynı telefonla ofiste açılmış bir kart varsa yeni kart ona bağlanmaz, nota yazılır (başkası adına kayıt riski).
+- **W-07** Şifresini unutan müşteriye yönetici Ayarlar'dan geçici şifre verir (SMS altyapısı yok).
+
+## 21. Bayiye verilen siparişler ve rota
+
+- **O-08** Ev müşterisi siparişi personel tarafından **elle** Gürpınar veya Fuska bayisine verilir. Bir sipariş ya personele ya bayiye atanır.
+- **O-09** Bayi, kendisine verilen siparişin müşterisini (ad, telefon, adres, konum) ve kalemlerini görür; "Teslim edildi" ile kapatır veya nedeniyle "geri bırakır". Bayinin teslimatı **bayinin kendi satışıdır**: bizim stok, kasa ve cari etkilenmez; yalnızca teslim kaydı tutulur.
+- **O-10** Bayiye verilmiş sipariş bizden satışa dönüştürülemez; önce bayi ataması kaldırılmalıdır.
+- **O-11** Rota: açık siparişler (seçilen gün ve gecikmiş olanlar) başlangıç noktasından en kısa sıraya dizilir. Personel için başlangıç depo konumu (Ayarlar), bayi için kendi depo konumudur (Hesabım). Konumu olmayan siparişler ayrıca listelenir. Kaydedilen sıra, sipariş listesinde "Bana atanan" / "Teslimatlarım" görünümünde kullanılır.

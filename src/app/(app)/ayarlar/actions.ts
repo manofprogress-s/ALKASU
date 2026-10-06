@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getContext } from "@/lib/session";
 import { redactSecrets, serviceRoleKey, supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 import { loginEmail, normalizeUsername } from "@/lib/username";
-import { ROLES } from "@/lib/roles";
+import { ASSIGNABLE_ROLES } from "@/lib/roles";
 
 type Result = { ok: boolean; message: string };
 
@@ -16,7 +16,7 @@ const CreateSchema = z
   .object({
     login: z.string().trim().min(3, "Kullanıcı adı en az 3 karakter olmalı"),
     name: z.string().trim().min(2, "Ad en az 2 karakter olmalı"),
-    role: z.enum(ROLES as [string, ...string[]]),
+    role: z.enum(ASSIGNABLE_ROLES as [string, ...string[]]),
     customerId: z.string().uuid().nullable(),
     password: PasswordSchema,
   })

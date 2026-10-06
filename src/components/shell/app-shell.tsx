@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import {
-  BarChart3, Boxes, ClipboardList, Factory, FileText, Home, LogOut, Menu, Receipt, Settings, ShoppingCart, Tag, Truck, Users, Wallet, X, type LucideIcon,
+  BarChart3, Boxes, ClipboardList, Factory, Route, FileText, Home, LogOut, Menu, Receipt, Settings, ShoppingCart, Tag, Truck, Users, Wallet, X, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { can, ROLE_LABELS, type Role } from "@/lib/roles";
@@ -13,7 +13,7 @@ import { OfflineBadge } from "@/components/offline/offline-badge";
 
 const ICONS: Record<string, LucideIcon> = {
   home: Home, cart: ShoppingCart, receipt: Receipt, boxes: Boxes, users: Users, truck: Truck, tag: Tag,
-  wallet: Wallet, chart: BarChart3, settings: Settings, orders: ClipboardList, account: FileText, factory: Factory,
+  wallet: Wallet, chart: BarChart3, settings: Settings, orders: ClipboardList, account: FileText, factory: Factory, route: Route,
 };
 
 export function AppShell({ role, name, business, children }: { role: Role; name: string; business: string; children: ReactNode }) {

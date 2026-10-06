@@ -5,18 +5,21 @@ import { Alert, Card, PageHeader, Stat } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
 import { formatDateTime, formatTRY } from "@/lib/format";
 import { ExportButton } from "@/components/reports/export-button";
+import { ProfileForm } from "@/components/customers/profile-form";
+import { toLatLng } from "@/lib/geo";
 
 export const metadata = { title: "Hesabım" };
 
-/** Bayi: kendi cari hesabı, kap bakiyesi ve ekstresi (R-07) */
+/** Bayi ve müşteri: kendi bilgileri, cari hesabı, kap bakiyesi ve ekstresi (R-07) */
 export default async function MyAccountPage() {
   const ctx = await requirePermission("myAccount");
   if (!ctx.customerId) return <Alert>Hesabınız bir müşteri kartına bağlı değil. Lütfen yöneticinize başvurun.</Alert>;
   const supabase = await supabaseServer();
-  const [{ data: sum, error }, { data: st }, { data: sales }] = await Promise.all([
+  const [{ data: sum, error }, { data: st }, { data: sales }, { data: me }] = await Promise.all([
     supabase.rpc("customer_summary", { p_customer: ctx.customerId }),
     supabase.rpc("customer_statement", { p_customer: ctx.customerId }),
     supabase.from("sales").select("id, no, sold_at, grand_total, status").eq("customer_id", ctx.customerId).order("sold_at", { ascending: false }).limit(30),
+    supabase.from("customers").select("name, address, latitude, longitude").eq("id", ctx.customerId).maybeSingle(),
   ]);
   if (error) return <Alert>{error.message}</Alert>;
   const summary = sum as { name: string; code: string; balance: number; credit_limit: number; unlimited_credit: boolean; containers: { product_id: string; product_name: string; qty: number; amount: number }[] };
@@ -25,6 +28,9 @@ export default async function MyAccountPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Hesabım" subtitle={`${summary.name} · ${summary.code}`} actions={<Link href="/siparisler/yeni" className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Yeni sipariş</Link>} />
+      {me ? (
+        <ProfileForm isDealer={ctx.role === "bayi"} initial={{ name: me.name, address: me.address, location: toLatLng(me.latitude, me.longitude) }} />
+      ) : null}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Cari bakiye (borç)" value={formatTRY(summary.balance)} tone={summary.balance > 0 ? "warn" : undefined} />
         <Stat label="Limit" value={summary.unlimited_credit ? "Limitsiz" : formatTRY(summary.credit_limit)} />

@@ -121,3 +121,16 @@
 | D-049 | Müşterideki kap sayısı ayrı bir alan değil, kap hareketlerinden hesaplanır; açılış/sayım farkı yönetici tarafından fark hareketiyle girilir (`set_customer_containers`). | ✅ |
 | D-050 | Sebil sayısı müşteri kartında tek alan olarak tutulur (değişiklikler işlem geçmişine yazılır). Seri no / zimmet takibi gerekirse ileride ayrı tabloya taşınır. | 🔁 |
 | T-031 | Oturum kontrolü `auth.getClaims()` ile yapılır: erişim jetonu Supabase'in ES256 açık anahtarıyla sunucuda doğrulanır (anahtar bir kez indirilip önbelleğe alınır). Proxy ve sayfa aynı yardımcıyı (`lib/supabase/claims.ts`) kullanır; her istekte Supabase Auth'a giden iki ağ isteği kalktı. | Yetki kararları zaten veritabanında (RLS) verildiği için güvenlik düzeyi değişmez; çıkış yapan kullanıcının jetonu en geç süresi dolunca (1 saat) geçersizleşir, veritabanı üyeliği her istekte yine kontrol edilir. |
+
+## Müşteri siparişi, bayi dağıtımı, rota (06.10.2026)
+
+| Kod | Karar | Durum |
+|---|---|---|
+| D-051 | Müşteri internetten sipariş verir; kayıt ve ilk sipariş tek adımdadır (kullanıcı isteği). | ✅ |
+| D-052 | Müşteri girişi **telefon + şifre** (kullanıcı seçimi). Telefon iç e-postaya çevrilir (`5xxxxxxxxx@musteri.alkasu.app`); SMS/e-posta gönderilmez, ücret yoktur. Yeni rol `musteri`. | ✅ |
+| D-053 | İnternetten gelen **ilk sipariş onay bekler** (kullanıcı seçimi); onayla müşteri kartı da onaylanır. | ✅ |
+| D-054 | Ev müşterisi siparişleri bayiye **elle** verilir (kullanıcı seçimi). Bayinin teslimatı **bayinin kendi satışıdır** (kullanıcı seçimi): bizde stok/kasa/cari hareketi oluşmaz. | ✅ |
+| D-055 | Bayi ve müşteri artık stok seviyesini, fiyat geçmişini, ayarları ve kendi listesi dışındaki fiyatları göremez (RLS sıkılaştırıldı). | ✅ |
+| D-056 | Rota ücretsiz hesaplanır: kuş uçuşu mesafeyle en yakın komşu + 2-opt; sürüş Google Maps yol tarifinde açılır (10 durakta bir bölünür). Gerçek yol mesafesiyle optimizasyon (Google Routes API) gerekirse ileride ücretli eklenebilir. | 🔁 |
+| D-057 | Depo konumu varsayılan lokasyonda tutulur (Ayarlar → Depo konumu); bayinin başlangıcı kendi müşteri kartındaki konumdur (Hesabım). | ✅ |
+| D-058 | Yeni internet müşterisinin kodu `W` ile başlar (ofis kartları `M`). | ✅ |

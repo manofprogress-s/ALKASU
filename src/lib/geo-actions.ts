@@ -1,13 +1,13 @@
 "use server";
 import { isShortMapsLink, parseLocation, type LatLng } from "@/lib/geo";
-import { getContext } from "@/lib/session";
 
 /**
  * Kısa Google Maps bağlantısını (maps.app.goo.gl/…) açıp koordinatı bulur.
- * Yalnızca Google'ın kısa bağlantı alan adlarına istek atılır (başka adrese istek atılamaz).
+ * Yalnızca Google'ın kısa bağlantı alan adlarına istek atılır (başka adrese istek atılamaz). Herkese açık
+ * sipariş sayfası da kullandığı için oturum gerekmez; istek yalnızca Google'a gider ve yanıt boyutu sınırlıdır.
  */
 export async function resolveMapsLink(url: string): Promise<LatLng | null> {
-  await getContext(); // yalnızca oturum açmış kullanıcılar
+  if (typeof url !== "string" || url.length > 500) return null;
   const direct = parseLocation(url);
   if (direct) return direct;
   if (!isShortMapsLink(url)) return null;

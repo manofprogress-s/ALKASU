@@ -5,6 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Card, PageHeader, Stat } from "@/components/ui/card";
 import { formatDate, formatTRY } from "@/lib/format";
 import { can } from "@/lib/roles";
+import { CustomerHome } from "@/components/orders/customer-home";
 
 interface Dashboard {
   today: string;
@@ -30,11 +31,14 @@ interface Dashboard {
   balance?: number;
   open_orders?: number;
   containers?: number;
+  pending_approval?: number;
+  dealer_open?: number;
 }
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ yetki?: string }> }) {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ yetki?: string; hosgeldin?: string; siparis?: string; uyari?: string }> }) {
   const ctx = await getContext();
   const sp = await searchParams;
+  if (ctx.role === "musteri") return <CustomerHome name={ctx.displayName} welcome={!!sp.hosgeldin} orderNo={sp.siparis} warning={sp.uyari} />;
   const supabase = await supabaseServer();
   const { data, error } = await supabase.rpc("dashboard", { p_business: ctx.businessId });
   const d = (data ?? {}) as Dashboard;
@@ -57,7 +61,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </Link>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <Stat label="Cari bakiyem" value={formatTRY(d.balance)} hint={<Link href="/hesabim" className="text-brand">Ekstre →</Link>} tone={(d.balance ?? 0) > 0 ? "warn" : undefined} />
-            <Stat label="Açık siparişlerim" value={d.open_orders ?? 0} hint={<Link href="/siparisler" className="text-brand">Siparişler →</Link>} />
+            <Stat label="Bana atanan teslimat" value={d.dealer_open ?? 0} hint={<Link href="/siparisler?tur=teslimat" className="text-brand">Teslimatlar →</Link>} tone={d.dealer_open ? "warn" : undefined} />
+            <Stat label="Açık siparişlerim" value={d.open_orders ?? 0} hint={<Link href="/siparisler?tur=alim" className="text-brand">Siparişler →</Link>} />
             <Stat label="Bendeki damacana/kap" value={d.containers ?? 0} />
           </div>
         </>
@@ -66,6 +71,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           <Stat label="Bana atanan açık sipariş" value={d.my_open_orders ?? 0} hint={<Link href="/siparisler?atanan=ben" className="text-brand">Teslimatlarım →</Link>} tone={d.my_open_orders ? "warn" : undefined} />
           <Stat label="Bugün teslim edilecek" value={d.orders_today ?? 0} hint={<Link href="/siparisler" className="text-brand">Siparişler →</Link>} />
+          {d.pending_approval ? (
+            <Stat label="Onay bekleyen (internet)" value={d.pending_approval} hint={<Link href="/siparisler?durum=onay_bekliyor" className="text-brand">Onayla →</Link>} tone="warn" />
+          ) : null}
           {d.unassigned_orders !== undefined ? (
             <Stat label="Atanmamış sipariş" value={d.unassigned_orders} hint={<Link href="/siparisler?atanan=yok" className="text-brand">Ata →</Link>} tone={d.unassigned_orders ? "warn" : undefined} />
           ) : null}

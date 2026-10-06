@@ -8,7 +8,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { useRpc } from "@/lib/use-action";
-import { ROLE_LABELS, ROLES, type Role } from "@/lib/roles";
+import { ASSIGNABLE_ROLES, ROLE_LABELS, type Role } from "@/lib/roles";
 import { createUser, resetUserPassword } from "@/app/(app)/ayarlar/actions";
 
 export interface MemberRow {
@@ -72,7 +72,7 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
             </span>
             <span className="flex flex-wrap items-center gap-2">
               <Select className="h-9 w-52" value={m.role} disabled={m.user_id === me} onChange={(e) => changeRole(m, e.target.value as Role)}>
-                {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
               </Select>
               {m.role === "bayi" ? (
                 <Select className="h-9 w-44" value={m.customer_id ?? ""} onChange={(e) => call("update_member", { p_membership: m.id, p_role: m.role, p_name: m.display_name, p_active: m.active, p_customer: e.target.value }, { success: "Bayi kartı güncellendi" })}>
@@ -103,7 +103,7 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
           <Field label="Ad soyad"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
           <Field label="Rol">
             <Select value={role} onChange={(e) => setRole(e.target.value as Role)}>
-              {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+              {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
             </Select>
           </Field>
           {role === "bayi" ? (

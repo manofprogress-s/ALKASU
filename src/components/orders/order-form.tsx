@@ -53,7 +53,7 @@ export function OrderForm({
   const router = useRouter();
   const toast = useToast();
   const isAdmin = ctx.role === "yonetici";
-  const isDealer = ctx.role === "bayi";
+  const isDealer = ctx.role === "bayi" || ctx.role === "musteri"; // kendi adına sipariş veren: atama yok
   const [id] = useState(() => initial?.id ?? crypto.randomUUID());
   const [customerId, setCustomerId] = useState<string | null>(fixedCustomer?.id ?? initial?.customerId ?? null);
   const [custQuery, setCustQuery] = useState("");
@@ -262,7 +262,7 @@ export function OrderForm({
       <div className="space-y-4">
         <Card className="space-y-3">
           <Field label="Teslim tarihi">
-            <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+            <Input type="date" min={isDealer ? todayISO() : undefined} value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
           </Field>
           {!isDealer ? (
             <Field label="Teslim edecek kişi" hint="Siparişi yalnızca bu kişi veya yönetici kapatabilir">
