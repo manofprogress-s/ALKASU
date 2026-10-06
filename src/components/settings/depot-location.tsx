@@ -13,7 +13,7 @@ export function DepotLocation({ locationId, initial }: { locationId: string; ini
   return (
     <Card className="space-y-3">
       <h2 className="font-semibold">Depo konumu</h2>
-      <p className="text-sm text-muted">Dağıtım rotaları bu noktadan başlar. Depodaysanız "Bulunduğum konum"a basmanız yeterli.</p>
+      <p className="text-sm text-muted">Dağıtım rotaları bu noktadan başlar. Depodaysanız “Bulunduğum konum” düğmesine basmanız yeterli.</p>
       <LocationField value={point} onChange={setPoint} />
       <Button loading={busy} onClick={() => void call("set_location_coords", { p_location: locationId, p_lat: point?.lat ?? null, p_lng: point?.lng ?? null }, { success: "Depo konumu kaydedildi" })}>
         Kaydet

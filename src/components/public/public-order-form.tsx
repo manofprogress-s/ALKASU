@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,16 +41,15 @@ export function PublicOrderForm({ items }: { items: PublicItem[] }) {
   const anyDeposit = chosen.some((i) => i.hasDeposit);
   const step = (id: string, d: number) => setQty((q) => ({ ...q, [id]: Math.max(0, Math.min(1000, (q[id] ?? 0) + d)) }));
 
-  const validation = useMemo(() => {
-    if (chosen.length === 0) return "Ürün seçin";
-    if (name.trim().length < 3) return "Ad soyad yazın";
-    if (phone.replace(/\D/g, "").length < 10) return "Cep telefonu yazın";
-    if (password.length < 8) return "Şifre en az 8 karakter olmalı";
-    if (password !== password2) return "Şifreler aynı değil";
-    if (address.trim().length < 10) return "Açık adres yazın";
-    if (!consent) return "Onay kutusunu işaretleyin";
-    return null;
-  }, [chosen.length, name, phone, password, password2, address, consent]);
+  const validation =
+    chosen.length === 0 ? "Ürün seçin"
+      : name.trim().length < 3 ? "Ad soyad yazın"
+        : phone.replace(/\D/g, "").length < 10 ? "Cep telefonu yazın"
+          : password.length < 8 ? "Şifre en az 8 karakter olmalı"
+            : password !== password2 ? "Şifreler aynı değil"
+              : address.trim().length < 10 ? "Açık adres yazın"
+                : !consent ? "Onay kutusunu işaretleyin"
+                  : null;
 
   function submit() {
     if (validation) return setError(validation);
