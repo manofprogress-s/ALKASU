@@ -28,8 +28,6 @@ const Schema = z.object({
     .max(30),
 });
 
-const LIMIT_IP_PER_HOUR = 5;
-const LIMIT_PHONE_PER_DAY = 5;
 
 /** Yeni müşteri: kayıt + giriş + ilk sipariş (onay bekler). Tek adımda, yarım kayıt bırakmadan. */
 export async function registerAndOrder(input: unknown): Promise<Result> {
@@ -42,21 +40,20 @@ export async function registerAndOrder(input: unknown): Promise<Result> {
   const v = parsed.data;
   if (!serviceRoleKey()) return { ok: false, message: "Şu an kayıt alınamıyor. Lütfen bizi telefonla arayın." };
   const h = await headers();
-  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || h.get("x-real-ip") || "?";
+  // Vercel x-real-ip başlığını kendisi yazar (istemci değiştiremez); yoksa x-forwarded-for'un ilk değeri
+  const ip = h.get("x-real-ip")?.trim() || (h.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || "?";
   const admin = supabaseAdmin();
+  let userId: string | null = null;
+  let registered = false;
 
   try {
-    // Hız sınırı (kötüye kullanım ve kaba kuvvet denemelerine karşı)
-    const hourAgo = new Date(Date.now() - 3600_000).toISOString();
-    const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
-    const [byIp, byPhone] = await Promise.all([
-      admin.from("signup_attempts").select("id", { count: "exact", head: true }).eq("ip", ip).gte("created_at", hourAgo),
-      admin.from("signup_attempts").select("id", { count: "exact", head: true }).eq("phone", v.phone).gte("created_at", dayAgo),
-    ]);
-    if ((byIp.count ?? 0) >= LIMIT_IP_PER_HOUR || (byPhone.count ?? 0) >= LIMIT_PHONE_PER_DAY) {
+    // Hız sınırı: kontrol ve kayıt veritabanında tek adımda (eşzamanlı isteklerle aşılamaz)
+    const attempt = await admin.rpc("signup_attempt", { p_ip: ip, p_phone: v.phone });
+    if (attempt.error) throw attempt.error;
+    if (attempt.data === null) {
       return { ok: false, message: "Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin veya bizi arayın." };
     }
-    const { data: attempt } = await admin.from("signup_attempts").insert({ ip, phone: v.phone }).select("id").single();
+    const attemptId = attempt.data as number;
 
     const email = phoneEmail(v.phone);
     const created = await admin.auth.admin.createUser({
@@ -71,14 +68,17 @@ export async function registerAndOrder(input: unknown): Promise<Result> {
       }
       return { ok: false, message: "Kayıt oluşturulamadı. Lütfen tekrar deneyin." };
     }
-    const userId = created.data.user.id;
+    userId = created.data.user.id;
     const reg = await admin.rpc("register_customer", {
       p_user: userId, p_name: v.name, p_phone: v.phone, p_address: v.address, p_lat: v.lat, p_lng: v.lng,
     });
     if (reg.error) {
       await admin.auth.admin.deleteUser(userId); // yarım kayıt bırakma
-      return { ok: false, message: redactSecrets(reg.error.message) };
+      userId = null;
+      const known = /Telefon|adres|Ad soyad|Konum/i.test(reg.error.message);
+      return { ok: false, message: known ? reg.error.message : "Kayıt oluşturulamadı. Lütfen tekrar deneyin veya bizi arayın." };
     }
+    registered = true;
 
     // Müşteri olarak oturum aç ve siparişi kendi yetkisiyle kaydet (fiyatlar sunucuda belirlenir)
     const supabase = await supabaseServer();
@@ -97,13 +97,15 @@ export async function registerAndOrder(input: unknown): Promise<Result> {
         items: v.items.map((i) => ({ product_id: i.productId, unit_id: i.unitId, qty: i.qty })),
       },
     });
-    if (attempt?.id) await admin.from("signup_attempts").update({ ok: true }).eq("id", attempt.id);
+    await admin.from("signup_attempts").update({ ok: true }).eq("id", attemptId);
     if (order.error) {
-      return { ok: true, orderNo: null, warning: `Kaydınız oluşturuldu ancak sipariş kaydedilemedi: ${order.error.message}` };
+      console.error("Online ilk sipariş hatası:", redactSecrets(order.error.message));
+      return { ok: true, orderNo: null, warning: "Kaydınız oluşturuldu ancak sipariş kaydedilemedi. Lütfen “Yeni sipariş” ile tekrar deneyin." };
     }
     return { ok: true, orderNo: (order.data as { no: number }).no };
   } catch (e) {
     console.error("Online kayıt hatası:", redactSecrets(e instanceof Error ? e.message : String(e)));
+    if (userId && !registered) await admin.auth.admin.deleteUser(userId).catch(() => undefined); // telefon kilitli kalmasın
     return { ok: false, message: "Bir sorun oluştu. Lütfen tekrar deneyin veya bizi arayın." };
   }
 }

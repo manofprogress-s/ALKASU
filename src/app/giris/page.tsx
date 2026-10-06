@@ -34,7 +34,9 @@ function LoginForm({ mode }: { mode: Mode }) {
       return;
     }
     const next = params.get("next");
-    window.location.assign(next && next.startsWith("/") && !next.startsWith("//") ? next : "/");
+    // Yalnızca site içi adres (//evil.com, /\evil.com gibi dış yönlendirmeler reddedilir)
+    const safe = next && /^\/(?![\/\\])/.test(next) && !next.includes("\\") ? next : "/";
+    window.location.assign(safe);
   }
 
   async function reset() {

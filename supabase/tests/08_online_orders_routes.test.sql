@@ -163,4 +163,36 @@ select test.eq((test.ord('88888888-0000-0000-0000-000000000003')).status, 'acik'
 select test.eq((test.ord('88888888-0000-0000-0000-000000000003')).source, 'ofis', 'Kaynak: ofis');
 
 select test.logout();
+-- ---------------------------------------------------------------- güvenlik incelemesi düzeltmeleri
+select test.login(test.u_bayi2());
+select public.save_order(test.biz(), jsonb_build_object('id', '88888888-0000-0000-0000-000000000009', 'items', jsonb_build_array(test.item('SU-005', 'Koli', 3))));
+select test.login(test.u_admin());
+select test.throws($$select public.assign_order_dealer('88888888-0000-0000-0000-000000000009', test.cust('B001'))$$, '%yalnızca ev müşterisi%',
+  'Bayinin kendi alım siparişi başka bayiye verilemez');
+select public.assign_order_dealer('88888888-0000-0000-0000-000000000002', test.cust('B002'));
+select test.throws($$select public.set_route(test.biz(), array['88888888-0000-0000-0000-000000000002']::uuid[])$$, '%size ait olmayan%',
+  'Personel bayiye verilmiş siparişin sırasını değiştiremez');
+select test.throws($$select public.update_member((select id from public.memberships where user_id = test.u_mus()), 'satis', 'X', true)$$,
+  '%personel veya bayi yapılamaz%', 'İnternet müşterisi personele çevrilemez');
+select public.update_member((select id from public.memberships where user_id = test.u_mus()), 'musteri', 'Ali Veli', false);
+select test.eq((select customer_id from public.memberships where user_id = test.u_mus()), (test.cust_of(test.u_mus())).id, 'Pasife alınan müşterinin kart bağlantısı korunur');
+select test.throws($$select public.update_member((select id from public.memberships where user_id = test.u_satis()), 'musteri', 'X', true)$$,
+  '%personel veya bayi yapılamaz%', 'Personel müşteriye çevrilemez');
+
+select test.login(test.u_bayi());
+select public.update_my_profile(test.biz(), '{"name":"Yıldız Ticaret","latitude":40.71,"longitude":29.91}'::jsonb);
+select test.eq((select name from public.customers where id = test.cust('B001')), 'Sağlam Ticaret', 'Bayi kart adını değiştiremez');
+select test.eq((select latitude from public.customers where id = test.cust('B001')), 40.710000::numeric, 'Bayi depo konumunu girer');
+select public.update_my_profile(test.biz(), '{"address":"Gürpınar depo"}'::jsonb);
+select test.eq((select latitude from public.customers where id = test.cust('B001')), 40.710000::numeric, 'Gönderilmeyen konum silinmez');
+
+select test.logout();
+select test.service();
+select test.ok((select bool_and(public.signup_attempt('1.2.3.4', '5550000000') is not null) from generate_series(1, 5)), 'İlk 5 deneme kabul edilir');
+select test.eq(public.signup_attempt('1.2.3.4', '5550000001'), null::bigint, 'Aynı IPden 6. deneme reddedilir');
+select test.eq(public.signup_attempt('9.9.9.9', '5550000000'), null::bigint, 'Aynı telefondan günde 6. deneme reddedilir');
+select test.logout();
+select test.login(test.u_admin());
+select test.throws($$select public.signup_attempt('1.1.1.1', '5550000002')$$, '%yetkiniz yok%', 'Hız sınırı fonksiyonu yalnızca sunucu içindir');
+
 rollback;

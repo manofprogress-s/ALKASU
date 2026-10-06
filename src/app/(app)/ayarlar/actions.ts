@@ -21,7 +21,8 @@ const CreateSchema = z
     password: PasswordSchema,
   })
   .refine((v) => v.role !== "bayi" || !!v.customerId, { message: "Bayi kullanıcısı için bayi müşteri kartını seçin", path: ["customerId"] })
-  .refine((v) => v.login.includes("@") || normalizeUsername(v.login).length >= 3, { message: "Kullanıcı adı yalnızca harf ve rakam içermeli", path: ["login"] });
+  .refine((v) => v.login.includes("@") || normalizeUsername(v.login).length >= 3, { message: "Kullanıcı adı yalnızca harf ve rakam içermeli", path: ["login"] })
+  .refine((v) => v.login.includes("@") || !/^\d+$/.test(normalizeUsername(v.login)), { message: "Kullanıcı adı yalnızca rakamdan oluşamaz (telefonla karışır)", path: ["login"] });
 
 function serviceKeyMissing(): Result | null {
   return serviceRoleKey()

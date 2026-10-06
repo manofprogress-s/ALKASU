@@ -66,14 +66,18 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
               {m.user_id === me ? <Badge tone="brand">Siz</Badge> : null} {!m.active ? <Badge>Pasif</Badge> : null}{" "}
               {m.must_change_password ? <Badge tone="warn">Şifre değiştirecek</Badge> : null}
               <span className="block text-xs text-muted">
-                {m.username ? `Kullanıcı adı: ${m.username}` : "E-posta ile giriş"}
+                {m.role === "musteri" && m.username ? `Telefon: 0${m.username}` : m.username ? `Kullanıcı adı: ${m.username}` : "E-posta ile giriş"}
                 {m.role === "bayi" && m.customer_id ? ` · Bayi: ${dealerName(m.customer_id)}` : ""}
               </span>
             </span>
             <span className="flex flex-wrap items-center gap-2">
-              <Select className="h-9 w-52" value={m.role} disabled={m.user_id === me} onChange={(e) => changeRole(m, e.target.value as Role)}>
-                {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-              </Select>
+              {m.role === "musteri" ? (
+                <Badge>İnternet müşterisi</Badge>
+              ) : (
+                <Select className="h-9 w-52" value={m.role} disabled={m.user_id === me} onChange={(e) => changeRole(m, e.target.value as Role)}>
+                  {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                </Select>
+              )}
               {m.role === "bayi" ? (
                 <Select className="h-9 w-44" value={m.customer_id ?? ""} onChange={(e) => call("update_member", { p_membership: m.id, p_role: m.role, p_name: m.display_name, p_active: m.active, p_customer: e.target.value }, { success: "Bayi kartı güncellendi" })}>
                   {dealers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}

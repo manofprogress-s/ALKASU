@@ -216,7 +216,7 @@
 - **W-03** İnternetten kayıt olan müşteri **ev müşterisi** (perakende fiyat) olarak açılır. İlk siparişi **onay bekliyor** durumundadır; personel müşteriyi arayıp onaylar veya reddeder. Onaydan sonra müşterinin siparişleri doğrudan açık olarak düşer.
 - **W-04** Müşteri yalnızca kendi kartını, siparişlerini, alımlarını ve ekstresini görür; stok, fiyat geçmişi, bayi/palet fiyatları ve ayarlar kapalıdır. Fiyatı müşteri belirleyemez; sipariş fiyatı sunucuda perakende listesinden alınır.
 - **W-05** Müşteri açık siparişini teslimata çıkana (bayiye verilene) kadar değiştirebilir veya iptal edebilir.
-- **W-06** Kötüye kullanıma karşı: aynı IP'den saatte en fazla 5, aynı telefondan günde en fazla 5 kayıt denemesi; görünmez bot tuzağı. Aynı telefonla ofiste açılmış bir kart varsa yeni kart ona bağlanmaz, nota yazılır (başkası adına kayıt riski).
+- **W-06** Kötüye kullanıma karşı: aynı IP'den saatte en fazla 5, aynı telefondan günde en fazla 5, toplamda saatte en fazla 40 kayıt denemesi (kontrol veritabanında kilitli tek adımda); görünmez bot tuzağı. Aynı telefonla ofiste açılmış bir kart varsa yeni kart ona bağlanmaz, nota yazılır (başkası adına kayıt riski).
 - **W-07** Şifresini unutan müşteriye yönetici Ayarlar'dan geçici şifre verir (SMS altyapısı yok).
 
 ## 21. Bayiye verilen siparişler ve rota
@@ -225,3 +225,4 @@
 - **O-09** Bayi, kendisine verilen siparişin müşterisini (ad, telefon, adres, konum) ve kalemlerini görür; "Teslim edildi" ile kapatır veya nedeniyle "geri bırakır". Bayinin teslimatı **bayinin kendi satışıdır**: bizim stok, kasa ve cari etkilenmez; yalnızca teslim kaydı tutulur.
 - **O-10** Bayiye verilmiş sipariş bizden satışa dönüştürülemez; önce bayi ataması kaldırılmalıdır.
 - **O-11** Rota: açık siparişler (seçilen gün ve gecikmiş olanlar) başlangıç noktasından en kısa sıraya dizilir. Personel için başlangıç depo konumu (Ayarlar), bayi için kendi depo konumudur (Hesabım). Konumu olmayan siparişler ayrıca listelenir. Kaydedilen sıra, sipariş listesinde "Bana atanan" / "Teslimatlarım" görünümünde kullanılır.
+- **O-12** Bayiye yalnızca **ev müşterisi** siparişi verilebilir; bir bayinin bizden alım siparişi başka bayiye verilemez. Bayi kendi kartının adını değiştiremez (yalnızca depo adresi ve konumu). İnternet müşterisi personele/bayiye, personel müşteriye çevrilemez.

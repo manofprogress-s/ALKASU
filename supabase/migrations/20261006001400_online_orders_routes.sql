@@ -237,7 +237,9 @@ begin
                                             and channel = 'bayi' and active) then
     raise exception 'Bayi bulunamadı' using errcode = '22023';
   end if;
-  if p_dealer = o.customer_id then raise exception 'Bayinin kendi siparişi kendisine atanamaz' using errcode = '22023'; end if;
+  if p_dealer is not null and (select channel from public.customers where id = o.customer_id) <> 'perakende' then
+    raise exception 'Bayiye yalnızca ev müşterisi siparişi verilebilir' using errcode = 'P0001';
+  end if;
   update public.orders set dealer_customer_id = p_dealer,
          assignee = case when p_dealer is not null then null else assignee end,
          route_seq = null, dealer_note = null
@@ -332,7 +334,8 @@ declare v_role public.member_role := app.require_role(p_business, 'yonetici', 's
 begin
   if exists (select 1 from unnest(p_orders) x(id) left join public.orders o on o.id = x.id
               where o.id is null or o.business_id <> p_business or o.status <> 'acik'
-                 or (v_role = 'bayi' and o.dealer_customer_id is distinct from app.my_customer(p_business))) then
+                 or (v_role = 'bayi' and o.dealer_customer_id is distinct from app.my_customer(p_business))
+                 or (v_role <> 'bayi' and o.dealer_customer_id is not null)) then
     raise exception 'Rotada geçersiz veya size ait olmayan sipariş var' using errcode = '42501';
   end if;
   update public.orders o set route_seq = x.n
@@ -393,22 +396,48 @@ begin
   return v_cid;
 end $$;
 
+-- Kayıt denemesi hız sınırı: say + yaz tek işlemde, kilitli (eşzamanlı istekler sınırı aşamaz)
+create or replace function public.signup_attempt(p_ip text, p_phone text) returns bigint
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_id bigint;
+begin
+  if coalesce(auth.role(), '') <> 'service_role' then raise exception 'Bu işlem için yetkiniz yok' using errcode = '42501'; end if;
+  perform pg_advisory_xact_lock(hashtext('alkasu_signup'));
+  if (select count(*) from public.signup_attempts where ip = p_ip and created_at > now() - interval '1 hour') >= 5
+     or (select count(*) from public.signup_attempts where phone = p_phone and created_at > now() - interval '1 day') >= 5
+     or (select count(*) from public.signup_attempts where created_at > now() - interval '1 hour') >= 40 then
+    return null;                                            -- sınır aşıldı
+  end if;
+  insert into public.signup_attempts(ip, phone) values (p_ip, p_phone) returning id into v_id;
+  return v_id;
+end $$;
+
 -- Müşteri kendi adres/konum bilgisini günceller
 create or replace function public.update_my_profile(p_business uuid, p jsonb) returns void
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare
-  v_cid uuid;
+  v_role public.member_role := app.require_role(p_business, 'musteri', 'bayi');
+  v_cid uuid := app.my_customer(p_business);
   v_lat numeric := app.coord(p, 'latitude', -90, 90);
   v_lng numeric := app.coord(p, 'longitude', -180, 180);
 begin
-  perform app.require_role(p_business, 'musteri', 'bayi');
-  v_cid := app.my_customer(p_business);
-  if length(coalesce(trim(p->>'name'), '')) < 3 then raise exception 'Ad soyad zorunludur' using errcode = '22023'; end if;
-  if (v_lat is null) <> (v_lng is null) then raise exception 'Konumun enlem ve boylamı birlikte girilmelidir' using errcode = '22023'; end if;
-  update public.customers set name = trim(p->>'name'), address = nullif(trim(p->>'address'), ''),
-         latitude = v_lat, longitude = v_lng
+  if v_cid is null then raise exception 'Müşteri kartı bulunamadı' using errcode = 'P0002'; end if;
+  if v_role = 'musteri' and p ? 'name' and length(coalesce(trim(p->>'name'), '')) < 3 then
+    raise exception 'Ad soyad zorunludur' using errcode = '22023';
+  end if;
+  if (p ? 'latitude' or p ? 'longitude') and (v_lat is null) <> (v_lng is null) then
+    raise exception 'Konumun enlem ve boylamı birlikte girilmelidir' using errcode = '22023';
+  end if;
+  -- Bayi ticari kartının adını değiştiremez (yönetici değiştirir); gönderilmeyen alanlar korunur
+  update public.customers set
+    name = case when v_role = 'musteri' and p ? 'name' then trim(p->>'name') else name end,
+    address = case when p ? 'address' then nullif(trim(p->>'address'), '') else address end,
+    latitude = case when p ? 'latitude' then v_lat else latitude end,
+    longitude = case when p ? 'longitude' then v_lng else longitude end
    where id = v_cid;
-  update public.memberships set display_name = trim(p->>'name') where user_id = auth.uid() and business_id = p_business;
+  if v_role = 'musteri' and p ? 'name' then
+    update public.memberships set display_name = trim(p->>'name') where user_id = auth.uid() and business_id = p_business;
+  end if;
 end $$;
 
 -- Herkese açık ürün listesi (perakende fiyatlarıyla); giriş yapmamış ziyaretçi de çağırabilir
@@ -478,6 +507,30 @@ begin
                            and status = 'tamamlandi' and app.local_date(sold_at) = v_today));
   end if;
   return v;
+end $$;
+
+-- Kullanıcı güncelleme: online müşteri personele/bayiye çevrilemez (ve tersi); müşteri kartı bağlantısı korunur
+create or replace function public.update_member(p_membership uuid, p_role public.member_role, p_name text, p_active boolean,
+                                                p_customer uuid default null)
+returns void
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare m public.memberships;
+begin
+  select * into m from public.memberships where id = p_membership;
+  if m.id is null then raise exception 'Kullanıcı bulunamadı' using errcode = 'P0002'; end if;
+  perform app.require_role(m.business_id, 'yonetici');
+  if (m.role = 'musteri') <> (p_role = 'musteri') then
+    raise exception 'İnternet müşterisi personel veya bayi yapılamaz (ve tersi)' using errcode = '22023';
+  end if;
+  if p_role = 'bayi' then
+    p_customer := coalesce(p_customer, m.customer_id);
+    if p_customer is null or not exists (select 1 from public.customers where id = p_customer and business_id = m.business_id and channel = 'bayi') then
+      raise exception 'Bayi kullanıcısı bir bayi müşteri kartına bağlanmalıdır' using errcode = '22023';
+    end if;
+  end if;
+  update public.memberships set role = p_role, display_name = trim(p_name), active = p_active,
+         customer_id = case when p_role = 'bayi' then p_customer when p_role = 'musteri' then m.customer_id end
+   where id = p_membership;
 end $$;
 
 -- assignable_users: müşteri göremez
