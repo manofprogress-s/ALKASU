@@ -211,12 +211,15 @@
 
 ## 20. Müşterinin kendi siparişi (internet)
 
-- **W-01** Giriş sayfasında üç seçenek vardır: **Sipariş ver** (yeni müşteri), **Kayıtlı müşteri girişi** (telefon + şifre), **Çalışan girişi** (kullanıcı adı/e-posta + şifre).
+- **W-01** Giriş sayfasında en üstte büyük **Hızlı sipariş ver** kartı (yeni müşteri, üyelik gerekmez), altında **Kayıtlı müşteri girişi** (telefon + şifre), en altta küçük **Çalışan ve bayi girişi** bağlantısı (kullanıcı adı/e-posta + şifre) bulunur.
 - **W-02** Yeni müşteri tek adımda ad soyad, cep telefonu, şifre, açık adres, isteğe bağlı Google Maps konumu ve ürünleri girer; kayıt ve sipariş birlikte oluşur. Kişisel veriler için onay kutusu yoktur; kısa aydınlatma metni ve tam metne bağlantı gösterilir (§23).
 - **W-03** İnternetten kayıt olan müşteri **ev müşterisi** (perakende fiyat) olarak açılır. İlk siparişi **onay bekliyor** durumundadır; personel müşteriyi arayıp onaylar veya reddeder. Onaydan sonra müşterinin siparişleri doğrudan açık olarak düşer.
 - **W-04** Müşteri yalnızca kendi kartını, siparişlerini, alımlarını ve ekstresini görür; stok, fiyat geçmişi, bayi/palet fiyatları ve ayarlar kapalıdır. Fiyatı müşteri belirleyemez; sipariş fiyatı sunucuda perakende listesinden alınır.
 - **W-05** Müşteri açık siparişini teslimata çıkana (bayiye verilene) kadar değiştirebilir veya iptal edebilir.
 - **W-06** Kötüye kullanıma karşı: aynı IP'den saatte en fazla 5, aynı telefondan günde en fazla 5, toplamda saatte en fazla 40 kayıt denemesi (kontrol veritabanında kilitli tek adımda); görünmez bot tuzağı. Aynı telefonla ofiste açılmış bir kart varsa yeni kart ona bağlanmaz, nota yazılır (başkası adına kayıt riski).
+- **W-08** Müşteri sipariş ekranı (hızlı sipariş ve kayıtlı müşteri aynı ekran): ürünler bölümlere ayrılır — önce markalar ("Gürpınar çeşitleri" vb., en çok ürünü olan önce), sonra son 60 günün **çok satanları**, sonra markasız ürünler kategoriye göre. Kartta fotoğraf, ad, birim, fiyat ve "+" vardır; seçim alttaki sabit çubukta özetlenir, "Sepeti onayla" ile sepet + adres adımına geçilir.
+- **W-09** Ürün fotoğrafını yalnızca yönetici yükler (Ürünler → ürün → Fotoğraf); tarayıcıda en fazla 600 px webp'ye küçültülür. Fotoğraf yoksa markanın renginde sade bir çizim gösterilir (logo çizilmez).
+- **W-10** Genel amaçlı markalar ("Envanter" gibi) mağazada bölüm açmaz; ürünleri kategoriye göre listelenir (`brands.show_in_shop`).
 - **W-07** Şifresini unutan müşteriye yönetici Ayarlar'dan geçici şifre verir (SMS altyapısı yok).
 
 ## 21. Bayiye verilen siparişler ve rota

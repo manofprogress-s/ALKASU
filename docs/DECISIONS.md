@@ -154,3 +154,11 @@
 | D-066 | Kampanya izni kutusu eklendi (kullanıcı seçimi), işaretsiz ve isteğe bağlı; Hesabım'dan geri çekilir. İYS entegrasyonu yok — gönderim başlamadan önce İYS kaydı yapılmalı. | 🔁 |
 | D-067 | Yurt dışı aktarım: Supabase (Almanya), Vercel (ABD şirketi, Frankfurt sunucu), Google Maps. Metin "standart sözleşme gibi uygun güvenceler" diye yazıldı; standart sözleşmenin imzalanıp 5 iş günü içinde Kurum'a bildirilmesi hukuk danışmanının kararıdır. | ⏳ |
 | D-068 | Veri sorumlusu vergi levhasına göre **Ayhan Alay (şahıs işletmesi)**; adres İstasyon Mah. Hüsnü Efe Cad. No 12 A Kartepe/Kocaeli; KVKK e-postası ilk aşamada Enes Karakaya'nın adresi (kullanıcı kararı). Telefon/KEP isteğe bağlı. Bilgiler `src/lib/kvkk.ts` içinde; eksikse test yayını durdurur. | ✅ |
+
+## Müşteri sipariş ekranı (09.10.2026)
+
+| Kod | Karar | Durum |
+|---|---|---|
+| D-069 | Kullanıcının çizdiği görsele göre mağaza düzeni: marka bölümleri, yatay kaydırmalı kartlar, "+", alt sabit sepet çubuğu, üstte sepet sayacı. Hızlı sipariş ve kayıtlı müşteri aynı bileşeni kullanır. Veri kaynağı `public_catalog()` (marka, kategori, fotoğraf, 60 günlük satış adedi eklendi). | ✅ |
+| D-070 | Ürün fotoğrafları Supabase Storage'da herkese açık `urun` kovasında (1 MB, webp/jpeg/png); yükleme/silme yalnızca yönetici (RLS). Marka logoları uygulamada çizilmez; gerçek ürün fotoğrafı işletme tarafından yüklenir. | ✅ |
+| D-071 | Giriş ekranında hızlı sipariş öne çıkarıldı; çalışan girişi küçük bağlantı olarak en alta alındı (kullanıcı isteği). | ✅ |

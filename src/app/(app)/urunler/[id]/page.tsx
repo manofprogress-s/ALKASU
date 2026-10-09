@@ -4,6 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui/card";
 import { ProductForm, type ProductFormValue } from "@/components/products/product-form";
 import { formatDateTime, formatTRY } from "@/lib/format";
+import { ProductImage } from "@/components/products/product-image";
 
 export default async function ProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requirePermission("productEdit");
@@ -19,6 +20,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
   let value: ProductFormValue | null = null;
   let history: { at: string; text: string }[] = [];
   let avgCost: number | null = null;
+  let imagePath: string | null = null;
   if (!isNew) {
     const { data } = await supabase
       .from("products")
@@ -26,6 +28,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
       .eq("id", id)
       .maybeSingle();
     if (!data) notFound();
+    imagePath = (data.image_path as string | null) ?? null;
     const units = (data.product_units as { id: string; name: string; factor: number; price: number | null; active: boolean; is_base: boolean; sort: number }[]);
     const base = units.find((u) => u.is_base);
     value = {
@@ -63,6 +66,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
         categories={(cats.data ?? []) as { id: string; name: string }[]}
         containers={((containers.data ?? []) as { id: string; name: string }[]).filter((c) => c.id !== value?.id)}
       />
+      {!isNew && !value!.kind.startsWith("bos") ? <ProductImage productId={value!.id!} path={imagePath} /> : null}
       {history.length > 0 ? (
         <Card>
           <h2 className="mb-2 font-semibold">Fiyat ve maliyet geçmişi</h2>

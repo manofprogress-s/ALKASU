@@ -1,28 +1,22 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Minus, Plus } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { LocationField } from "@/components/geo/location-field";
-import { formatTRY, fromKurus, toKurus } from "@/lib/format";
+import { formatTRY, fromKurus } from "@/lib/format";
 import type { LatLng } from "@/lib/geo";
+import type { ShopItem } from "@/lib/shop";
 import { registerAndOrder } from "@/app/siparis-ver/actions";
 import { MARKETING_TEXT, SHORT_NOTICE } from "@/lib/kvkk";
+import { CartBar, CartButton, CartList, ShopCatalog, cartTotals, nextQty, type Qty } from "@/components/shop/shop-catalog";
 
-export interface PublicItem {
-  productId: string;
-  productName: string;
-  unitId: string;
-  unitName: string;
-  factor: number;
-  price: number;
-  hasDeposit: boolean;
-}
-
-export function PublicOrderForm({ items }: { items: PublicItem[] }) {
-  const [qty, setQty] = useState<Record<string, number>>({});
+/** Hızlı sipariş (yeni müşteri): 1) ürünleri seç  2) sepet + adres + bilgiler → kayıt ve sipariş tek adımda (W-02, W-08) */
+export function PublicOrderForm({ items }: { items: ShopItem[] }) {
+  const [qty, setQty] = useState<Qty>({});
+  const [stage, setStage] = useState<"urunler" | "sepet">("urunler");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -37,10 +31,10 @@ export function PublicOrderForm({ items }: { items: PublicItem[] }) {
   const [exists, setExists] = useState(false);
   const [pending, start] = useTransition();
 
-  const chosen = items.filter((i) => (qty[i.unitId] ?? 0) > 0);
-  const totalK = chosen.reduce((s, i) => s + toKurus(i.price * (qty[i.unitId] ?? 0)), 0);
+  const { chosen, totalK, count } = cartTotals(items, qty);
   const anyDeposit = chosen.some((i) => i.hasDeposit);
-  const step = (id: string, d: number) => setQty((q) => ({ ...q, [id]: Math.max(0, Math.min(1000, (q[id] ?? 0) + d)) }));
+  const step = (id: string, d: number) => setQty((q) => nextQty(q, id, d));
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [stage]);
 
   const validation =
     chosen.length === 0 ? "Ürün seçin"
@@ -72,38 +66,48 @@ export function PublicOrderForm({ items }: { items: PublicItem[] }) {
     });
   }
 
+  const header = (
+    <div className="flex items-start justify-between gap-2">
+      <div>
+        <div className="text-3xl font-extrabold tracking-tight text-brand">ALKASU</div>
+        <div className="text-sm text-muted">Alay Ticaret · Su ve damacana siparişi</div>
+      </div>
+      <div className="flex flex-col items-end gap-0.5">
+        <CartButton count={count} onClick={() => count && setStage("sepet")} />
+        <Link href="/giris?tip=musteri" className="px-2 text-sm text-brand">Kayıtlıyım, giriş yap</Link>
+      </div>
+    </div>
+  );
+
+  if (stage === "urunler") {
+    return (
+      <div className="space-y-4 pb-24">
+        {header}
+        <ShopCatalog items={items} qty={qty} onStep={step} />
+        <p className="text-center text-xs text-muted">
+          Fiyatlara KDV dahildir. <Link href="/kvkk" className="underline">Müşteri Aydınlatma Metni</Link>
+        </p>
+        <CartBar count={count} totalK={totalK} onConfirm={() => setStage("sepet")} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {header}
+      <button type="button" onClick={() => setStage("urunler")} className="flex items-center gap-1 font-medium text-brand">
+        <ChevronLeft className="h-5 w-5" /> Ürün eklemeye devam et
+      </button>
       <Card className="space-y-2">
-        <h2 className="text-lg font-semibold">1. Ürünler</h2>
-        <ul className="divide-y divide-border">
-          {items.map((i) => {
-            const n = qty[i.unitId] ?? 0;
-            return (
-              <li key={i.unitId} className="flex items-center justify-between gap-2 py-2">
-                <span className="min-w-0">
-                  <span className="block font-medium">{i.productName}</span>
-                  <span className="num block text-sm text-muted">{formatTRY(i.price)} / {i.unitName}{i.factor > 1 ? ` (${i.factor} adet)` : ""}</span>
-                </span>
-                <span className="flex shrink-0 items-center">
-                  <Button variant="secondary" size="icon" aria-label="Azalt" disabled={n === 0} onClick={() => step(i.unitId, -1)}><Minus className="h-4 w-4" /></Button>
-                  <span className="num w-10 text-center text-lg font-semibold">{n}</span>
-                  <Button variant={n ? "primary" : "secondary"} size="icon" aria-label="Artır" onClick={() => step(i.unitId, 1)}><Plus className="h-4 w-4" /></Button>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="flex justify-between border-t border-border pt-2 font-semibold">
-          <span>Toplam</span><span className="num">{formatTRY(fromKurus(totalK))}</span>
-        </div>
+        <h2 className="text-lg font-semibold">Sepetiniz</h2>
+        <CartList items={items} qty={qty} onStep={step} />
         <p className="text-xs text-muted">
           Fiyatlara KDV dahildir.{anyDeposit ? " Damacana fiyatı boş damacana değişimiyle geçerlidir; boş damacananız yoksa teslimatta depozito alınır." : ""} Kesin tutar teslimatta belirlenir.
         </p>
       </Card>
 
       <Card className="space-y-3">
-        <h2 className="text-lg font-semibold">2. Teslimat adresi</h2>
+        <h2 className="text-lg font-semibold">Teslimat adresi</h2>
         <Field label="Açık adres" hint="Mahalle, sokak, bina no, daire, kat; varsa tarif">
           <Textarea autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
@@ -116,7 +120,7 @@ export function PublicOrderForm({ items }: { items: PublicItem[] }) {
       </Card>
 
       <Card className="space-y-3">
-        <h2 className="text-lg font-semibold">3. Bilgileriniz</h2>
+        <h2 className="text-lg font-semibold">Bilgileriniz</h2>
         <p className="text-sm text-muted">Bir sonraki siparişinizde telefonunuz ve şifrenizle giriş yapacaksınız.</p>
         <Field label="Ad soyad"><Input autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} /></Field>
         <Field label="Cep telefonu"><Input type="tel" inputMode="tel" autoComplete="tel" placeholder="05xx xxx xx xx" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
@@ -126,7 +130,7 @@ export function PublicOrderForm({ items }: { items: PublicItem[] }) {
         </div>
         {/* Bot tuzağı: ekranda görünmez, insanlar doldurmaz */}
         <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} className="absolute -left-[9999px] h-0 w-0 opacity-0" aria-hidden="true" />
-<div className="space-y-1 rounded-xl bg-bg p-3 text-xs text-muted">
+        <div className="space-y-1 rounded-xl bg-bg p-3 text-xs text-muted">
           <p>{SHORT_NOTICE}</p>
           <p>Ayrıntılar ve haklarınız için <Link href="/kvkk" target="_blank" className="font-medium text-brand underline">Müşteri Aydınlatma Metnini görüntüleyin</Link>.</p>
         </div>

@@ -2,7 +2,8 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ShoppingBag, UserRound, BriefcaseBusiness } from "lucide-react";
+import { BriefcaseBusiness, ChevronLeft, ChevronRight, UserRound, Zap } from "lucide-react";
+import { ProductArt } from "@/components/shop/product-art";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { Alert, Card } from "@/components/ui/card";
@@ -79,16 +80,20 @@ function LoginForm({ mode }: { mode: Mode }) {
   );
 }
 
-function Choice({ href, icon: Icon, title, text, primary }: { href: string; icon: typeof ShoppingBag; title: string; text: string; primary?: boolean }) {
+/** Yeni müşteri için büyük, öne çıkan hızlı sipariş kartı (W-01) */
+function QuickOrder() {
   return (
-    <Link
-      href={href}
-      className={`flex items-center gap-4 rounded-2xl border p-4 active:scale-[0.99] ${primary ? "border-brand bg-brand text-white" : "border-border bg-surface hover:bg-surface-2"}`}
-    >
-      <Icon className="h-8 w-8 shrink-0" />
-      <span>
-        <span className="block text-lg font-semibold">{title}</span>
-        <span className={`block text-sm ${primary ? "text-white/85" : "text-muted"}`}>{text}</span>
+    <Link href="/siparis-ver" className="group relative block overflow-hidden rounded-3xl bg-gradient-to-br from-brand to-brand-strong p-5 text-white shadow-lg shadow-brand/25 active:scale-[0.99]">
+      <ProductArt kind="damacana" color="#ffffff" className="pointer-events-none absolute -right-3 -bottom-4 h-40 w-32 opacity-90" />
+      <span className="relative block max-w-[70%]">
+        <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">
+          <Zap className="h-3.5 w-3.5" /> Üyelik gerekmez
+        </span>
+        <span className="mt-3 block text-2xl font-extrabold leading-tight">Hızlı sipariş ver</span>
+        <span className="mt-1 block text-sm text-white/85">Suyunu seç, adresini yaz; siparişin kapına gelsin.</span>
+        <span className="mt-4 inline-flex h-11 items-center gap-1 rounded-xl bg-white px-4 font-semibold text-brand shadow-sm">
+          Siparişe başla <ChevronRight className="h-5 w-5 transition group-hover:translate-x-0.5" />
+        </span>
       </span>
     </Link>
   );
@@ -102,10 +107,21 @@ function Entry() {
 
   if (!mode) {
     return (
-      <div className="space-y-3">
-        <Choice href="/siparis-ver" icon={ShoppingBag} title="Sipariş ver" text="İlk kez mi sipariş veriyorsunuz? Adresinizi girin, siparişiniz kapınıza gelsin." primary />
-        <Choice href="/giris?tip=musteri" icon={UserRound} title="Kayıtlı müşteri girişi" text="Telefon numaranız ve şifrenizle girin." />
-        <Choice href="/giris?tip=calisan" icon={BriefcaseBusiness} title="Çalışan girişi" text="Personel ve bayiler için." />
+      <div className="space-y-4">
+        <QuickOrder />
+        <Link href="/giris?tip=musteri" className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 hover:bg-surface-2 active:scale-[0.99]">
+          <UserRound className="h-7 w-7 shrink-0 text-brand" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">Kayıtlı müşteri girişi</span>
+            <span className="block text-sm text-muted">Telefon numaran ve şifrenle gir, siparişini tekrarla.</span>
+          </span>
+          <ChevronRight className="h-5 w-5 text-muted" />
+        </Link>
+        <div className="pt-6 text-center">
+          <Link href="/giris?tip=calisan" className="inline-flex items-center gap-1 text-xs text-muted hover:text-text">
+            <BriefcaseBusiness className="h-3.5 w-3.5" /> Çalışan ve bayi girişi
+          </Link>
+        </div>
       </div>
     );
   }
