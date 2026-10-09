@@ -68,13 +68,13 @@ export function PublicOrderForm({ items }: { items: ShopItem[] }) {
 
   const header = (
     <div className="flex items-start justify-between gap-2">
-      <div>
-        <div className="text-3xl font-extrabold tracking-tight text-brand">ALKASU</div>
-        <div className="text-sm text-muted">Alay Ticaret · Su ve damacana siparişi</div>
+      <div className="min-w-0">
+        <div className="text-3xl font-extrabold leading-none tracking-tight text-brand">ALKASU</div>
+        <div className="mt-1 truncate text-xs text-muted sm:text-sm">Alay Ticaret · Su ve damacana</div>
       </div>
-      <div className="flex flex-col items-end gap-0.5">
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
         <CartButton count={count} onClick={() => count && setStage("sepet")} />
-        <Link href="/giris?tip=musteri" className="px-2 text-sm text-brand">Kayıtlıyım, giriş yap</Link>
+        <Link href="/giris?tip=musteri" className="whitespace-nowrap px-2 text-xs text-brand sm:text-sm">Kayıtlıyım, giriş yap</Link>
       </div>
     </div>
   );
