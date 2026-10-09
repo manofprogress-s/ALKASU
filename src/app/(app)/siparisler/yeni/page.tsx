@@ -2,7 +2,7 @@ import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/card";
 import { OrderForm, type OrderFormValue } from "@/components/orders/order-form";
-import { loadAssignees, loadOrderCustomers, loadOrderProducts, type Assignee } from "@/lib/orders";
+import { dealerOrderSetup, loadAssignees, loadDealerNames, loadOrderCustomers, loadOrderProducts, type Assignee, type Dealer } from "@/lib/orders";
 import { todayISO } from "@/lib/format";
 
 export const metadata = { title: "Yeni sipariş" };
@@ -11,21 +11,33 @@ export default async function NewOrderPage({ searchParams }: { searchParams: Pro
   const ctx = await requirePermission("orders");
   const sp = await searchParams;
   const supabase = await supabaseServer();
-  const isSelf = ctx.role === "bayi" || ctx.role === "musteri"; // kendi adına sipariş
-  const [products, customers, assignees] = await Promise.all([
+  const isDealer = ctx.role === "bayi";
+  const isCustomer = ctx.role === "musteri";
+  const [products, customers, assignees, dealers] = await Promise.all([
     loadOrderProducts(supabase, ctx.businessId),
-    loadOrderCustomers(supabase, ctx.businessId), // bayi için RLS yalnızca kendi kartını döndürür
-    isSelf ? Promise.resolve([] as Assignee[]) : loadAssignees(supabase, ctx.businessId),
+    loadOrderCustomers(supabase, ctx.businessId), // RLS: bayi kendisi + kendi müşterileri, müşteri yalnızca kendisi
+    isDealer || isCustomer ? Promise.resolve([] as Assignee[]) : loadAssignees(supabase, ctx.businessId),
+    isDealer ? loadDealerNames(supabase, ctx.businessId) : Promise.resolve([] as Dealer[]),
   ]);
-  const fixed = isSelf ? customers.find((c) => c.id === ctx.customerId) ?? null : null;
-  const preset = !isSelf && sp.musteri ? customers.find((c) => c.id === sp.musteri) ?? null : null;
+  const dealer = isDealer ? dealerOrderSetup(customers, dealers, ctx.customerId) : null;
+  const fixed = isCustomer ? customers.find((c) => c.id === ctx.customerId) ?? null : null;
+  const formCustomers = dealer ? dealer.customers : isCustomer ? [] : customers;
+  const preset = !isCustomer && sp.musteri ? formCustomers.find((c) => c.id === sp.musteri) ?? null : null;
   const initial: OrderFormValue | null = preset
     ? { id: crypto.randomUUID(), customerId: preset.id, deliveryDate: todayISO(), assignee: preset.defaultAssignee, address: preset.address ?? "", note: "", items: [] }
     : null;
   return (
     <div>
       <PageHeader title="Yeni sipariş" />
-      <OrderForm products={products} customers={isSelf ? [] : customers} assignees={assignees} initial={initial} fixedCustomer={fixed} isNew />
+      <OrderForm
+        products={products}
+        customers={formCustomers}
+        assignees={assignees}
+        initial={initial}
+        fixedCustomer={fixed}
+        dealerMode={dealer?.dealerMode}
+        isNew
+      />
     </div>
   );
 }

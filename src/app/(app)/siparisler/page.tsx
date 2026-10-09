@@ -35,11 +35,16 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const isCustomer = ctx.role === "musteri";
   const isStaff = !isDealer && !isCustomer;
   // Bayi: "teslimat" = kendisine atanan ev müşterisi siparişleri, "alim" = bizden kendi siparişleri
-  const tur = isDealer ? (sp.tur === "alim" ? "alim" : "teslimat") : null;
+  const tur = isDealer ? (sp.tur === "alim" ? "alim" : sp.tur === "musterilerim" ? "musterilerim" : "teslimat") : null;
   const durum = (sp.durum ?? (isCustomer ? "tumu" : "acik")) as OrderStatus | "tumu";
   const routeSorted = (sp.atanan === "ben" || tur === "teslimat") && durum === "acik";
 
   const supabase = await supabaseServer();
+  // Bayinin kendi müşterileri (RLS'e ek olarak açıkça filtrelenir)
+  const myCustomerIds =
+    tur === "musterilerim" && ctx.customerId
+      ? (((await supabase.from("customers").select("id").eq("owner_dealer_id", ctx.customerId)).data ?? []) as { id: string }[]).map((c) => c.id)
+      : [];
   let q = supabase
     .from("orders")
     .select("id, no, delivery_date, status, assignee, dealer_customer_id, route_seq, source, customers!orders_customer_id_fkey(name, code), order_items(qty, unit_price, products(name), product_units(name))")
@@ -55,6 +60,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   if (sp.gun === "bugun") q = q.lte("delivery_date", todayISO());
   if (tur === "teslimat" && ctx.customerId) q = q.eq("dealer_customer_id", ctx.customerId);
   if (tur === "alim" && ctx.customerId) q = q.eq("customer_id", ctx.customerId);
+  if (tur === "musterilerim" && ctx.customerId) q = q.in("customer_id", myCustomerIds.length ? myCustomerIds : ["00000000-0000-0000-0000-000000000000"]);
 
   const [{ data }, assignees, dealers] = await Promise.all([
     q,
@@ -76,7 +82,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     const s = p.toString();
     return `/siparisler${s ? `?${s}` : ""}`;
   };
-  const statuses: (OrderStatus | "tumu")[] = isStaff
+  const statuses: (OrderStatus | "tumu")[] = isStaff || isDealer
     ? ["onay_bekliyor", "acik", "teslim_edildi", "iptal", "tumu"]
     : ["acik", "teslim_edildi", "iptal", "tumu"];
   const owner = (r: Row) =>
@@ -87,12 +93,12 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   return (
     <div>
       <PageHeader
-        title={isCustomer ? "Siparişlerim" : tur === "teslimat" ? "Teslimatlarım" : isDealer ? "Siparişlerim" : "Siparişler"}
+        title={isCustomer ? "Siparişlerim" : tur === "teslimat" ? "Teslimatlarım" : tur === "musterilerim" ? "Müşterilerimin siparişleri" : isDealer ? "Bizden alımlarım" : "Siparişler"}
         subtitle={`${rows.length} sipariş${routeSorted ? " · rota sırasına göre" : ""}`}
         actions={
           <>
             {can(ctx.role, "routes") ? <Link href="/rota" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Rota</Link> : null}
-            {tur !== "teslimat" ? <Link href="/siparisler/yeni" className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Yeni sipariş</Link> : null}
+            <Link href="/siparisler/yeni" className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Yeni sipariş</Link>
           </>
         }
       />
@@ -100,7 +106,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         {isDealer ? (
           <>
             <Link href={link({ tur: undefined })} className={chip(tur === "teslimat")}>Bana atanan teslimatlar</Link>
-            <Link href={link({ tur: "alim" })} className={chip(tur === "alim")}>Bizden siparişlerim</Link>
+            <Link href={link({ tur: "musterilerim" })} className={chip(tur === "musterilerim")}>Müşterilerimin siparişleri</Link>
+            <Link href={link({ tur: "alim" })} className={chip(tur === "alim")}>Bizden alımlarım</Link>
             <span className="mx-1 border-l border-border" />
           </>
         ) : null}
@@ -129,7 +136,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         columns={[
           ...(routeSorted ? [{ key: "r", label: "Sıra", hideOnMobile: true, render: (r: Row) => r.route_seq ?? "—" }] : []),
           { key: "no", label: "No", hideOnMobile: true, render: (r) => `#${r.no}` },
-          ...(isCustomer ? [] : [{ key: "c", label: "Müşteri", hideOnMobile: true, render: (r: Row) => (
+          ...(isCustomer || tur === "alim" ? [] : [{ key: "c", label: "Müşteri", hideOnMobile: true, render: (r: Row) => (
             <span>{r.customers?.name ?? ""} {r.source === "online" ? <Badge>İnternet</Badge> : null}</span>
           ) }]),
           {

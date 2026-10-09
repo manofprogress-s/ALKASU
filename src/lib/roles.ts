@@ -40,6 +40,7 @@ export const PERMISSIONS = {
   orderAssign: ["yonetici", "satis", "sevkiyat"],
   deliver: ["yonetici", "satis", "sevkiyat"],
   myAccount: ["bayi", "musteri"],
+  dealerCustomers: ["bayi"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

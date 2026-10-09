@@ -20,6 +20,7 @@ export interface OrderCustomer {
   address: string | null;
   priceList: PriceList;
   defaultAssignee: string | null;
+  ownerDealerId: string | null;
 }
 
 export interface Assignee {
@@ -77,13 +78,13 @@ export async function loadOrderProducts(supabase: SupabaseClient, businessId: st
 export async function loadOrderCustomers(supabase: SupabaseClient, businessId: string): Promise<OrderCustomer[]> {
   const { data, error } = await supabase
     .from("customers")
-    .select("id, code, name, address, price_list, default_assignee")
+    .select("id, code, name, address, price_list, default_assignee, owner_dealer_id")
     .eq("business_id", businessId)
     .eq("active", true)
     .order("name");
   if (error) throw error;
-  return ((data ?? []) as { id: string; code: string; name: string; address: string | null; price_list: PriceList | null; default_assignee: string | null }[]).map(
-    (c) => ({ id: c.id, code: c.code, name: c.name, address: c.address, priceList: c.price_list ?? "perakende", defaultAssignee: c.default_assignee }),
+  return ((data ?? []) as { id: string; code: string; name: string; address: string | null; price_list: PriceList | null; default_assignee: string | null; owner_dealer_id: string | null }[]).map(
+    (c) => ({ id: c.id, code: c.code, name: c.name, address: c.address, priceList: c.price_list ?? "perakende", defaultAssignee: c.default_assignee, ownerDealerId: c.owner_dealer_id }),
   );
 }
 
@@ -100,4 +101,20 @@ export interface Dealer {
 export async function loadDealers(supabase: SupabaseClient, businessId: string): Promise<Dealer[]> {
   const { data } = await supabase.from("customers").select("id, name").eq("business_id", businessId).eq("channel", "bayi").eq("active", true).order("name");
   return (data ?? []) as Dealer[];
+}
+
+/** Bayi listesi (bayi başka bayinin kartını göremediği için RPC ile; yalnızca ad) */
+export async function loadDealerNames(supabase: SupabaseClient, businessId: string): Promise<Dealer[]> {
+  const { data } = await supabase.rpc("dealer_list", { p_business: businessId });
+  return (data ?? []) as Dealer[];
+}
+
+/** Bayi için sipariş formu ayarı: kendisi + kendi müşterileri, teslim eden seçenekleri */
+export function dealerOrderSetup(customers: OrderCustomer[], dealers: Dealer[], myCustomerId: string | null) {
+  const me = customers.find((c) => c.id === myCustomerId) ?? null;
+  if (!me) return null;
+  return {
+    customers: [me, ...customers.filter((c) => c.ownerDealerId === me.id)],
+    dealerMode: { me, dealers },
+  };
 }

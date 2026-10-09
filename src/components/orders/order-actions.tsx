@@ -327,13 +327,13 @@ function DeliverDialog({
 }
 
 /** İnternetten gelen ilk sipariş: onayla / reddet */
-export function ApprovalActions({ orderId, orderNo, phone }: { orderId: string; orderNo: number; phone: string | null }) {
+export function ApprovalActions({ orderId, orderNo, phone, note }: { orderId: string; orderNo: number; phone: string | null; note?: string }) {
   const { call, busy } = useRpc();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   return (
     <Card className="space-y-3">
-      <Alert tone="warn">Yeni internet müşterisinin ilk siparişi. {phone ? "Müşteriyi arayıp teyit edin, sonra onaylayın." : "Teyit edip onaylayın."}</Alert>
+      <Alert tone="warn">{note ?? `Yeni internet müşterisinin ilk siparişi. ${phone ? "Müşteriyi arayıp teyit edin, sonra onaylayın." : "Teyit edip onaylayın."}`}</Alert>
       {phone ? <a href={`tel:${phone}`} className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-surface font-medium text-brand">Ara: {phone}</a> : null}
       <Button size="lg" variant="ok" className="w-full" loading={busy} onClick={() => void call("approve_order", { p_order: orderId }, { success: `Sipariş #${orderNo} onaylandı` })}>
         <CheckCircle2 className="h-5 w-5" /> Onayla

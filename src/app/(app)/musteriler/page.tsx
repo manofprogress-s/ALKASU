@@ -16,16 +16,17 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const supabase = await supabaseServer();
   const [{ data: cs }, { data: bal }, { data: cont }] = await Promise.all([
-    supabase.from("customers").select("id, code, name, phone, credit_limit, unlimited_credit, active, channel, price_list, regions, dispenser_count").eq("business_id", ctx.businessId).order("name"),
+    supabase.from("customers").select("id, code, name, phone, credit_limit, unlimited_credit, active, channel, price_list, regions, dispenser_count, owner_dealer_id").eq("business_id", ctx.businessId).order("name"),
     supabase.from("customer_balances").select("customer_id, balance").eq("business_id", ctx.businessId),
     supabase.from("container_balances").select("customer_id, qty").eq("business_id", ctx.businessId),
   ]);
   const b = new Map((bal ?? []).map((x: { customer_id: string; balance: number }): [string, number] => [x.customer_id, Number(x.balance)]));
   const k = new Map<string, number>();
   for (const c of (cont ?? []) as { customer_id: string | null; qty: number }[]) if (c.customer_id) k.set(c.customer_id, (k.get(c.customer_id) ?? 0) + c.qty);
-  let rows = ((cs ?? []) as { id: string; code: string; name: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; active: boolean; channel: Channel; price_list: PriceList; regions: string | null; dispenser_count: number }[])
+  let rows = ((cs ?? []) as { id: string; code: string; name: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; active: boolean; channel: Channel; price_list: PriceList; regions: string | null; dispenser_count: number; owner_dealer_id: string | null }[])
     .map((c) => ({ ...c, balance: b.get(c.id) ?? 0, containers: k.get(c.id) ?? 0 }));
   if (sp.q) { const s = searchKey(sp.q); const d = sp.q.replace(/\D/g, ""); rows = rows.filter((r) => searchKey(`${r.name} ${r.code}`).includes(s) || (d.length >= 3 && (r.phone ?? "").replace(/\D/g, "").includes(d))); }
+  const dealerNames = new Map(rows.filter((r) => r.channel === "bayi").map((r) => [r.id, r.name]));
   if (sp.borclu) rows = rows.filter((r) => r.balance > 0);
   if (sp.kanal) rows = rows.filter((r) => r.channel === sp.kanal);
   const totalDebt = rows.reduce((s, r) => s + Math.max(r.balance, 0), 0);
@@ -50,6 +51,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             <span className="flex flex-wrap gap-1">
               {r.channel !== "perakende" ? <Badge tone={r.channel === "bayi" ? "brand" : "neutral"}>{CHANNELS[r.channel]}</Badge> : <span className="text-muted">Perakende</span>}
               {r.price_list !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[r.price_list]}</Badge> : null}
+              {r.owner_dealer_id ? <Badge tone="brand">{dealerNames.get(r.owner_dealer_id) ?? "Bayi"} müşterisi</Badge> : null}
             </span>
           ) },
           { key: "phone", label: "Telefon", render: (r) => r.phone ?? "—" },

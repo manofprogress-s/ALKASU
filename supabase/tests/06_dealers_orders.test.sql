@@ -159,12 +159,16 @@ select test.throws($$select public.save_order(test.biz(), jsonb_build_object('id
   '%Kapanmış sipariş%', 'Kapanmış sipariş değiştirilemez');
 select test.eq((public.dashboard(test.biz())->>'my_open_orders')::int, 0, 'Sevkiyat özetinde açık siparişlerim');
 
--- Bayi sipariş verir: müşteri zorla kendisi, atama yapılamaz
+-- Bayi sipariş verir: başkasının carisine açamaz; kendi alımı onay bekler, atama yapılamaz
 select test.login(test.u_bayi());
-select public.save_order(test.biz(), jsonb_build_object('id', '66666666-0000-0000-0000-000000000002', 'customer_id', test.cust('K001'),
+select test.throws($$select public.save_order(test.biz(), jsonb_build_object('id', gen_random_uuid(), 'customer_id', test.cust('K001'),
+  'items', jsonb_build_array(jsonb_build_object('product_id', test.pid('SU-005'), 'unit_id', test.unit('SU-005', 'Koli'), 'qty', 1))))$$,
+  '%size ait değil%', 'Bayi başka müşterinin carisine sipariş açamaz');
+select public.save_order(test.biz(), jsonb_build_object('id', '66666666-0000-0000-0000-000000000002',
   'assignee', test.u_sevk(), 'items', jsonb_build_array(jsonb_build_object('product_id', test.pid('SU-005'), 'unit_id', test.unit('SU-005', 'Koli'), 'qty', 5, 'unit_price', 1))));
 select test.eq((test.ord('66666666-0000-0000-0000-000000000002')).customer_id, test.cust('B001'), 'Bayinin siparişi kendi carisine açılır');
 select test.eq((test.ord('66666666-0000-0000-0000-000000000002')).assignee, null::uuid, 'Bayi sipariş ataması yapamaz');
+select test.eq((test.ord('66666666-0000-0000-0000-000000000002')).status, 'onay_bekliyor', 'Bayinin bizden alımı onay bekler');
 select test.eq((select unit_price from public.order_items where order_id = '66666666-0000-0000-0000-000000000002'), 190.00::numeric,
   'Bayi fiyat belirleyemez, bayi listesi uygulanır');
 select test.eq((select count(*) from public.orders)::int, 1, 'Bayi kendi siparişini görür');
@@ -176,7 +180,7 @@ select test.throws($$select public.cancel_order('66666666-0000-0000-0000-0000000
   'Bayi başka bayinin siparişini iptal edemez');
 
 select test.login(test.u_admin());
-select test.eq((public.dashboard(test.biz())->>'unassigned_orders')::int, 1, 'Yönetici atanmamış siparişleri görür');
+select test.eq((public.dashboard(test.biz())->>'pending_approval')::int, 1, 'Yönetici onay bekleyen bayi alımını görür');
 select public.assign_order('66666666-0000-0000-0000-000000000002', test.u_sevk());
 select test.eq((test.ord('66666666-0000-0000-0000-000000000002')).assignee, test.u_sevk(), 'Yönetici siparişi atar');
 select test.throws($$select public.cancel_order('66666666-0000-0000-0000-000000000002', ' ')$$, '%nedeni zorunlu%', 'İptal nedeni zorunlu');

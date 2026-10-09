@@ -226,3 +226,10 @@
 - **O-10** Bayiye verilmiş sipariş bizden satışa dönüştürülemez; önce bayi ataması kaldırılmalıdır.
 - **O-11** Rota: açık siparişler (seçilen gün ve gecikmiş olanlar) başlangıç noktasından en kısa sıraya dizilir. Personel için başlangıç depo konumu (Ayarlar), bayi için kendi depo konumudur (Hesabım). Konumu olmayan siparişler ayrıca listelenir. Kaydedilen sıra, sipariş listesinde "Bana atanan" / "Teslimatlarım" görünümünde kullanılır.
 - **O-12** Bayiye yalnızca **ev müşterisi** siparişi verilebilir; bir bayinin bizden alım siparişi başka bayiye verilemez. Bayi kendi kartının adını değiştiremez (yalnızca depo adresi ve konumu). İnternet müşterisi personele/bayiye, personel müşteriye çevrilemez.
+
+## 22. Bayinin müşterileri ve sipariş girişi
+
+- **O-13** Bayi kendi müşteri listesini tutar (Müşterilerim): ad, telefon, adres, konum, not. Bu kartları yalnızca o bayi ve merkez personeli görür; diğer bayi göremez. Bayi müşterisi ev müşterisidir (perakende, veresiyesiz).
+- **O-14** Bayi kendi müşterisine **kendisi teslim edecekse** sipariş onaysız açılır ve doğrudan bayinin teslimat listesine düşer (bayinin kendi satışı; bizim stok/kasa/cari etkilenmez).
+- **O-15** Bayinin **başka bir bayiye** veya **merkeze** (Hüseyin / dağıtım) açtığı sipariş ile **bayinin bizden kendi alımı** "onay bekliyor" olarak düşer. Onaylayan: yönetici, satış veya sevkiyat (Enes, Ayhan, Hüseyin, Selin). Onaylanınca sipariş talep edilen bayiye geçer; hedef bayi siparişi onaydan önce görmez.
+- **O-16** Bayi, kendi müşterisinin siparişini başka bayi teslimata almadıkça düzenleyip iptal edebilir.

@@ -134,3 +134,12 @@
 | D-056 | Rota ücretsiz hesaplanır: kuş uçuşu mesafeyle en yakın komşu + 2-opt; sürüş Google Maps yol tarifinde açılır (10 durakta bir bölünür). Gerçek yol mesafesiyle optimizasyon (Google Routes API) gerekirse ileride ücretli eklenebilir. | 🔁 |
 | D-057 | Depo konumu varsayılan lokasyonda tutulur (Ayarlar → Depo konumu); bayinin başlangıcı kendi müşteri kartındaki konumdur (Hesabım). | ✅ |
 | D-058 | Yeni internet müşterisinin kodu `W` ile başlar (ofis kartları `M`). | ✅ |
+
+## Bayi sipariş girişi (09.10.2026)
+
+| Kod | Karar | Durum |
+|---|---|---|
+| D-059 | Bayinin müşteri kartı merkezde tutulur, `owner_dealer_id` ile bayiye bağlanır; kod `B` ile başlar. | ✅ |
+| D-060 | Bayi siparişinde "teslim eden" seçilir: kendisi (onaysız), merkez veya başka bayi (onaylı). Talep edilen bayi `requested_dealer_id` alanında tutulur, onayla `dealer_customer_id`'ye geçer. | ✅ |
+| D-061 | Bayinin bizden alımı da onay bekler (kullanıcı isteği: "Hüseyin'e açılan sipariş onaylı"). | ✅ |
+| D-062 | Onay yetkisi: yönetici, satış, sevkiyat. Selin için Ayarlar'dan satış (veya yönetici) rolüyle kullanıcı açılmalı. | 🔁 |

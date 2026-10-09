@@ -12,7 +12,8 @@ import { errorMessage } from "@/lib/errors";
 import { formatTRY, fromKurus, parseAmount, todayISO, toKurus } from "@/lib/format";
 import { searchKey, unitPrice } from "@/lib/catalog";
 import { PRICE_LISTS, type PriceList } from "@/lib/roles";
-import type { Assignee, OrderCustomer, OrderProduct } from "@/lib/orders";
+import type { Assignee, Dealer, OrderCustomer, OrderProduct } from "@/lib/orders";
+import Link from "next/link";
 
 export interface OrderFormValue {
   id: string;
@@ -40,6 +41,7 @@ export function OrderForm({
   initial,
   fixedCustomer,
   isNew,
+  dealerMode,
 }: {
   products: OrderProduct[];
   customers: OrderCustomer[];
@@ -48,6 +50,8 @@ export function OrderForm({
   /** Bayi kullanıcısı: müşteri kendisidir */
   fixedCustomer: OrderCustomer | null;
   isNew: boolean;
+  /** Bayi: kendi alımı veya kendi müşterisine sipariş; teslim eden seçilir (D-060) */
+  dealerMode?: { me: OrderCustomer; dealers: Dealer[] };
 }) {
   const ctx = useAppContext();
   const router = useRouter();
@@ -55,7 +59,8 @@ export function OrderForm({
   const isAdmin = ctx.role === "yonetici";
   const isDealer = ctx.role === "bayi" || ctx.role === "musteri"; // kendi adına sipariş veren: atama yok
   const [id] = useState(() => initial?.id ?? crypto.randomUUID());
-  const [customerId, setCustomerId] = useState<string | null>(fixedCustomer?.id ?? initial?.customerId ?? null);
+  const [customerId, setCustomerId] = useState<string | null>(fixedCustomer?.id ?? initial?.customerId ?? dealerMode?.me.id ?? null);
+  const [deliverBy, setDeliverBy] = useState<string>("self");
   const [custQuery, setCustQuery] = useState("");
   const [deliveryDate, setDeliveryDate] = useState(initial?.deliveryDate ?? todayISO());
   const [assignee, setAssignee] = useState<string | null>(initial?.assignee ?? null);
@@ -85,9 +90,11 @@ export function OrderForm({
 
   const custMatches = useMemo(() => {
     const k = searchKey(custQuery.trim());
-    if (!k) return [];
+    if (!k) return dealerMode ? customers.slice(0, 20) : [];
     return customers.filter((c) => searchKey(`${c.name} ${c.code}`).includes(k)).slice(0, 8);
-  }, [customers, custQuery]);
+  }, [customers, custQuery, dealerMode]);
+  const ownPurchase = !!dealerMode && customerId === dealerMode.me.id;
+  const needsApproval = !!dealerMode && isNew && (ownPurchase || deliverBy !== "self");
   const prodMatches = useMemo(() => {
     const k = searchKey(prodQuery.trim());
     return (k ? products.filter((p) => searchKey(`${p.name} ${p.code}`).includes(k)) : products).slice(0, 40);
@@ -141,6 +148,7 @@ export function OrderForm({
         customer_id: customerId,
         delivery_date: deliveryDate,
         assignee: isDealer ? null : assignee,
+        deliver_by: dealerMode && isNew && !ownPurchase ? deliverBy : undefined,
         address,
         note,
         items: priced.map((l) => ({
@@ -173,11 +181,11 @@ export function OrderForm({
               <div>
                 <div className="text-sm text-muted">Müşteri</div>
                 <div className="font-semibold">
-                  {customer.name} <span className="text-sm font-normal text-muted">{customer.code}</span>
+                  {ownPurchase ? `Kendi alımım (${customer.name})` : customer.name} <span className="text-sm font-normal text-muted">{customer.code}</span>
                 </div>
                 {customer.priceList !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[customer.priceList]} fiyatı</Badge> : null}
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setCustomerId(null)}>Değiştir</Button>
+              {isNew || !dealerMode ? <Button variant="ghost" size="sm" onClick={() => setCustomerId(null)}>Değiştir</Button> : null}
             </div>
           ) : (
             <Field label="Müşteri" hint="Ad veya koddan arayın">
@@ -192,10 +200,36 @@ export function OrderForm({
                   ))}
                 </div>
               ) : custQuery.trim().length >= 2 ? (
-                <div className="mt-1 text-sm text-muted">Bulunamadı. Yeni müşteriyi Müşteriler bölümünden ekleyin.</div>
+                <div className="mt-1 text-sm text-muted">
+                  Bulunamadı. {dealerMode ? <Link href="/musterilerim" className="text-brand">Müşterilerim bölümünden yeni müşteri ekleyin.</Link> : "Yeni müşteriyi Müşteriler bölümünden ekleyin."}
+                </div>
               ) : null}
             </Field>
           )}
+          {dealerMode && isNew && customer ? (
+            ownPurchase ? (
+              <Alert tone="warn">Bizden alımınız merkez tarafından teslim edilir; siparişiniz onaylandıktan sonra işleme alınır.</Alert>
+            ) : (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Teslim eden</div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[{ id: "self", label: "Ben teslim ederim", hint: "Onaysız açılır" },
+                    { id: "merkez", label: "Merkez (Alay Ticaret)", hint: "Onay gerekir" },
+                    ...dealerMode.dealers.filter((d) => d.id !== dealerMode.me.id).map((d) => ({ id: d.id, label: d.name, hint: "Onay gerekir" }))].map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => setDeliverBy(o.id)}
+                      className={`rounded-xl border px-3 py-2 text-left ${deliverBy === o.id ? "border-brand bg-brand-soft" : "border-border"}`}
+                    >
+                      <span className="block font-medium">{o.label}</span>
+                      <span className="block text-xs text-muted">{o.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          ) : null}
         </Card>
 
         <Card className="space-y-3">
@@ -280,7 +314,7 @@ export function OrderForm({
           {containers > 0 ? <div className="text-xs text-muted">{containers} depozitolu kap · depozito teslimatta alınan boşa göre hesaplanır</div> : null}
           {error ? <Alert>{error}</Alert> : null}
           <Button size="lg" className="w-full" loading={saving} disabled={!!validation} onClick={() => void save()}>
-            {isNew ? "Siparişi kaydet" : "Siparişi güncelle"}
+            {isNew ? (needsApproval ? "Onaya gönder" : "Siparişi kaydet") : "Siparişi güncelle"}
           </Button>
           {validation ? <div className="text-center text-xs text-muted">{validation}</div> : null}
         </Card>

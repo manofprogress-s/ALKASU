@@ -4,7 +4,7 @@ import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Badge, Card, PageHeader } from "@/components/ui/card";
 import { formatDate, formatDateTime, formatTRY } from "@/lib/format";
-import { loadAssignees, loadDealers, ORDER_STATUS, type OrderStatus, type Assignee, type Dealer } from "@/lib/orders";
+import { loadAssignees, loadDealerNames, loadDealers, ORDER_STATUS, type OrderStatus, type Assignee, type Dealer } from "@/lib/orders";
 import { can, PRICE_LISTS, type PriceList } from "@/lib/roles";
 import { ApprovalActions, DealerActions, OrderActions, type DeliverItem } from "@/components/orders/order-actions";
 import { LocationView } from "@/components/geo/location-view";
@@ -27,10 +27,11 @@ interface OrderRow {
   sale_id: string | null;
   dealer_customer_id: string | null;
   dealer_note: string | null;
+  requested_dealer_id: string | null;
   source: string;
   cancelled_at: string | null;
   cancel_reason: string | null;
-  customers: { name: string; code: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; latitude: number | null; longitude: number | null } | null;
+  customers: { name: string; code: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; latitude: number | null; longitude: number | null; owner_dealer_id: string | null } | null;
   order_items: {
     id: string;
     line_no: number;
@@ -50,7 +51,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const { data } = await supabase
     .from("orders")
     .select(
-      "*, customers!orders_customer_id_fkey(name, code, phone, credit_limit, unlimited_credit, latitude, longitude), order_items(id, line_no, product_id, unit_id, qty, unit_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
+      "*, customers!orders_customer_id_fkey(name, code, phone, credit_limit, unlimited_credit, latitude, longitude, owner_dealer_id), order_items(id, line_no, product_id, unit_id, qty, unit_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -59,7 +60,8 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const isDealer = ctx.role === "bayi";
   const isCustomer = ctx.role === "musteri";
   const isStaff = !isDealer && !isCustomer;
-  const isMine = o.customer_id === ctx.customerId; // bayi/müşterinin kendi siparişi
+  // bayi/müşterinin kendi siparişi; bayi için kendi müşterisinin siparişi de
+  const isMine = o.customer_id === ctx.customerId || (isDealer && !!ctx.customerId && o.customers?.owner_dealer_id === ctx.customerId);
   const isMyDelivery = isDealer && !!ctx.customerId && o.dealer_customer_id === ctx.customerId;
   const open = o.status === "acik" || o.status === "onay_bekliyor";
   const [assignees, dealers, bal, cont] = await Promise.all([
@@ -72,8 +74,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const items = [...o.order_items].sort((a, b) => a.line_no - b.line_no);
   const total = items.reduce((s, i) => s + Number(i.qty) * Number(i.unit_price), 0);
   const canDeliver = o.status === "acik" && !o.dealer_customer_id && can(ctx.role, "deliver") && (ctx.role === "yonetici" || o.assignee === ctx.userId);
-  const canEdit = open && (isStaff || (isMine && !o.dealer_customer_id));
+  const notTakenByOther = !o.dealer_customer_id || o.dealer_customer_id === ctx.customerId;
+  const canEdit = open && (isStaff || (isMine && notTakenByOther));
   const dealerName = dealers.find((d) => d.id === o.dealer_customer_id)?.name;
+  const dealerNames = isDealer && o.requested_dealer_id ? await loadDealerNames(supabase, ctx.businessId) : dealers;
+  const requestedName = o.requested_dealer_id ? dealerNames.find((d) => d.id === o.requested_dealer_id)?.name ?? "Bayi" : null;
 
   const deliverItems: DeliverItem[] = items.map((i) => ({
     id: i.id,
@@ -158,7 +163,17 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             ) : null}
             {o.cancelled_at ? <Alert tone="neutral">İptal: {formatDateTime(o.cancelled_at)} · {o.cancel_reason}</Alert> : null}
           </Card>
-          {o.status === "onay_bekliyor" && isStaff ? <ApprovalActions orderId={o.id} orderNo={o.no} phone={o.customers?.phone ?? null} /> : null}
+          {o.status === "onay_bekliyor" && isStaff ? (
+            <ApprovalActions
+              orderId={o.id}
+              orderNo={o.no}
+              phone={o.customers?.phone ?? null}
+              note={o.source === "bayi" ? `Bayi siparişi · teslim edecek: ${requestedName ?? "Merkez (biz)"}` : undefined}
+            />
+          ) : null}
+          {o.status === "onay_bekliyor" && isDealer ? (
+            <Alert tone="warn">Onay bekliyor · teslim edecek: {requestedName ?? "Merkez (Alay Ticaret)"}</Alert>
+          ) : null}
           {o.status === "acik" && isMyDelivery ? <DealerActions orderId={o.id} orderNo={o.no} /> : null}
           {open && (isStaff ? o.status === "acik" : isMine) ? (
             <OrderActions
@@ -170,7 +185,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               canAssign={isStaff && can(ctx.role, "orderAssign")}
               canDeliver={canDeliver}
               canAssignDealer={isStaff && can(ctx.role, "orderAssign")}
-              canCancel={isStaff || !o.dealer_customer_id}
+              canCancel={isStaff || notTakenByOther}
               dealers={dealers}
               dealerId={o.dealer_customer_id}
               items={deliverItems}
