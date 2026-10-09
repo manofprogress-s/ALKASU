@@ -7,7 +7,7 @@ export const KVKK_UPDATED = "9 Ekim 2026";
 
 /** Veri sorumlusu bilgileri — vergi levhasındaki bilgilerle doldurulur. Boş alan yayın öncesi kontrolde yakalanır. */
 export const CONTROLLER = {
-  title: "",      // Vergi levhasındaki tam ticari unvan
+  title: "Ayhan Alay (şahıs işletmesi)", // Vergi levhası: ticaret unvanı yok, mükellef Ayhan Alay
   brand: "AlkaSu",
   address: "",    // Tebligat ve başvuru adresi
   email: "",      // KVKK başvuru e-postası
