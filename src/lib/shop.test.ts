@@ -19,12 +19,12 @@ const items = toShopItems([
 
 describe("mağaza", () => {
   it("marka önekini atar", () => {
-    expect(shortName(items[0])).toBe("1,5 L Su");
-    expect(shortName(items[5])).toBe("Basma Pompa");
+    expect(shortName(items[0]!)).toBe("1,5 L Su");
+    expect(shortName(items[5]!)).toBe("Basma Pompa");
   });
   it("birim açıklaması", () => {
-    expect(unitLabel(items[0])).toBe("Paket · 6 adet");
-    expect(unitLabel(items[1])).toBe("Damacana");
+    expect(unitLabel(items[0]!)).toBe("Paket · 6 adet");
+    expect(unitLabel(items[1]!)).toBe("Damacana");
   });
   it("ürün türünü tanır", () => {
     expect(items.map(productKind)).toEqual(["sise", "damacana", "bidon", "sise", "soda", "pompa", "epompa", "tup"]);
@@ -34,8 +34,8 @@ describe("mağaza", () => {
   it("bölümler: markalar, çok satanlar, kategoriler", () => {
     const s = buildSections(items, 3);
     expect(s.map((x) => x.title)).toEqual(["Gürpınar çeşitleri", "Beypazarı çeşitleri", "Fuska çeşitleri", "Çok satanlar", "Pompa", "Tüp"]);
-    expect(s[0].items.map((i) => i.productCode)).toEqual(["DM-GP", "GP-15", "GP-5"]);
-    expect(s[3].items.map((i) => i.productCode)).toEqual(["DM-GP", "GP-15", "FS-15"]);
+    expect(s[0]!.items.map((i) => i.productCode)).toEqual(["DM-GP", "GP-15", "GP-5"]);
+    expect(s[3]!.items.map((i) => i.productCode)).toEqual(["DM-GP", "GP-15", "FS-15"]);
   });
   it("satış yoksa çok satanlar bölümü açılmaz", () => {
     const s = buildSections(items.map((i) => ({ ...i, popularity: 0 })));

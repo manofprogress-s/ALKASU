@@ -66,7 +66,7 @@ export function productKind(i: Pick<ShopItem, "productName" | "unitName" | "cate
   if (/bardak su/.test(n)) return "bardak";
   if (/bardak/.test(n)) return "kutu";
   if (/maden|soda/.test(n) || /maden/.test(c)) return "soda";
-  if (/\b5 ?l\b|bidon/.test(n)) return "bidon";
+  if (/(^|[^\d,.])5 ?l\b|bidon/.test(n)) return "bidon"; // "1,5 L" bidon değildir
   if (/\bsu\b|\b\d+([,.]\d+)? ?l\b/.test(n) || c === "su") return "sise";
   return "kutu";
 }
