@@ -21,6 +21,8 @@ export interface OrderCustomer {
   priceList: PriceList;
   defaultAssignee: string | null;
   ownerDealerId: string | null;
+  /** Firmaya özel fiyatlar: birim → fiyat (F-13) */
+  specialPrices: Record<string, number>;
 }
 
 export interface Assignee {
@@ -76,15 +78,25 @@ export async function loadOrderProducts(supabase: SupabaseClient, businessId: st
 }
 
 export async function loadOrderCustomers(supabase: SupabaseClient, businessId: string): Promise<OrderCustomer[]> {
-  const { data, error } = await supabase
-    .from("customers")
-    .select("id, code, name, address, price_list, default_assignee, owner_dealer_id")
-    .eq("business_id", businessId)
-    .eq("active", true)
-    .order("name");
+  const [{ data, error }, cp] = await Promise.all([
+    supabase
+      .from("customers")
+      .select("id, code, name, address, price_list, default_assignee, owner_dealer_id")
+      .eq("business_id", businessId)
+      .eq("active", true)
+      .order("name"),
+    supabase.from("customer_prices").select("customer_id, unit_id, price").eq("business_id", businessId),
+  ]);
   if (error) throw error;
+  const special = new Map<string, Record<string, number>>();
+  for (const r of (cp.data ?? []) as { customer_id: string; unit_id: string; price: string | number }[]) {
+    special.set(r.customer_id, { ...(special.get(r.customer_id) ?? {}), [r.unit_id]: Number(r.price) });
+  }
   return ((data ?? []) as { id: string; code: string; name: string; address: string | null; price_list: PriceList | null; default_assignee: string | null; owner_dealer_id: string | null }[]).map(
-    (c) => ({ id: c.id, code: c.code, name: c.name, address: c.address, priceList: c.price_list ?? "perakende", defaultAssignee: c.default_assignee, ownerDealerId: c.owner_dealer_id }),
+    (c) => ({
+      id: c.id, code: c.code, name: c.name, address: c.address, priceList: c.price_list ?? "perakende",
+      defaultAssignee: c.default_assignee, ownerDealerId: c.owner_dealer_id, specialPrices: special.get(c.id) ?? {},
+    }),
   );
 }
 

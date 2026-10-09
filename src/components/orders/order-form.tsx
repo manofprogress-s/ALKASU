@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { formatTRY, fromKurus, parseAmount, todayISO, toKurus } from "@/lib/format";
-import { searchKey, unitPrice } from "@/lib/catalog";
+import { priceFor, searchKey } from "@/lib/catalog";
 import { PRICE_LISTS, type PriceList } from "@/lib/roles";
 import type { Assignee, Dealer, OrderCustomer, OrderProduct } from "@/lib/orders";
 import Link from "next/link";
@@ -68,11 +68,12 @@ export function OrderForm({
   const [address, setAddress] = useState(initial?.address ?? fixedCustomer?.address ?? "");
   const [note, setNote] = useState(initial?.note ?? "");
   const [lines, setLines] = useState<Line[]>(() => {
-    const startList: PriceList = (fixedCustomer ?? customers.find((c) => c.id === initial?.customerId))?.priceList ?? "perakende";
+    const startCustomer = fixedCustomer ?? customers.find((c) => c.id === initial?.customerId);
+    const startList: PriceList = startCustomer?.priceList ?? "perakende";
     return (
       initial?.items.map((i) => {
         const u = products.find((p) => p.id === i.productId)?.units.find((x) => x.id === i.unitId);
-        const lp = u ? unitPrice(u, startList) : null;
+        const lp = u ? priceFor(u, startList, startCustomer?.specialPrices) : null;
         // Yöneticinin daha önce elle verdiği fiyat korunur
         const manual = ctx.role === "yonetici" && i.unitPrice !== null && i.unitPrice !== lp ? String(i.unitPrice).replace(".", ",") : "";
         return { key: crypto.randomUUID(), productId: i.productId, unitId: i.unitId, qty: i.qty, manualPrice: manual };
@@ -86,6 +87,7 @@ export function OrderForm({
   const allCustomers = fixedCustomer ? [fixedCustomer] : customers;
   const customer = allCustomers.find((c) => c.id === customerId) ?? null;
   const list: PriceList = customer?.priceList ?? "perakende";
+  const special = customer?.specialPrices;
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
   const custMatches = useMemo(() => {
@@ -108,7 +110,7 @@ export function OrderForm({
   }
 
   function addProduct(p: OrderProduct) {
-    const u = p.units.find((x) => unitPrice(x, list) !== null) ?? p.units[0];
+    const u = p.units.find((x) => priceFor(x, list, special) !== null) ?? p.units[0];
     if (!u) return;
     setLines((ls) => {
       const i = ls.findIndex((l) => l.productId === p.id && l.unitId === u.id);
@@ -122,7 +124,7 @@ export function OrderForm({
   const priced = lines.map((l) => {
     const p = byId.get(l.productId);
     const u = p?.units.find((x) => x.id === l.unitId);
-    const listPrice = u ? unitPrice(u, list) : null;
+    const listPrice = u ? priceFor(u, list, special) : null;
     const manual = isAdmin && l.manualPrice.trim() !== "" ? parseAmount(l.manualPrice) : null;
     const price = manual ?? listPrice;
     return { ...l, product: p, unit: u, listPrice, price, totalK: price === null ? 0 : toKurus(price * l.qty) };
@@ -245,7 +247,7 @@ export function OrderForm({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Select className="h-10 w-36" value={l.unitId} onChange={(e) => update(l.key, { unitId: e.target.value, manualPrice: "" })}>
-                  {(l.product?.units ?? []).filter((u) => unitPrice(u, list) !== null || u.id === l.unitId).map((u) => (
+                  {(l.product?.units ?? []).filter((u) => priceFor(u, list, special) !== null || u.id === l.unitId).map((u) => (
                     <option key={u.id} value={u.id}>{u.name}{u.factor > 1 ? ` (${u.factor})` : ""}</option>
                   ))}
                 </Select>
@@ -279,8 +281,8 @@ export function OrderForm({
             <Input value={prodQuery} onChange={(e) => setProdQuery(e.target.value)} placeholder="Ürün ara ve ekle" />
             <div className="grid max-h-72 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2">
               {prodMatches.map((p) => {
-                const u = p.units.find((x) => unitPrice(x, list) !== null);
-                const pr = u ? unitPrice(u, list) : null;
+                const u = p.units.find((x) => priceFor(x, list, special) !== null);
+                const pr = u ? priceFor(u, list, special) : null;
                 return (
                   <button key={p.id} type="button" onClick={() => addProduct(p)} className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-left hover:bg-surface-2">
                     <span className="min-w-0 truncate text-sm">{p.name}</span>

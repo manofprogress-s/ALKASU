@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/card";
 import { CHANNELS, PRICE_LISTS, type Channel, type PriceList } from "@/lib/roles";
 import { CustomerActions } from "@/components/customers/customer-actions";
 import { ContainerAdjust } from "@/components/customers/container-adjust";
+import { CustomerPrices } from "@/components/customers/customer-prices";
+import { loadOrderProducts } from "@/lib/orders";
 import { LocationView } from "@/components/geo/location-view";
 import { toLatLng } from "@/lib/geo";
 import { ExportButton } from "@/components/reports/export-button";
@@ -28,12 +30,14 @@ export default async function CustomerPage({ params, searchParams }: { params: P
       </div>
     );
   }
-  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }] = await Promise.all([
+  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }, { data: cprices }, products] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).maybeSingle(),
     supabase.rpc("customer_summary", { p_customer: id }),
     supabase.rpc("customer_statement", { p_customer: id }),
     supabase.from("customer_payments").select("id, method, amount, status, created_at, note").eq("customer_id", id).order("created_at", { ascending: false }).limit(20),
     supabase.from("products").select("id, name").eq("business_id", ctx.businessId).not("deposit_amount", "is", null).eq("active", true).order("name"),
+    supabase.from("customer_prices").select("unit_id, price").eq("customer_id", id),
+    loadOrderProducts(supabase, ctx.businessId),
   ]);
   if (!c) notFound();
   const summary = sum as { balance: number; containers: { product_id: string; product_name: string; qty: number; amount: number }[] };
@@ -66,6 +70,15 @@ export default async function CustomerPage({ params, searchParams }: { params: P
           {c.address ? <div className="whitespace-pre-line text-sm">{c.address}</div> : null}
           <LocationView point={toLatLng(c.latitude, c.longitude)} />
         </Card>
+      ) : null}
+      {c.channel !== "perakende" || (cprices ?? []).length ? (
+        <CustomerPrices
+          customerId={c.id}
+          prices={Object.fromEntries(((cprices ?? []) as { unit_id: string; price: number }[]).map((r) => [r.unit_id, Number(r.price)]))}
+          products={products}
+          priceList={c.price_list}
+          canEdit={ctx.role === "yonetici"}
+        />
       ) : null}
       {ctx.role === "yonetici" ? (
         <ContainerAdjust

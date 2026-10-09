@@ -143,3 +143,4 @@
 | D-060 | Bayi siparişinde "teslim eden" seçilir: kendisi (onaysız), merkez veya başka bayi (onaylı). Talep edilen bayi `requested_dealer_id` alanında tutulur, onayla `dealer_customer_id`'ye geçer. | ✅ |
 | D-061 | Bayinin bizden alımı da onay bekler (kullanıcı isteği: "Hüseyin'e açılan sipariş onaylı"). | ✅ |
 | D-062 | Onay yetkisi: yönetici, satış, sevkiyat. Selin için Ayarlar'dan satış (veya yönetici) rolüyle kullanıcı açılmalı. | 🔁 |
+| D-063 | Firmaya özel fiyat ayrı tabloda (`customer_prices`, birim bazında). Kurumsal listedeki kısaltmalar kullanıcıyla netleştirildi: D./F.D. = Fuska damacana, 1,5 = Gürpınar 1,5 L, Bardak = Gürpınar bardak su, S. soda = Beypazarı sade, Meyveli = Beypazarı meyveli (5 çeşit), Ares = Ares Trafo. Veri: `data/kurumsal_ozel_fiyatlar.py`. | ✅ |

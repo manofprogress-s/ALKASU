@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { useAppContext } from "@/components/shell/context";
 import { cn } from "@/lib/cn";
 import { computeCart, type CartLine, type ContainerBalances } from "@/lib/cart";
-import { searchKey, unitPrice, type CatalogProduct, type PosCustomer, type PosData, loadPosData } from "@/lib/catalog";
+import { priceFor, searchKey, type CatalogProduct, type PosCustomer, type PosData, loadPosData } from "@/lib/catalog";
 import { PRICE_LISTS } from "@/lib/roles";
 import { formatNumber, formatTRY, fromKurus } from "@/lib/format";
 import { loadCache, saveCache } from "@/lib/offline/queue";
@@ -83,7 +83,7 @@ export function Pos({ initial }: { initial: PosData }) {
     setCart((cur) =>
       cur.map((l) => {
         const u = byId.get(l.productId)?.units.find((x) => x.id === l.unitId);
-        const pr = u ? unitPrice(u, list) : null;
+        const pr = u ? priceFor(u, list, c?.specialPrices) : null;
         return pr === null ? l : { ...l, unitPrice: pr };
       }),
     );
@@ -94,7 +94,7 @@ export function Pos({ initial }: { initial: PosData }) {
 
   function addProduct(p: CatalogProduct, unitId?: string | null) {
     const unit = p.units.find((u) => u.id === unitId && u.price !== null) ?? p.units.find((u) => u.price !== null);
-    const price = unit ? unitPrice(unit, priceList) : null;
+    const price = unit ? priceFor(unit, priceList, customer?.specialPrices) : null;
     if (!unit || price === null) return toast(`${p.name} için satış fiyatı tanımlı değil`, "danger");
     setCart((c) => {
       const i = c.findIndex((l) => l.productId === p.id && l.unitId === unit.id);
@@ -141,7 +141,7 @@ export function Pos({ initial }: { initial: PosData }) {
       c.map((l) => {
         if (l.key !== key) return l;
         const u = byId.get(l.productId)?.units.find((x) => x.id === unitId);
-        const pr = u ? unitPrice(u, priceList) : null;
+        const pr = u ? priceFor(u, priceList, customer?.specialPrices) : null;
         if (!u || pr === null) return l;
         return { ...l, unitId: u.id, unitName: u.name, factor: u.factor, unitPrice: pr };
       }),
@@ -343,7 +343,7 @@ export function Pos({ initial }: { initial: PosData }) {
         <div className="grid grid-cols-2 gap-2 px-3 pb-32 sm:grid-cols-3 md:overflow-y-auto md:pb-4 lg:grid-cols-4">
           {filtered.map((p) => {
             const base = p.units.find((u) => u.price !== null);
-            const basePrice = base ? unitPrice(base, priceList) : null;
+            const basePrice = base ? priceFor(base, priceList, customer?.specialPrices) : null;
             const inCart = cart.filter((l) => l.productId === p.id).reduce((s, l) => s + l.qty, 0);
             return (
               <button

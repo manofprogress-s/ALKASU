@@ -11,6 +11,11 @@ export interface CatalogUnit {
   isBase: boolean;
 }
 
+/** Fiyat önceliği (F-13, app.customer_unit_price ile aynı kural): firmaya özel fiyat > fiyat listesi > perakende. */
+export function priceFor(u: CatalogUnit, list: PriceList | null | undefined, special?: Record<string, number> | null): number | null {
+  return special?.[u.id] ?? unitPrice(u, list);
+}
+
 /** Müşterinin fiyat listesine göre birim fiyatı (veritabanındaki app.unit_list_price ile aynı kural). */
 export function unitPrice(u: CatalogUnit, list: PriceList | null | undefined): number | null {
   if (!list || list === "perakende") return u.price;
@@ -38,6 +43,8 @@ export interface PosCustomer {
   unlimited: boolean;
   balance: number;
   priceList: PriceList;
+  /** Firmaya özel fiyatlar: birim → fiyat */
+  specialPrices?: Record<string, number>;
 }
 export interface PosData {
   products: CatalogProduct[];
@@ -60,7 +67,7 @@ interface ProductRow {
 
 /** Satış ekranı verisi. Hem sunucuda hem istemcide (yenileme) kullanılır. */
 export async function loadPosData(supabase: SupabaseClient, businessId: string): Promise<PosData> {
-  const [prod, stock, cust, bal, cont, lp] = await Promise.all([
+  const [prod, stock, cust, bal, cont, lp, cp] = await Promise.all([
     supabase
       .from("products")
       .select(
@@ -75,6 +82,7 @@ export async function loadPosData(supabase: SupabaseClient, businessId: string):
     supabase.from("customer_balances").select("customer_id, balance").eq("business_id", businessId),
     supabase.from("container_balances").select("customer_id, product_id, qty, amount").eq("business_id", businessId),
     supabase.from("product_list_prices").select("unit_id, price_list, price").eq("business_id", businessId),
+    supabase.from("customer_prices").select("customer_id, unit_id, price").eq("business_id", businessId),
   ]);
   if (prod.error) throw prod.error;
   const stockMap = new Map<string, { qty: number; sold: number }>();
@@ -84,6 +92,10 @@ export async function loadPosData(supabase: SupabaseClient, businessId: string):
   const listMap = new Map<string, CatalogUnit["listPrices"]>();
   for (const r of (lp.data ?? []) as { unit_id: string; price_list: "bayi" | "palet"; price: string | number }[]) {
     listMap.set(r.unit_id, { ...(listMap.get(r.unit_id) ?? {}), [r.price_list]: Number(r.price) });
+  }
+  const special = new Map<string, Record<string, number>>();
+  for (const r of (cp.data ?? []) as { customer_id: string; unit_id: string; price: string | number }[]) {
+    special.set(r.customer_id, { ...(special.get(r.customer_id) ?? {}), [r.unit_id]: Number(r.price) });
   }
   const balMap = new Map<string, number>();
   for (const b of (bal.data ?? []) as { customer_id: string; balance: string | number }[]) balMap.set(b.customer_id, Number(b.balance));
@@ -122,6 +134,7 @@ export async function loadPosData(supabase: SupabaseClient, businessId: string):
         unlimited: c.unlimited_credit,
         balance: balMap.get(c.id) ?? 0,
         priceList: c.price_list ?? "perakende",
+        specialPrices: special.get(c.id) ?? {},
       }),
     ),
     containers: ((cont.data ?? []) as { customer_id: string | null; product_id: string; qty: number; amount: string | number }[]).map((c) => ({
