@@ -9,9 +9,9 @@ export const KVKK_UPDATED = "9 Ekim 2026";
 export const CONTROLLER = {
   title: "Ayhan Alay (şahıs işletmesi)", // Vergi levhası: ticaret unvanı yok, mükellef Ayhan Alay
   brand: "AlkaSu",
-  address: "",    // Tebligat ve başvuru adresi
-  email: "",      // KVKK başvuru e-postası
-  phone: "",
+  address: "İstasyon Mahallesi, Hüsnü Efe Caddesi No: 12 A, Kartepe / Kocaeli", // Tebligat ve başvuru adresi
+  email: "me.eneskarakaya@gmail.com", // KVKK başvuru e-postası (ilk aşama; kullanıcı kararı 09.10)
+  phone: "",      // İsteğe bağlı; boşsa metinde gösterilmez
   kep: "",        // Varsa KEP adresi
   site: "https://alkasu.vercel.app",
 };
@@ -22,7 +22,6 @@ export function missingControllerFields(): string[] {
   if (!CONTROLLER.title.trim()) m.push("ticari unvan");
   if (!CONTROLLER.address.trim()) m.push("adres");
   if (!CONTROLLER.email.trim()) m.push("KVKK e-postası");
-  if (!CONTROLLER.phone.trim()) m.push("telefon");
   return m;
 }
 

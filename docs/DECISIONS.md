@@ -153,4 +153,4 @@
 | D-065 | Bayiler bağımsız işletme olarak yazıldı (kullanıcı seçimi); veri aktarımı "teslimat için gerekli veriler" ile sınırlı. | ✅ |
 | D-066 | Kampanya izni kutusu eklendi (kullanıcı seçimi), işaretsiz ve isteğe bağlı; Hesabım'dan geri çekilir. İYS entegrasyonu yok — gönderim başlamadan önce İYS kaydı yapılmalı. | 🔁 |
 | D-067 | Yurt dışı aktarım: Supabase (Almanya), Vercel (ABD şirketi, Frankfurt sunucu), Google Maps. Metin "standart sözleşme gibi uygun güvenceler" diye yazıldı; standart sözleşmenin imzalanıp 5 iş günü içinde Kurum'a bildirilmesi hukuk danışmanının kararıdır. | ⏳ |
-| D-068 | Veri sorumlusu bilgileri (unvan, adres, KVKK e-postası, telefon, KEP) `src/lib/kvkk.ts` içinde; dolmadan yayına alınmaz. | ⏳ |
+| D-068 | Veri sorumlusu vergi levhasına göre **Ayhan Alay (şahıs işletmesi)**; adres İstasyon Mah. Hüsnü Efe Cad. No 12 A Kartepe/Kocaeli; KVKK e-postası ilk aşamada Enes Karakaya'nın adresi (kullanıcı kararı). Telefon/KEP isteğe bağlı. Bilgiler `src/lib/kvkk.ts` içinde; eksikse test yayını durdurur. | ✅ |

@@ -26,7 +26,7 @@ export default function KvkkPage() {
     blank(c.address, "AÇIK ADRES"),
     blank(c.email, "KVKK E-POSTA ADRESİ"),
     c.kep.trim() ? `KEP: ${c.kep}` : null,
-    blank(c.phone, "TELEFON"),
+    c.phone.trim() ? `Tel: ${c.phone}` : null,
   ].filter(Boolean).join(" · ");
 
   return (
