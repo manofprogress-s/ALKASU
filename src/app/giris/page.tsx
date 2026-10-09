@@ -136,6 +136,9 @@ export default function LoginPage() {
         <Suspense>
           <Entry />
         </Suspense>
+        <p className="mt-6 text-center text-xs text-muted">
+          <Link href="/kvkk" className="underline">Müşteri Aydınlatma Metni</Link>
+        </p>
       </Card>
     </main>
   );

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { sessionUser } from "./claims";
 
-const PUBLIC_PATHS = ["/giris", "/sifre", "/auth", "/siparis-ver", "/manifest.webmanifest", "/sw.js", "/favicon.ico", "/templates"];
+const PUBLIC_PATHS = ["/giris", "/sifre", "/auth", "/siparis-ver", "/kvkk", "/manifest.webmanifest", "/sw.js", "/favicon.ico", "/templates"];
 
 /** Oturumu yeniler; oturumu olmayanı giriş sayfasına yönlendirir. */
 export async function updateSession(request: NextRequest) {

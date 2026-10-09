@@ -15,6 +15,7 @@ import { loadOrderProducts } from "@/lib/orders";
 import { LocationView } from "@/components/geo/location-view";
 import { toLatLng } from "@/lib/geo";
 import { ExportButton } from "@/components/reports/export-button";
+import { PrivacyCard, type PrivacyEvent } from "@/components/customers/privacy";
 
 export default async function CustomerPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ kanal?: string }> }) {
   const ctx = await requirePermission("customers");
@@ -30,7 +31,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
       </div>
     );
   }
-  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }, { data: cprices }, products] = await Promise.all([
+  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }, { data: cprices }, products, { data: pev }] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).maybeSingle(),
     supabase.rpc("customer_summary", { p_customer: id }),
     supabase.rpc("customer_statement", { p_customer: id }),
@@ -38,6 +39,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
     supabase.from("products").select("id, name").eq("business_id", ctx.businessId).not("deposit_amount", "is", null).eq("active", true).order("name"),
     supabase.from("customer_prices").select("unit_id, price").eq("customer_id", id),
     loadOrderProducts(supabase, ctx.businessId),
+    supabase.from("privacy_events").select("kind, channel, notice_version, created_at").eq("customer_id", id).order("created_at", { ascending: false }).limit(50),
   ]);
   if (!c) notFound();
   const summary = sum as { balance: number; containers: { product_id: string; product_name: string; qty: number; amount: number }[] };
@@ -86,6 +88,9 @@ export default async function CustomerPage({ params, searchParams }: { params: P
           products={(depProducts ?? []) as { id: string; name: string }[]}
           current={Object.fromEntries(summary.containers.map((k) => [k.product_id, k.qty]))}
         />
+      ) : null}
+      {c.channel !== "bayi" ? (
+        <PrivacyCard mode="staff" customerId={c.id} marketing={c.marketing_consent} marketingAt={c.marketing_consent_at} events={(pev ?? []) as PrivacyEvent[]} />
       ) : null}
       <CustomerActions
         customerId={c.id}

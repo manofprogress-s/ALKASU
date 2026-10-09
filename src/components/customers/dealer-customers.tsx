@@ -8,6 +8,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { useAppContext } from "@/components/shell/context";
 import { LocationField } from "@/components/geo/location-field";
+import { NoticeCheck, recordNotice } from "@/components/customers/privacy";
 import { useRpc } from "@/lib/use-action";
 import { searchKey } from "@/lib/catalog";
 import { toLatLng, type LatLng } from "@/lib/geo";
@@ -41,6 +42,7 @@ export function DealerCustomers({ rows }: { rows: DealerCustomer[] }) {
   const { call, busy } = useRpc();
   const [q, setQ] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [informed, setInformed] = useState(false);
   const shown = useMemo(() => {
     const k = searchKey(q.trim());
     return k ? rows.filter((r) => searchKey(`${r.name} ${r.phone ?? ""} ${r.address ?? ""}`).includes(k)) : rows;
@@ -49,7 +51,7 @@ export function DealerCustomers({ rows }: { rows: DealerCustomer[] }) {
 
   async function save() {
     if (!draft) return;
-    const ok = await call(
+    const ok = await call<string>(
       "dealer_upsert_customer",
       {
         p_business: ctx.businessId,
@@ -66,6 +68,7 @@ export function DealerCustomers({ rows }: { rows: DealerCustomer[] }) {
       },
       { success: draft.id ? "Müşteri güncellendi" : "Müşteri eklendi" },
     );
+    if (ok && !draft.id && informed && typeof ok === "string") await recordNotice(ok);
     if (ok) setDraft(null);
   }
 
@@ -73,7 +76,7 @@ export function DealerCustomers({ rows }: { rows: DealerCustomer[] }) {
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         <Input className="max-w-xs" placeholder="Ad, telefon veya adres ara" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Button onClick={() => setDraft({ ...EMPTY })}>
+        <Button onClick={() => { setInformed(false); setDraft({ ...EMPTY }); }}>
           <Plus className="h-4 w-4" /> Yeni müşteri
         </Button>
       </div>
@@ -120,6 +123,7 @@ export function DealerCustomers({ rows }: { rows: DealerCustomer[] }) {
             <Field label="Açık adres"><Textarea value={draft.address} onChange={(e) => set("address", e.target.value)} /></Field>
             <LocationField value={draft.location} onChange={(p) => set("location", p)} address={draft.address} />
             <Field label="Not"><Input value={draft.note} onChange={(e) => set("note", e.target.value)} /></Field>
+            {!draft.id ? <NoticeCheck checked={informed} onChange={setInformed} /> : null}
             {draft.id ? (
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" className="h-5 w-5" checked={draft.active} onChange={(e) => set("active", e.target.checked)} /> Aktif

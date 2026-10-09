@@ -6,6 +6,7 @@ import { Alert, Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { CHANNELS, PRICE_LISTS, type Channel, type PriceList } from "@/lib/roles";
 import { LocationField } from "@/components/geo/location-field";
+import { NoticeCheck, recordNotice } from "@/components/customers/privacy";
 import type { LatLng } from "@/lib/geo";
 import { useAppContext } from "@/components/shell/context";
 import { useToast } from "@/components/ui/toast";
@@ -32,6 +33,7 @@ export function CustomerForm({ initial, canSetLimit, assignees = [], defaultChan
   const [v, setV] = useState<CustomerValue>(initial ?? { code: "", name: "", phone: "", address: "", tax_no: "", note: "", credit_limit: 0, unlimited_credit: false, active: true, channel: defaultChannel && defaultChannel in CHANNELS ? (defaultChannel as Channel) : "perakende", price_list: "perakende", regions: "", default_assignee: null, location: null, dispenser_count: 0 });
   const [limit, setLimit] = useState(String(v.credit_limit).replace(".", ","));
   const [saving, setSaving] = useState(false);
+  const [informed, setInformed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = <K extends keyof CustomerValue>(k: K, val: CustomerValue[K]) => setV((x) => ({ ...x, [k]: val }));
 
@@ -53,6 +55,7 @@ export function CustomerForm({ initial, canSetLimit, assignees = [], defaultChan
     });
     setSaving(false);
     if (error) return setError(errorMessage(error));
+    if (!v.id && informed) await recordNotice(data as string);
     toast("Müşteri kaydedildi", "ok");
     if (!v.id) router.push(`/musteriler/${data}`);
     else router.refresh();
@@ -104,6 +107,7 @@ export function CustomerForm({ initial, canSetLimit, assignees = [], defaultChan
           </>
         ) : null}
         <Field label="Not" className="md:col-span-2"><Input value={v.note ?? ""} onChange={(e) => set("note", e.target.value)} /></Field>
+        {!v.id ? <div className="md:col-span-2"><NoticeCheck checked={informed} onChange={setInformed} /></div> : null}
         {error ? <div className="md:col-span-2"><Alert>{error}</Alert></div> : null}
         <Button type="submit" className="md:col-span-2" loading={saving}>Kaydet</Button>
       </Card>

@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/card";
 import { OrderForm, type OrderFormValue } from "@/components/orders/order-form";
 import { dealerOrderSetup, loadAssignees, loadDealerNames, loadOrderCustomers, loadOrderProducts, type Assignee, type Dealer } from "@/lib/orders";
 import { todayISO } from "@/lib/format";
+import { SHORT_NOTICE } from "@/lib/kvkk";
 
 export const metadata = { title: "Yeni sipariş" };
 
@@ -38,6 +40,11 @@ export default async function NewOrderPage({ searchParams }: { searchParams: Pro
         dealerMode={dealer?.dealerMode}
         isNew
       />
+      {isCustomer ? (
+        <p className="mt-3 text-xs text-muted">
+          {SHORT_NOTICE} <Link href="/kvkk" target="_blank" className="text-brand underline">Müşteri Aydınlatma Metni</Link>
+        </p>
+      ) : null}
     </div>
   );
 }

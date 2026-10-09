@@ -144,3 +144,13 @@
 | D-061 | Bayinin bizden alımı da onay bekler (kullanıcı isteği: "Hüseyin'e açılan sipariş onaylı"). | ✅ |
 | D-062 | Onay yetkisi: yönetici, satış, sevkiyat. Selin için Ayarlar'dan satış (veya yönetici) rolüyle kullanıcı açılmalı. | 🔁 |
 | D-063 | Firmaya özel fiyat ayrı tabloda (`customer_prices`, birim bazında). Kurumsal listedeki kısaltmalar kullanıcıyla netleştirildi: D./F.D. = Fuska damacana, 1,5 = Gürpınar 1,5 L, Bardak = Gürpınar bardak su, S. soda = Beypazarı sade, Meyveli = Beypazarı meyveli (5 çeşit), Ares = Ares Trafo. Veri: `data/kurumsal_ozel_fiyatlar.py`. | ✅ |
+
+## KVKK (09.10.2026)
+
+| Kod | Karar | Durum |
+|---|---|---|
+| D-064 | Kullanıcının hazırladığı KVKK Uyum Paketi taslağı uygulandı: zorunlu "onaylıyorum" kutusu kaldırıldı (aydınlatma için rıza istenmez); kısa aydınlatma + `/kvkk` tam metin; sürüm ve gösterim kaydı `privacy_events` tablosunda, değiştirilemez. | ✅ |
+| D-065 | Bayiler bağımsız işletme olarak yazıldı (kullanıcı seçimi); veri aktarımı "teslimat için gerekli veriler" ile sınırlı. | ✅ |
+| D-066 | Kampanya izni kutusu eklendi (kullanıcı seçimi), işaretsiz ve isteğe bağlı; Hesabım'dan geri çekilir. İYS entegrasyonu yok — gönderim başlamadan önce İYS kaydı yapılmalı. | 🔁 |
+| D-067 | Yurt dışı aktarım: Supabase (Almanya), Vercel (ABD şirketi, Frankfurt sunucu), Google Maps. Metin "standart sözleşme gibi uygun güvenceler" diye yazıldı; standart sözleşmenin imzalanıp 5 iş günü içinde Kurum'a bildirilmesi hukuk danışmanının kararıdır. | ⏳ |
+| D-068 | Veri sorumlusu bilgileri (unvan, adres, KVKK e-postası, telefon, KEP) `src/lib/kvkk.ts` içinde; dolmadan yayına alınmaz. | ⏳ |

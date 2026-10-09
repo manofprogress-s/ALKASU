@@ -9,6 +9,7 @@ import { LocationField } from "@/components/geo/location-field";
 import { formatTRY, fromKurus, toKurus } from "@/lib/format";
 import type { LatLng } from "@/lib/geo";
 import { registerAndOrder } from "@/app/siparis-ver/actions";
+import { MARKETING_TEXT, SHORT_NOTICE } from "@/lib/kvkk";
 
 export interface PublicItem {
   productId: string;
@@ -30,7 +31,7 @@ export function PublicOrderForm({ items }: { items: PublicItem[] }) {
   const [location, setLocation] = useState<LatLng | null>(null);
   const [note, setNote] = useState("");
   const [day, setDay] = useState<"bugun" | "yarin">("bugun");
-  const [consent, setConsent] = useState(false);
+  const [marketing, setMarketing] = useState(false);
   const [website, setWebsite] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [exists, setExists] = useState(false);
@@ -48,8 +49,7 @@ export function PublicOrderForm({ items }: { items: PublicItem[] }) {
           : password.length < 8 ? "Şifre en az 8 karakter olmalı"
             : password !== password2 ? "Şifreler aynı değil"
               : address.trim().length < 10 ? "Açık adres yazın"
-                : !consent ? "Onay kutusunu işaretleyin"
-                  : null;
+                : null;
 
   function submit() {
     if (validation) return setError(validation);
@@ -57,7 +57,7 @@ export function PublicOrderForm({ items }: { items: PublicItem[] }) {
     setExists(false);
     start(async () => {
       const r = await registerAndOrder({
-        name, phone, password, address, note, day, consent, website,
+        name, phone, password, address, note, day, marketing, website,
         lat: location?.lat ?? null, lng: location?.lng ?? null,
         items: chosen.map((i) => ({ productId: i.productId, unitId: i.unitId, qty: qty[i.unitId] ?? 0 })),
       });
@@ -107,7 +107,7 @@ export function PublicOrderForm({ items }: { items: PublicItem[] }) {
         <Field label="Açık adres" hint="Mahalle, sokak, bina no, daire, kat; varsa tarif">
           <Textarea autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
-        <LocationField value={location} onChange={setLocation} address={address} />
+        <LocationField value={location} onChange={setLocation} address={address} customer />
         <div className="grid grid-cols-2 gap-2">
           <Button variant={day === "bugun" ? "primary" : "secondary"} onClick={() => setDay("bugun")}>Bugün</Button>
           <Button variant={day === "yarin" ? "primary" : "secondary"} onClick={() => setDay("yarin")}>Yarın</Button>
@@ -126,9 +126,13 @@ export function PublicOrderForm({ items }: { items: PublicItem[] }) {
         </div>
         {/* Bot tuzağı: ekranda görünmez, insanlar doldurmaz */}
         <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} className="absolute -left-[9999px] h-0 w-0 opacity-0" aria-hidden="true" />
+<div className="space-y-1 rounded-xl bg-bg p-3 text-xs text-muted">
+          <p>{SHORT_NOTICE}</p>
+          <p>Ayrıntılar ve haklarınız için <Link href="/kvkk" target="_blank" className="font-medium text-brand underline">Müşteri Aydınlatma Metnini görüntüleyin</Link>.</p>
+        </div>
         <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-          <span>Ad, telefon, adres ve konum bilgilerimin siparişimin teslimatı ve benimle iletişim amacıyla Alay Ticaret tarafından kullanılmasını kabul ediyorum.</span>
+          <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} />
+          <span><span className="font-medium">İsteğe bağlı:</span> {MARKETING_TEXT}</span>
         </label>
       </Card>
 

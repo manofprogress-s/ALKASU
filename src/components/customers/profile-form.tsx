@@ -20,7 +20,7 @@ export function ProfileForm({ initial, isDealer }: { initial: { name: string; ad
       <h2 className="font-semibold">{isDealer ? "Bayi bilgilerim" : "Bilgilerim"}</h2>
       <Field label={isDealer ? "Firma / bayi adı" : "Ad soyad"}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
       <Field label={isDealer ? "Depo adresi" : "Teslimat adresi"}><Textarea value={address} onChange={(e) => setAddress(e.target.value)} /></Field>
-      <LocationField value={location} onChange={setLocation} address={address} />
+      <LocationField value={location} onChange={setLocation} address={address} customer={!isDealer} />
       {isDealer ? <p className="text-xs text-muted">Bu konum, teslimat rotanızın başlangıç noktası olarak kullanılır.</p> : null}
       <Button loading={busy} onClick={() => void call("update_my_profile", {
         p_business: ctx.businessId,

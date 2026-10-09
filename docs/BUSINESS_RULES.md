@@ -212,7 +212,7 @@
 ## 20. Müşterinin kendi siparişi (internet)
 
 - **W-01** Giriş sayfasında üç seçenek vardır: **Sipariş ver** (yeni müşteri), **Kayıtlı müşteri girişi** (telefon + şifre), **Çalışan girişi** (kullanıcı adı/e-posta + şifre).
-- **W-02** Yeni müşteri tek adımda ad soyad, cep telefonu, şifre, açık adres, isteğe bağlı Google Maps konumu ve ürünleri girer; kayıt ve sipariş birlikte oluşur. Kişisel verilerin teslimat için kullanılmasına onay zorunludur.
+- **W-02** Yeni müşteri tek adımda ad soyad, cep telefonu, şifre, açık adres, isteğe bağlı Google Maps konumu ve ürünleri girer; kayıt ve sipariş birlikte oluşur. Kişisel veriler için onay kutusu yoktur; kısa aydınlatma metni ve tam metne bağlantı gösterilir (§23).
 - **W-03** İnternetten kayıt olan müşteri **ev müşterisi** (perakende fiyat) olarak açılır. İlk siparişi **onay bekliyor** durumundadır; personel müşteriyi arayıp onaylar veya reddeder. Onaydan sonra müşterinin siparişleri doğrudan açık olarak düşer.
 - **W-04** Müşteri yalnızca kendi kartını, siparişlerini, alımlarını ve ekstresini görür; stok, fiyat geçmişi, bayi/palet fiyatları ve ayarlar kapalıdır. Fiyatı müşteri belirleyemez; sipariş fiyatı sunucuda perakende listesinden alınır.
 - **W-05** Müşteri açık siparişini teslimata çıkana (bayiye verilene) kadar değiştirebilir veya iptal edebilir.
@@ -234,3 +234,13 @@
 - **O-15** Bayinin **başka bir bayiye** veya **merkeze** (Hüseyin / dağıtım) açtığı sipariş ile **bayinin bizden kendi alımı** "onay bekliyor" olarak düşer. Onaylayan: yönetici, satış veya sevkiyat (Enes, Ayhan, Hüseyin, Selin). Onaylanınca sipariş talep edilen bayiye geçer; hedef bayi siparişi onaydan önce görmez.
 - **O-16** Bayi, kendi müşterisinin siparişini başka bayi teslimata almadıkça düzenleyip iptal edebilir.
 - **F-13** Kurumsal firmalara **özel fiyat** tanımlanabilir (mesafeye göre farklı). Fiyat önceliği: firmaya özel fiyat > müşterinin fiyat listesi (bayi/palet) > perakende. Satış ekranı ve sipariş firmanın özel fiyatını otomatik getirir; satış personeli farklı fiyat giremez. Özel fiyatı yalnızca yönetici girer/kaldırır (müşteri kartı → Firmaya özel fiyatlar); her değişiklik işlem geçmişine yazılır. Satış personeli özel fiyatları görür, depo personeli görmez.
+
+## 23. Kişisel veriler (KVKK)
+
+- **K-01** Tam **Müşteri Aydınlatma Metni** herkese açık `/kvkk` sayfasındadır; giriş, sipariş, Hesabım ve müşteri kartlarından bağlantı verilir. Metin sürümlüdür (`KVKK_VERSION`); metin değişirse sürüm de değişir.
+- **K-02** Aydınlatma için **rıza istenmez**. İnternet kaydında kısa aydınlatma gösterilir ve hangi sürümün ne zaman gösterildiği kayda yazılır. Sipariş için zorunlu bilgiler kampanya izninden ayrıdır.
+- **K-03** **Kampanya (ticari ileti) izni** isteğe bağlıdır, varsayılan işaretsizdir, sipariş vermenin şartı değildir. Müşteri Hesabım'dan verir/geri çeker; telefonla bildirirse personel müşteri kartından işler. İzin ve ret zamanıyla birlikte tutulur. Toplu kampanya gönderimi başlamadan önce İYS kaydı yapılmalıdır (izinsiz müşteriye kampanya gönderilmez).
+- **K-04** Personel veya bayi müşteri kartı açarken "müşteriyi bilgilendirdim" kutusunu işaretlerse ilk iletişimde aydınlatma yapıldığı kaydedilir; sonradan müşteri kartındaki KVKK bölümünden de kaydedilebilir. Bu bir rıza değil, bilgilendirme kaydıdır.
+- **K-05** Cihaz konumu yalnızca müşteri "Konumumu kullan" düğmesine bastığında, açıklamasıyla birlikte, bir kez istenir. Konum zorunlu değildir; adres yazmak ve Google Maps bağlantısı yapıştırmak yeterlidir.
+- **K-06** KVKK kayıtları (aydınlatma, kampanya izni/ret) **değiştirilemez ve silinemez**. Görme: yönetici ve satış tümünü, bayi kendi müşterilerini, müşteri kendisini. Depo personeli görmez.
+- **K-07** Gürpınar ve Fuska bayileri **bağımsız işletmedir**: müşterinin teslimat için gereken verileri (ad, telefon, adres, konum, sipariş) bayiye aktarılır; bayi yalnızca kendisine verilen sipariş ve kendi müşterilerini görür (O-09, O-13).

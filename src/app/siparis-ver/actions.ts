@@ -4,6 +4,7 @@ import { z } from "zod";
 import { redactSecrets, serviceRoleKey, supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 import { normalizePhone, phoneEmail } from "@/lib/username";
 import { todayISO, addDaysISO } from "@/lib/format";
+import { KVKK_VERSION } from "@/lib/kvkk";
 
 type Result = { ok: true; orderNo: number | null; warning?: string } | { ok: false; message: string; exists?: boolean };
 
@@ -20,7 +21,7 @@ const Schema = z.object({
   lng: z.number().min(-180).max(180).nullable(),
   note: z.string().trim().max(300).default(""),
   day: z.enum(["bugun", "yarin"]),
-  consent: z.literal(true, { message: "Bilgilerinizin teslimat için kullanılmasını onaylayın" }),
+  marketing: z.boolean().default(false), // isteğe bağlı kampanya izni (K-03)
   website: z.string().max(0).optional(), // bot tuzağı: gerçek kullanıcı boş bırakır
   items: z
     .array(z.object({ productId: z.string().uuid(), unitId: z.string().uuid(), qty: z.number().int().min(1).max(1000) }))
@@ -71,6 +72,7 @@ export async function registerAndOrder(input: unknown): Promise<Result> {
     userId = created.data.user.id;
     const reg = await admin.rpc("register_customer", {
       p_user: userId, p_name: v.name, p_phone: v.phone, p_address: v.address, p_lat: v.lat, p_lng: v.lng,
+      p_notice_version: KVKK_VERSION, p_marketing: v.marketing,
     });
     if (reg.error) {
       await admin.auth.admin.deleteUser(userId); // yarım kayıt bırakma

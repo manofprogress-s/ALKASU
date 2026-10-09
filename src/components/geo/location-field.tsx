@@ -6,12 +6,19 @@ import { Field, Input } from "@/components/ui/field";
 import { isShortMapsLink, parseLocation, type LatLng } from "@/lib/geo";
 import { resolveMapsLink } from "@/lib/geo-actions";
 import { LocationView } from "./location-view";
+import { LOCATION_NOTICE } from "@/lib/kvkk";
 
 /**
  * Konum alanı: Google Maps bağlantısı / koordinat yapıştırılır ya da cihazın konumu alınır.
  * Adres metni verilirse "Haritada bul" ile Google Maps'te aranıp iğne bırakılabilir.
  */
-export function LocationField({ value, onChange, address }: { value: LatLng | null; onChange: (v: LatLng | null) => void; address?: string | null }) {
+export function LocationField({ value, onChange, address, customer = false }: {
+  value: LatLng | null;
+  onChange: (v: LatLng | null) => void;
+  address?: string | null;
+  /** Müşteriye gösterilen form: cihaz konumu öncesi açıklama (K-05) */
+  customer?: boolean;
+}) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +55,11 @@ export function LocationField({ value, onChange, address }: { value: LatLng | nu
 
   return (
     <div className="space-y-2">
-      <Field label="Konum (Google Maps)" error={error} hint="Bağlantı veya koordinat yapıştırın; müşterinin yanındaysanız 'Bulunduğum konum'a basın.">
+      <Field
+        label={customer ? "Konum (isteğe bağlı)" : "Konum (Google Maps)"}
+        error={error}
+        hint={customer ? "Google Maps'te evinizi bulup 'Paylaş → Bağlantıyı kopyala' ile aldığınız bağlantıyı yapıştırın." : "Bağlantı veya koordinat yapıştırın; müşterinin yanındaysanız 'Bulunduğum konum'a basın."}
+      >
         <div className="flex gap-2">
           <Input
             value={text}
@@ -66,9 +77,10 @@ export function LocationField({ value, onChange, address }: { value: LatLng | nu
           <Button variant="secondary" loading={busy} disabled={!text.trim()} onClick={() => void apply(text)}>Uygula</Button>
         </div>
       </Field>
+      {customer ? <p className="text-xs text-muted">{LOCATION_NOTICE}</p> : null}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="secondary" onClick={useDevice} loading={busy}>
-          <Crosshair className="h-4 w-4" /> Bulunduğum konum
+          <Crosshair className="h-4 w-4" /> {customer ? "Konumumu kullan" : "Bulunduğum konum"}
         </Button>
         {address?.trim() ? (
           <a
@@ -77,7 +89,7 @@ export function LocationField({ value, onChange, address }: { value: LatLng | nu
             target="_blank"
             rel="noreferrer"
           >
-            <Search className="h-4 w-4" /> Adresi haritada bul
+            <Search className="h-4 w-4" /> {customer ? "Haritada kendim işaretle" : "Adresi haritada bul"}
           </a>
         ) : null}
         {value ? (
