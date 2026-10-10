@@ -223,6 +223,7 @@
 - **W-09** Ürün fotoğrafını yalnızca yönetici yükler (Ürünler → ürün → Fotoğraf); tarayıcıda en fazla 600 px webp'ye küçültülür. Fotoğraf yoksa markanın renginde sade bir çizim gösterilir (logo çizilmez).
 - **W-10** Genel amaçlı markalar ("Envanter" gibi) mağazada bölüm açmaz; ürünleri kategoriye göre listelenir (`brands.show_in_shop`).
 - **W-11** **Mağaza düzeni** (yalnızca yönetici — Enes, Ayhan): Ürünler → Mağaza düzeni (ana sayfada da kısayol). Müşterinin gördüğü ekranın aynısı açılır; ürüne basılı tutulur (ya da dokunulur): **kaldır** (müşteri görmez, "Gizlenenler"den geri getirilir), **yerine başka ürün koy** (seçilen ürün aynı yere, gerekirse başka markadan, gelir; eskisi gizlenir), **yer değiştir** (ikinci ürüne dokunulur), **sola/sağa taşı**, **otomatik yerine döndür**. Değişiklik anında müşteriye yansır ve işlem geçmişine yazılır. "Çok satanlar" otomatiktir.
+- **W-12** Mağaza düzeninde **bölümlerin sırası** da değiştirilir: her bölüm başlığındaki ↑ ↓ ile (marka grupları, "Çok satanlar", kategoriler). Elle sıralanan bölümler önce, sırası verilmeyen (yeni eklenen) bölümler otomatik sırada arkaya gelir. İlk sıra (kullanıcı isteği 10.10): Gürpınar, Fuska, Çok satanlar, Beypazarı, Pompa, Sarf, Tüp, Kızılay.
 - **W-07** Şifresini unutan müşteriye yönetici Ayarlar'dan geçici şifre verir (SMS altyapısı yok).
 
 ## 21. Bayiye verilen siparişler ve rota

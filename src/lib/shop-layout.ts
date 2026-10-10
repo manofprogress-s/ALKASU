@@ -1,4 +1,4 @@
-import { buildSections, naturalSection, sectionOf, type ShopItem } from "@/lib/shop";
+import { buildSections, naturalSection, sectionOf, sectionToken, type ShopItem } from "@/lib/shop";
 
 /** Mağaza düzeni değişikliği (save_shop_layout'a gider) */
 export interface LayoutChange {
@@ -107,4 +107,23 @@ export function applyLayout(items: ShopItem[], op: LayoutOp): { items: ShopItem[
     }
   }
   return { items: [...map.values()], changes: [...changed.values()] };
+}
+
+/**
+ * Bölümü bir adım yukarı/aşağı taşır (W-12). Kaydedilecek tam bölüm sırası ve anında gösterim için güncellenmiş ürünler döner.
+ */
+export function moveSection(items: ShopItem[], key: string, dir: -1 | 1): { items: ShopItem[]; titles: string[] } | null {
+  const sections = buildSections(items);
+  const i = sections.findIndex((s) => s.key === key);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= sections.length) return null;
+  const order = [...sections];
+  [order[i], order[j]] = [order[j]!, order[i]!];
+  const titles = order.map(sectionToken);
+  const rank = new Map(titles.map((t, idx) => [t, (idx + 1) * 10]));
+  const topRank = rank.get("__top__") ?? null;
+  return {
+    titles,
+    items: items.map((it) => ({ ...it, sectionRank: rank.get(sectionOf(it)) ?? null, topRank })),
+  };
 }

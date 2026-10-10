@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyLayout } from "./shop-layout";
+import { applyLayout, moveSection } from "./shop-layout";
 import { buildSections, toShopItems, type CatalogRow } from "./shop";
 
 const row = (code: string, name: string, brand: string | null, cat: string): CatalogRow => ({
@@ -52,5 +52,20 @@ describe("mağaza düzeni", () => {
     const r = applyLayout(base, { op: "replace", unitId: "GP-05", withUnitId: "KZ-05" });
     const r2 = applyLayout(r.items, { op: "reset", unitId: "KZ-05" });
     expect(codes(r2.items, "Kızılay çeşitleri")).toEqual(["KZ-05"]);
+  });
+  it("bölüm sırası: Kızılay'ı yukarı taşı, sıra kalıcı", () => {
+    const before = buildSections(base).map((x) => x.title);
+    expect(before).toEqual(["Gürpınar çeşitleri", "Kızılay çeşitleri"]);
+    const r = moveSection(base, "t:Kızılay çeşitleri", -1)!;
+    expect(r.titles).toEqual(["Kızılay çeşitleri", "Gürpınar çeşitleri"]);
+    expect(buildSections(r.items).map((x) => x.title)).toEqual(["Kızılay çeşitleri", "Gürpınar çeşitleri"]);
+    expect(moveSection(r.items, "t:Kızılay çeşitleri", -1)).toBeNull();
+  });
+  it("bölüm sırası çok satanları da kapsar", () => {
+    const pop = base.map((i) => (i.productCode === "KZ-05" ? { ...i, popularity: 5 } : i));
+    expect(buildSections(pop).map((x) => x.key)).toEqual(["t:Gürpınar çeşitleri", "t:Kızılay çeşitleri", "top"]);
+    const r = moveSection(pop, "top", -1)!;
+    expect(r.titles).toEqual(["Gürpınar çeşitleri", "__top__", "Kızılay çeşitleri"]);
+    expect(buildSections(r.items).map((x) => x.key)).toEqual(["t:Gürpınar çeşitleri", "top", "t:Kızılay çeşitleri"]);
   });
 });

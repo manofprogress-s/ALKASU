@@ -12,7 +12,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { searchKey } from "@/lib/catalog";
 import { sectionOf, shortName, unitLabel, type ShopItem } from "@/lib/shop";
-import { applyLayout, type LayoutOp } from "@/lib/shop-layout";
+import { applyLayout, moveSection, type LayoutOp } from "@/lib/shop-layout";
 import { ItemImage, ShopCatalog } from "./shop-catalog";
 
 /** Yönetici: müşteri sipariş ekranının düzeni (W-11). Müşterinin gördüğü ekranın aynısı, düzenleme modunda. */
@@ -45,6 +45,21 @@ export function ShopLayoutEditor({ initial }: { initial: ShopItem[] }) {
     router.refresh();
   }
 
+  async function onMoveSection(key: string, dir: -1 | 1) {
+    const r = moveSection(items, key, dir);
+    if (!r) return;
+    const prev = items;
+    setItems(r.items);
+    const { error } = await supabaseBrowser().rpc("save_shop_sections", { p_business: ctx.businessId, p_titles: r.titles });
+    if (error) {
+      setItems(prev);
+      toast(errorMessage(error), "danger");
+      return;
+    }
+    toast(dir < 0 ? "Bölüm yukarı taşındı" : "Bölüm aşağı taşındı", "ok");
+    router.refresh();
+  }
+
   function onPress(item: ShopItem, how: "long" | "tap") {
     if (swapFrom) {
       if (swapFrom.unitId !== item.unitId) void run({ op: "swap", a: swapFrom.unitId, b: item.unitId }, "Yerleri değiştirildi");
@@ -69,7 +84,7 @@ export function ShopLayoutEditor({ initial }: { initial: ShopItem[] }) {
     <div className="space-y-4">
       <Alert tone="neutral">
         Müşterinin sipariş ekranı. Bir ürüne <b>basılı tutun</b> (ya da dokunun): kaldırın, yerine başka ürün koyun, yerini değiştirin.
-        Değişiklik anında müşteriye yansır. “Çok satanlar” bölümü otomatiktir.
+        Bölümlerin sırasını başlıktaki ↑ ↓ ile değiştirin. Değişiklik anında müşteriye yansır. “Çok satanlar”ın ürünleri satışa göre kendiliğinden seçilir.
       </Alert>
       {swapFrom ? (
         <div className="sticky top-2 z-20 flex items-center justify-between gap-2 rounded-2xl bg-warn-soft p-3 text-sm font-medium text-warn shadow">
@@ -77,7 +92,7 @@ export function ShopLayoutEditor({ initial }: { initial: ShopItem[] }) {
           <Button size="sm" variant="ghost" onClick={() => setSwapFrom(null)}><X className="h-4 w-4" /> Vazgeç</Button>
         </div>
       ) : null}
-      <ShopCatalog items={items} qty={{}} onStep={() => undefined} edit={{ onPress, selectedId: swapFrom?.unitId ?? null }} />
+      <ShopCatalog items={items} qty={{}} onStep={() => undefined} edit={{ onPress, selectedId: swapFrom?.unitId ?? null, onMoveSection: (k, d) => void onMoveSection(k, d) }} />
 
       {hidden.length ? (
         <Card className="space-y-2">

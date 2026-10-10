@@ -18,6 +18,10 @@ export interface ShopItem {
   sort: number | null;
   section: string | null;
   hidden: boolean;
+  /** Bölümün elle verilen sırası (W-12); boş = otomatik */
+  sectionRank: number | null;
+  /** "Çok satanlar" bölümünün sırası (W-12) */
+  topRank: number | null;
 }
 
 export interface CatalogRow {
@@ -36,6 +40,8 @@ export interface CatalogRow {
   sort?: number | null;
   section?: string | null;
   hidden?: boolean | null;
+  section_rank?: number | null;
+  top_rank?: number | null;
 }
 
 export const PRODUCT_IMAGE_BUCKET = "urun";
@@ -61,6 +67,8 @@ export function toShopItems(rows: CatalogRow[]): ShopItem[] {
     sort: r.sort ?? null,
     section: r.section ?? null,
     hidden: !!r.hidden,
+    sectionRank: r.section_rank ?? null,
+    topRank: r.top_rank ?? null,
   }));
 }
 
@@ -145,12 +153,24 @@ export function buildSections(items: ShopItem[], topCount = 6): ShopSection[] {
   const byKind = (k: number) => all.filter((g) => g.kind === k);
   const strip = (g: { key: string; title: string; items: ShopItem[] }) => ({ key: g.key, title: g.title, items: g.items });
   const top = [...visible].filter((i) => i.popularity > 0).sort((a, b) => b.popularity - a.popularity).slice(0, topCount);
-  return [
+  const auto = [
     ...byKind(0).sort((a, b) => a.title.localeCompare(b.title, "tr")).map(strip),
     ...byKind(1).sort((a, b) => b.items.length - a.items.length || a.title.localeCompare(b.title, "tr")).map(strip),
     ...(top.length ? [{ key: "top", title: "Çok satanlar", items: top }] : []),
     ...byKind(2).sort((a, b) => a.title.localeCompare(b.title, "tr")).map(strip),
   ];
+  // Elle verilen bölüm sırası (W-12) önce gelir; sırası verilmeyenler otomatik sırada arkaya dizilir
+  const topRank = items.find((i) => i.topRank !== null)?.topRank ?? null;
+  const rankOf = (s: ShopSection) => (s.key === "top" ? topRank : s.items.find((i) => i.sectionRank !== null)?.sectionRank ?? null);
+  return auto
+    .map((s, idx) => ({ s, r: rankOf(s), idx }))
+    .sort((a, b) => (a.r ?? 1e9 + a.idx) - (b.r ?? 1e9 + b.idx))
+    .map((x) => x.s);
+}
+
+/** Bölüm sırasında kullanılan anahtar: "Çok satanlar" için __top__, diğerleri başlık */
+export function sectionToken(s: ShopSection): string {
+  return s.key === "top" ? "__top__" : s.title;
 }
 
 const BRAND_COLORS: Record<string, string> = {

@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
-import { ChevronRight, Droplet, Minus, MoreHorizontal, Plus, ShoppingCart } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, Droplet, Minus, MoreHorizontal, Plus, ShoppingCart } from "lucide-react";
 import { formatTRY, fromKurus, toKurus } from "@/lib/format";
 import { brandColor, buildSections, productKind, shortName, unitLabel, type ShopItem } from "@/lib/shop";
 import { ProductArt } from "./product-art";
@@ -57,6 +57,8 @@ export function Stepper({ n, onStep, size = "md", label }: { n: number; onStep: 
 export interface ShopEdit {
   onPress: (item: ShopItem, how: "long" | "tap") => void;
   selectedId?: string | null;
+  /** Bölümü yukarı/aşağı taşı (W-12) */
+  onMoveSection?: (key: string, dir: -1 | 1) => void;
 }
 
 /** 450 ms basılı tutma (telefon); kaydırma başlarsa iptal */
@@ -85,7 +87,7 @@ function useLongPress(onLong: () => void) {
   };
 }
 
-function ItemCard({ item, n, onStep, edit }: { item: ShopItem; n: number; onStep: (d: number) => void; edit?: ShopEdit }) {
+function ItemCard({ item, n, onStep, edit, plain }: { item: ShopItem; n: number; onStep: (d: number) => void; edit?: ShopEdit; plain?: boolean }) {
   const name = shortName(item);
   const lp = useLongPress(() => edit?.onPress(item, "long"));
   const selected = edit?.selectedId === item.unitId;
@@ -101,7 +103,7 @@ function ItemCard({ item, n, onStep, edit }: { item: ShopItem; n: number; onStep
       <div className="mt-0.5 text-xs text-muted">{unitLabel(item)}</div>
       <div className="num mb-2 mt-0.5 font-semibold text-brand">{formatTRY(item.price)}</div>
       <div className="mt-auto">
-        {edit ? (
+        {plain ? null : edit ? (
           <span className="inline-flex h-10 items-center gap-1 rounded-full bg-surface-2 px-3 text-sm text-muted">
             <MoreHorizontal className="h-4 w-4" /> Düzenle
           </span>
@@ -114,10 +116,10 @@ function ItemCard({ item, n, onStep, edit }: { item: ShopItem; n: number; onStep
 /** Marka bölümleri + yatay kaydırmalı kartlar (W-08). "›" ile bölüm ızgara olarak açılır. */
 export function ShopCatalog({ items, qty, onStep, edit }: {
   items: ShopItem[]; qty: Qty; onStep: (unitId: string, d: number) => void;
-  /** Yönetici düzenleme modu: çok satanlar otomatik olduğu için gösterilmez */
+  /** Yönetici düzenleme modu: bölüm başlığında ↑ ↓; çok satanların ürünleri otomatiktir (yalnızca bölüm taşınır) */
   edit?: ShopEdit;
 }) {
-  const sections = useMemo(() => buildSections(items, edit ? 0 : undefined), [items, edit]);
+  const sections = useMemo(() => buildSections(items), [items]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   return (
     <div className="space-y-4">
@@ -125,13 +127,24 @@ export function ShopCatalog({ items, qty, onStep, edit }: {
         <Droplet className="h-8 w-8 shrink-0 fill-brand/20 text-brand" />
         <p className="text-lg font-bold leading-snug">İhtiyacın olan suyu <span className="text-brand">kolayca seç</span></p>
       </div>
-      {sections.map((s) => {
+      {sections.map((s, si) => {
         const expanded = open[s.key] ?? false;
         return (
           <section key={s.key} className="rounded-3xl bg-brand-soft/60 p-3" aria-labelledby={`h-${s.key}`}>
             <div className="mb-2 flex items-center justify-between px-1">
               <h2 id={`h-${s.key}`} className="text-xl font-bold tracking-tight">{s.title}</h2>
-              {s.items.length > 2 ? (
+              {edit?.onMoveSection ? (
+                <span className="flex gap-1.5">
+                  <button type="button" aria-label={`${s.title} bölümünü yukarı taşı`} disabled={si === 0} onClick={() => edit.onMoveSection!(s.key, -1)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface text-brand shadow-sm disabled:opacity-30">
+                    <ArrowUp className="h-5 w-5" />
+                  </button>
+                  <button type="button" aria-label={`${s.title} bölümünü aşağı taşı`} disabled={si === sections.length - 1} onClick={() => edit.onMoveSection!(s.key, 1)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface text-brand shadow-sm disabled:opacity-30">
+                    <ArrowDown className="h-5 w-5" />
+                  </button>
+                </span>
+              ) : s.items.length > 2 ? (
                 <button type="button" onClick={() => setOpen((o) => ({ ...o, [s.key]: !expanded }))}
                   aria-expanded={expanded} aria-label={expanded ? "Daralt" : "Tümünü göster"}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface text-brand shadow-sm">
@@ -144,7 +157,8 @@ export function ShopCatalog({ items, qty, onStep, edit }: {
               : "-mx-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}>
               {s.items.map((i) => (
                 <li key={i.unitId} className={expanded ? "" : "w-[42%] shrink-0 snap-start sm:w-44"}>
-                  <ItemCard item={i} n={qty[i.unitId] ?? 0} onStep={(d) => onStep(i.unitId, d)} edit={edit} />
+                  <ItemCard item={i} n={qty[i.unitId] ?? 0} onStep={(d) => onStep(i.unitId, d)}
+                    edit={edit && s.key !== "top" ? edit : undefined} plain={!!edit && s.key === "top"} />
                 </li>
               ))}
             </ul>
