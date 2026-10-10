@@ -15,6 +15,8 @@ export interface AppContext {
   membershipId: string;
   role: Role;
   displayName: string;
+  /** Görünen unvan (yetki değil) */
+  title: string | null;
   customerId: string | null;
   mustChangePassword: boolean;
 }
@@ -26,6 +28,7 @@ interface ContextRow {
   membership_id: string;
   role: Role;
   display_name: string;
+  title?: string | null;
   customer_id: string | null;
   must_change_password: boolean | null;
 }
@@ -49,6 +52,7 @@ export const getContext = cache(async (): Promise<AppContext> => {
     membershipId: row.membership_id,
     role: row.role,
     displayName: row.display_name,
+    title: row.title ?? null,
     customerId: row.customer_id ?? null,
     mustChangePassword: !!row.must_change_password,
   };

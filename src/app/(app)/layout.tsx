@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (ctx.mustChangePassword) redirect("/sifre?zorunlu=1"); // R-08
   return (
     <ContextProvider value={ctx}>
-      <AppShell role={ctx.role} name={ctx.displayName} business={ctx.businessName}>
+      <AppShell role={ctx.role} name={ctx.displayName} title={ctx.title} business={ctx.businessName}>
         {children}
       </AppShell>
       <OfflineSync />

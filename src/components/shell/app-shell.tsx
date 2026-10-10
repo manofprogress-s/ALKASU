@@ -16,7 +16,7 @@ const ICONS: Record<string, LucideIcon> = {
   wallet: Wallet, chart: BarChart3, settings: Settings, orders: ClipboardList, account: FileText, factory: Factory, route: Route,
 };
 
-export function AppShell({ role, name, business, children }: { role: Role; name: string; business: string; children: ReactNode }) {
+export function AppShell({ role, name, title, business, children }: { role: Role; name: string; title?: string | null; business: string; children: ReactNode }) {
   const path = usePathname();
   const [menu, setMenu] = useState(false);
   const items = NAV.filter((n) => !n.perm || can(role, n.perm));
@@ -58,7 +58,7 @@ export function AppShell({ role, name, business, children }: { role: Role; name:
   const userBox = (
     <div className="border-t border-border pt-3">
       <div className="px-3 text-sm font-medium">{name}</div>
-      <div className="px-3 text-xs text-muted">{ROLE_LABELS[role]}</div>
+      <div className="px-3 text-xs text-muted">{title || ROLE_LABELS[role]}</div>
       <button onClick={logout} className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted hover:bg-surface-2">
         <LogOut className="h-4 w-4" /> Çıkış yap
       </button>

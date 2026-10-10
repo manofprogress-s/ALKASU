@@ -158,6 +158,8 @@
 - **Y-03** Satış personeli, satış ekranında müşteri seçtiğinde yalnızca o müşterinin bakiyesini ve limitini görür.
 - **Y-04** İşletmede en az bir aktif yönetici bulunmalıdır. Son yönetici pasife alınamaz ve rolü düşürülemez.
 
+- **R-09** Kullanıcının **unvanı** (ör. "Warehouse and Logistics Executive - Depo ve Sevkiyat Yöneticisi") yalnızca görünüm içindir; menüde ve kullanıcı listesinde adın yanında görünür. Yetkileri rol belirler. Unvanı yalnızca yönetici yazar (Ayarlar → Kullanıcılar → Unvan).
+
 ## 13. Denetim kaydı
 
 - **L-01** Denetim kaydı alanları: işletme, kullanıcı, zaman, işlem türü, tablo, kayıt kimliği, önceki değer (JSON), yeni değer (JSON), cihaz/istemci bilgisi.

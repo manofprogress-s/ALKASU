@@ -13,7 +13,7 @@ export default async function SettingsPage() {
   const ctx = await requirePermission("users");
   const supabase = await supabaseServer();
   const [{ data: members }, { data: settings }, { data: dealers }, { data: loc }] = await Promise.all([
-    supabase.from("memberships").select("id, user_id, role, display_name, active, username, customer_id, must_change_password, created_at").eq("business_id", ctx.businessId).order("created_at"),
+    supabase.from("memberships").select("id, user_id, role, display_name, title, active, username, customer_id, must_change_password, created_at").eq("business_id", ctx.businessId).order("created_at"),
     supabase.from("app_settings").select("*").eq("business_id", ctx.businessId).maybeSingle(),
     supabase.from("customers").select("id, name").eq("business_id", ctx.businessId).eq("channel", "bayi").eq("active", true).order("name"),
     supabase.from("locations").select("latitude, longitude").eq("id", ctx.locationId).maybeSingle(),

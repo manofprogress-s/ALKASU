@@ -171,3 +171,4 @@
 | D-073 | Öneriler `customer_requests` tablosunda; bayi onayıyla `app.dealer_customer_write` çekirdeği uygular (bayinin kendi düzenlemesiyle aynı kod). | ✅ |
 | D-074 | Özel yönlendirme yetkisi sevkiyat + yönetici (varsayım: yöneticiler de yapabilir); gerekçe zorunlu (varsayım). Kullanıcı farklı isterse yalnızca sevkiyat'a daraltılabilir. | 🔁 |
 | D-075 | Yönlendirme kaydı `order_routing_log` — yalnızca yönetici okur, kimse değiştiremez. Önceki "bayinin kendi alımı başka bayiye verilemez" kuralı kaldırıldı; artık özel yönlendirme olarak yapılabilir. | ✅ |
+| D-076 | Unvan ayrı alan (`memberships.title`), rolden bağımsız (kullanıcı isteği: Selin "Accounting Specialist - Muhasebe Teknisyeni", Hüseyin "Warehouse and Logistics Executive - Depo ve Sevkiyat Yöneticisi"). | ✅ |

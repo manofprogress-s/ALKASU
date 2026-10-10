@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound } from "lucide-react";
+import { BadgeCheck, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, Badge, Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
@@ -16,6 +16,7 @@ export interface MemberRow {
   user_id: string;
   role: Role;
   display_name: string;
+  title: string | null;
   active: boolean;
   username: string | null;
   customer_id: string | null;
@@ -39,6 +40,8 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [resetFor, setResetFor] = useState<MemberRow | null>(null);
+  const [titleFor, setTitleFor] = useState<MemberRow | null>(null);
+  const [title, setTitle] = useState("");
   const [resetPw, setResetPw] = useState("");
   const [resetError, setResetError] = useState<string | null>(null);
   const dealerName = (id: string | null) => dealers.find((d) => d.id === id)?.name ?? "";
@@ -63,6 +66,7 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
           <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
             <span className="min-w-0">
               <span className="font-medium">{m.display_name}</span>{" "}
+              {m.title ? <span className="text-sm text-muted">· {m.title}</span> : null}{" "}
               {m.user_id === me ? <Badge tone="brand">Siz</Badge> : null} {!m.active ? <Badge>Pasif</Badge> : null}{" "}
               {m.must_change_password ? <Badge tone="warn">Şifre değiştirecek</Badge> : null}
               <span className="block text-xs text-muted">
@@ -82,6 +86,11 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
                 <Select className="h-9 w-44" value={m.customer_id ?? ""} onChange={(e) => call("update_member", { p_membership: m.id, p_role: m.role, p_name: m.display_name, p_active: m.active, p_customer: e.target.value }, { success: "Bayi kartı güncellendi" })}>
                   {dealers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </Select>
+              ) : null}
+              {m.role !== "musteri" ? (
+                <Button size="sm" variant="ghost" onClick={() => { setTitleFor(m); setTitle(m.title ?? ""); }}>
+                  <BadgeCheck className="h-4 w-4" /> Unvan
+                </Button>
               ) : null}
               {m.user_id !== me ? (
                 <>
@@ -157,6 +166,22 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
           </Field>
           {resetError ? <Alert>{resetError}</Alert> : null}
         </div>
+      </Dialog>
+      <Dialog
+        open={!!titleFor}
+        onClose={() => setTitleFor(null)}
+        title={`Unvan: ${titleFor?.display_name ?? ""}`}
+        footer={
+          <Button className="w-full" onClick={async () => {
+            if (!titleFor) return;
+            const ok = await call("set_member_title", { p_membership: titleFor.id, p_title: title }, { success: "Unvan kaydedildi" });
+            if (ok) setTitleFor(null);
+          }}>Kaydet</Button>
+        }
+      >
+        <Field label="Unvan" hint="Yalnızca görünür; yetkileri rol belirler. Boş bırakılırsa rol adı gösterilir.">
+          <Input value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="Örn. Warehouse and Logistics Executive - Depo ve Sevkiyat Yöneticisi" />
+        </Field>
       </Dialog>
     </Card>
   );
