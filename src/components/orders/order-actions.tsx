@@ -229,13 +229,16 @@ function DeliverDialog({
   const emptiesNum: Record<string, number> = {};
   for (const [pid, v] of Object.entries(empties)) if (v.trim() !== "") emptiesNum[pid] = Math.max(0, Number.parseInt(v, 10) || 0);
   const balances: ContainerBalances = useMemo(() => Object.fromEntries(containers.map((c) => [c.productId, { qty: c.qty, amount: c.amount }])), [containers]);
-  const totals = computeCart(cart, 0, emptiesNum, balances);
+  const totals = computeCart(cart, 0, emptiesNum, balances, { creditCustomer: true });
   const total = fromKurus(totals.grandK);
+  // D-07: fazla boş iadesi tutarı aşarsa ödeme alınmaz, fark müşterinin carisine alacak yazılır
+  const accountCredit = totals.grandK < 0;
 
-  const payments =
+  const entered =
     method === "bolunmus"
       ? (["nakit", "pos", "veresiye"] as const).map((m) => ({ method: m, amount: parseAmount(split[m]) ?? 0 }))
       : [{ method, amount: total }];
+  const payments = accountCredit ? entered.slice(0, 0) : entered;
   const paidK = payments.reduce((s, p) => s + toKurus(p.amount), 0);
   const creditK = toKurus(payments.find((p) => p.method === "veresiye")?.amount ?? 0);
   const over = creditLimit !== null && creditK > 0 && balance + fromKurus(creditK) > creditLimit;
@@ -243,7 +246,7 @@ function DeliverDialog({
   let validation: string | null = null;
   if (cart.length === 0) validation = "Teslim edilen ürün yok; teslim edilmediyse siparişi iptal edin";
   else if (totals.errors.length) validation = totals.errors[0] ?? null;
-  else if (paidK !== totals.grandK) validation = `Ödemeler toplamı ${formatTRY(fromKurus(paidK))}, teslimat tutarı ${formatTRY(total)}`;
+  else if (!accountCredit && paidK !== totals.grandK) validation = `Ödemeler toplamı ${formatTRY(fromKurus(paidK))}, teslimat tutarı ${formatTRY(total)}`;
 
   async function submit() {
     if (validation) return setError(validation);
@@ -279,7 +282,7 @@ function DeliverDialog({
         <div className="space-y-2">
           {validation ? <div className="text-center text-sm text-muted">{validation}</div> : null}
           <Button size="lg" variant="ok" className="w-full" loading={saving} disabled={!!validation} onClick={() => void submit()}>
-            Teslimatı kaydet · {formatTRY(total)}
+            {accountCredit ? `Teslimatı kaydet · carisine ${formatTRY(-total)} alacak` : `Teslimatı kaydet · ${formatTRY(total)}`}
           </Button>
         </div>
       }

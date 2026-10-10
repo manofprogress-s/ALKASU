@@ -62,6 +62,27 @@ describe("computeCart", () => {
     expect(t.errors.length).toBeGreaterThan(0);
   });
 
+  it("müşteri 1 boşla gelip 2 dolu alır: 1 depozito satılır (80 × 2 + 220)", () => {
+    const t = computeCart([line({ productId: "dm", factor: 1, qty: 2, unitPrice: 80, depositAmount: 220 })], 0, { dm: 1 });
+    expect(t.depositK).toBe(22000);
+    expect(t.grandK).toBe(38000);
+  });
+
+  it("bayi 20 boş bırakıp 30 dolu alır: 10 depozito", () => {
+    const t = computeCart([line({ productId: "dm", factor: 1, qty: 30, unitPrice: 60, depositAmount: 220 })], 0, { dm: 20 });
+    expect(t.deposits[0]!.net).toBe(10);
+    expect(t.grandK).toBe(180000 + 220000);
+  });
+
+  it("bayi 30 boş getirip 20 dolu alır: fark carisine alacak (müşteri seçiliyse)", () => {
+    const cart = [line({ productId: "dm", factor: 1, qty: 20, unitPrice: 60, depositAmount: 220 })];
+    const bal = { dm: { qty: 10, amount: 2200 } };
+    const withCustomer = computeCart(cart, 0, { dm: 30 }, bal, { creditCustomer: true });
+    expect(withCustomer.grandK).toBe(120000 - 220000);
+    expect(withCustomer.errors).toHaveLength(0);
+    expect(computeCart(cart, 0, { dm: 30 }, bal).errors[0]).toMatch(/müşteri seçin/);
+  });
+
   it("indirim satır tutarını aşamaz", () => {
     expect(computeCart([line({ lineDiscount: 201 })], 0, {}).errors.length).toBe(1);
     expect(computeCart([line({})], 300, {}).errors).toContain("Fiş indirimi tutarı aşıyor");

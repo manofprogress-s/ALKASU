@@ -89,7 +89,10 @@ export function Pos({ initial }: { initial: PosData }) {
     );
   }
 
-  const totals = useMemo(() => computeCart(cart, billDiscount, empties, balances), [cart, billDiscount, empties, balances]);
+  const totals = useMemo(
+    () => computeCart(cart, billDiscount, empties, balances, { creditCustomer: !!customer }),
+    [cart, billDiscount, empties, balances, customer],
+  );
   const itemCount = cart.reduce((s, l) => s + l.qty, 0);
 
   function addProduct(p: CatalogProduct, unitId?: string | null) {
@@ -256,14 +259,28 @@ export function Pos({ initial }: { initial: PosData }) {
 
         {totals.deposits.map((d) => (
           <div key={d.productId} className="rounded-xl border border-brand/40 bg-brand-soft p-3">
-            <div className="text-sm font-medium">{d.productName}: boş kap</div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm font-medium">{d.productName}: boş kap</div>
+              <div className="flex gap-1">
+                <button type="button" onClick={() => setEmpties((e) => ({ ...e, [d.productId]: 0 }))}
+                  className={`rounded-full px-2.5 py-1 text-xs ${d.emptyReturned === 0 ? "bg-brand text-white" : "bg-surface text-brand"}`}>Boş yok</button>
+                <button type="button" onClick={() => setEmpties((e) => ({ ...e, [d.productId]: d.sold }))}
+                  className={`rounded-full px-2.5 py-1 text-xs ${d.emptyReturned === d.sold ? "bg-brand text-white" : "bg-surface text-brand"}`}>Hepsi değişim</button>
+              </div>
+            </div>
             <div className="mt-2 flex items-center justify-between gap-2">
-              <span className="text-sm">Getirilen boş</span>
+              <span className="text-sm">Verilen dolu <b className="num">{d.sold}</b> · Getirilen boş</span>
               <div className="flex items-center gap-1">
                 <Button variant="secondary" size="icon" className="h-9 w-9" onClick={() => setEmpties((e) => ({ ...e, [d.productId]: Math.max(0, d.emptyReturned - 1) }))} aria-label="Azalt">
                   <Minus className="h-4 w-4" />
                 </Button>
-                <span className="num w-10 text-center font-semibold">{d.emptyReturned}</span>
+                <Input
+                  inputMode="numeric"
+                  aria-label={`${d.productName} getirilen boş`}
+                  className="num h-9 w-14 text-center font-semibold"
+                  value={String(d.emptyReturned)}
+                  onChange={(e) => setEmpties((x) => ({ ...x, [d.productId]: Math.max(0, Number.parseInt(e.target.value.replace(/\D/g, "") || "0", 10)) }))}
+                />
                 <Button variant="secondary" size="icon" className="h-9 w-9" onClick={() => setEmpties((e) => ({ ...e, [d.productId]: d.emptyReturned + 1 }))} aria-label="Arttır">
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -271,10 +288,10 @@ export function Pos({ initial }: { initial: PosData }) {
             </div>
             <div className="mt-1 text-xs">
               {d.net > 0
-                ? `${d.net} kap müşteride kalacak · depozito ${formatTRY(fromKurus(d.amountK))}`
+                ? `${d.net} depozito satılıyor (kap müşteride kalır) · +${formatTRY(fromKurus(d.amountK))}`
                 : d.net < 0
-                  ? `${-d.net} fazla boş · depozito iadesi ${formatTRY(fromKurus(-d.amountK))}`
-                  : "Boşlar eksiksiz getirildi, depozito yok"}
+                  ? `${-d.net} fazla boş geldi · depozito iadesi −${formatTRY(fromKurus(-d.amountK))}`
+                  : "Değişim: depozito yok"}
             </div>
             {d.error ? <div className="mt-1 text-xs text-danger">{d.error}</div> : null}
           </div>

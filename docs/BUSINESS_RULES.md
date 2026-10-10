@@ -264,3 +264,11 @@
 
 - **G-18** **Bugünkü** satış tutarı, fiş sayısı, nakit/POS ve **bugünkü veresiye satışı** tüm personelin ana sayfasında görünür. **Brüt kâr**, **günlük/haftalık/aylık satış raporları**, ürün kârlılığı, toplam veresiye alacağı ve veresiye (alacak yaşlandırma) raporu **yalnızca yöneticiye** (Ayhan, Enes) açıktır. İzleyici rolü artık Raporlar'ı görmez. Satış personeli, satış anında limit kontrolü için müşterinin kendi bakiyesini görmeye devam eder.
 - **G-19** Bayi yalnızca kendi bilgisini görür: kendi bayi kartı, cari bakiyesi, kendi müşterileri ve kendisine yönlendirilen siparişler. Merkezin satışları, raporları, diğer bayi ve kullanıcılar kapalıdır (İbrahim → Sağlam Ticaret, Hüseyin Yıldız → Yıldız Ticaret).
+
+## 26. Depozito senaryoları (10.10.2026)
+
+- **D-07** Satış ve teslimat ekranında her depozitolu ürün için "Verilen dolu" ve "Getirilen boş" girilir (± düğmeleri, elle yazma, "Boş yok" / "Hepsi değişim" kısayolları). Fark kadar depozito satılır ya da iade edilir. Örnekler:
+  - Müşteri 1 boşla 2 dolu alır → 2 × 80 + 1 × 220 = 380 ₺; müşteride 1 kap görünür. Boşu yoksa 1 dolu = 80 + 220 = 300 ₺.
+  - Bayi 20 boş bırakıp 30 dolu alır → 10 depozito satılır; veresiye seçilirse bayinin carisine yazılır, bayide 10 kap görünür.
+  - Bayi 30 boş getirip 20 dolu alır → 10 kabın ödediği depozito iade edilir. İade ürün tutarını aşarsa **ödeme alınmaz, fark bayinin carisine alacak ("depozito mahsup") yazılır**. Fiş iptal edilirse cari ve kap sayısı geri döner.
+  - Müşterinin elinde kayıtlı kap yoksa fazla boş kabul edilmez (yanlış iade önlenir); eski kaplar yönetici tarafından müşteri kartındaki "Elindeki kap" düzeltmesiyle girilir.

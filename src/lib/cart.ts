@@ -52,6 +52,8 @@ export function computeCart(
   billDiscount: number,
   emptiesReturned: Record<string, number>,
   balances: ContainerBalances = {},
+  /** Müşteri seçili: fazla boş iadesi ürün tutarını aşarsa fark carisine alacak yazılır (D-07) */
+  opts: { creditCustomer?: boolean } = {},
 ): CartTotals {
   const errors: string[] = [];
   const computed: ComputedLine[] = lines.map((l) => {
@@ -115,7 +117,9 @@ export function computeCart(
   }
   const depositK = deposits.reduce((s, d) => s + d.amountK, 0);
   const grandK = goodsNetK + depositK;
-  if (grandK < 0 && errors.length === 0) errors.push("Fiş toplamı negatif olamaz; fazla boş kap için Depozito iadesi işlemini kullanın");
+  if (grandK < 0 && errors.length === 0 && !opts.creditCustomer) {
+    errors.push("Boş kap iadesi tutarı aşıyor: müşteri seçin, fark carisine alacak yazılır");
+  }
 
   return { lines: computed, grossK, discountK: lineDiscK + billK, goodsNetK, deposits, depositK, grandK, errors };
 }

@@ -60,11 +60,14 @@ export function PaymentDialog({
   const [saleId] = useState(() => crypto.randomUUID());
 
   const total = fromKurus(totals.grandK);
+  // D-07: fazla boş iadesi ürün tutarını aştı → ödeme alınmaz, fark müşterinin carisine alacak yazılır
+  const accountCredit = totals.grandK < 0;
   const payments: Payment[] = useMemo(() => {
+    if (accountCredit) return [];
     if (mode === "bolunmus")
       return (["nakit", "pos", "veresiye"] as const).map((m) => ({ method: m, amount: parseAmount(split[m]) ?? 0 }));
     return [{ method: mode, amount: total }];
-  }, [mode, split, total]);
+  }, [mode, split, total, accountCredit]);
   const paidK = payments.reduce((s, p) => s + toKurus(p.amount), 0);
   const cashK = toKurus(payments.find((p) => p.method === "nakit")?.amount ?? 0);
   const givenN = parseAmount(given);
@@ -75,6 +78,8 @@ export function PaymentDialog({
 
   let validation: string | null = null;
   if (totals.errors.length) validation = totals.errors[0] ?? null;
+  else if (accountCredit && !customer) validation = "Fazla boş iadesi için müşteri seçin";
+  else if (accountCredit) validation = null;
   else if (paidK !== totals.grandK) validation = `Ödemeler toplamı ${formatTRY(fromKurus(paidK))}, fiş toplamı ${formatTRY(total)}`;
   else if (creditK > 0 && !customer) validation = "Veresiye için müşteri seçin";
   else if (changeK !== null && changeK < 0) validation = "Alınan nakit yetersiz";
@@ -171,12 +176,24 @@ export function PaymentDialog({
             </Button>
           ) : null}
           <Button size="lg" variant="ok" className="w-full" disabled={!!validation} loading={saving} onClick={() => complete(false)}>
-            Satışı tamamla · {formatTRY(total)}
+            {accountCredit ? `Kaydet · carisine ${formatTRY(-total)} alacak` : `Satışı tamamla · ${formatTRY(total)}`}
           </Button>
           {validation ? <div className="text-center text-xs text-muted">{validation}</div> : null}
         </div>
       }
     >
+      {accountCredit ? (
+        <div className="space-y-3">
+          <div className="rounded-2xl bg-ok-soft p-4 text-center">
+            <div className="text-sm text-ok">Müşterinin carisine alacak yazılacak</div>
+            <div className="num text-3xl font-bold text-ok">{formatTRY(-total)}</div>
+            <div className="num text-xs text-muted">Ürünler {formatTRY(fromKurus(totals.goodsNetK))} · depozito iadesi {formatTRY(fromKurus(totals.depositK))}</div>
+          </div>
+          <Alert tone="neutral">
+            Getirilen fazla boşların depozitosu aldığı ürün tutarını aşıyor. Ödeme alınmaz; fark {customer?.name ?? "müşteri"} hesabında alacak olarak görünür.
+          </Alert>
+        </div>
+      ) : (
       <div className="space-y-4">
         <div className="rounded-2xl bg-surface-2 p-4 text-center">
           <div className="text-sm text-muted">Ödenecek tutar</div>
@@ -257,6 +274,7 @@ export function PaymentDialog({
           </div>
         </details>
       </div>
+      )}
     </Dialog>
   );
 }
