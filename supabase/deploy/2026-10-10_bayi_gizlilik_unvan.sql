@@ -1,4 +1,4 @@
--- 10.10.2026 yayını: bayi listesi gizliliği + özel yönlendirme (0019). Tek işlem.
+-- 10.10.2026 yayını: bayi listesi gizliliği + özel yönlendirme (0019) + kullanıcı unvanı (0020) + unvan verisi. Tek işlem.
 begin;
 -- ALKASU 0019 — Bayi listesi gizliliği ve sevkiyat yönlendirme
 -- Kural: BUSINESS_RULES §24 (G-13..G-17) · Karar: D-072..D-075
@@ -211,6 +211,45 @@ begin
 end $$;
 
 select app.apply_grants();
-insert into supabase_migrations.schema_migrations(version, name) values ('20261010001900', 'dealer_privacy_routing') on conflict do nothing;
+
+-- ALKASU 0020 — Kullanıcı unvanı (yalnızca görünüm; yetki rolden gelir)
+-- Kural: BUSINESS_RULES §12 (R-09) · Karar: D-076
+
+alter table public.memberships add column if not exists title text
+  check (title is null or length(trim(title)) between 1 and 80);
+
+-- Yönetici: kullanıcının unvanını yazar / kaldırır (boş = kaldır)
+create or replace function public.set_member_title(p_membership uuid, p_title text) returns void
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_bid uuid; v_old text; v_new text := nullif(trim(coalesce(p_title, '')), '');
+begin
+  select business_id, title into v_bid, v_old from public.memberships where id = p_membership;
+  if v_bid is null then raise exception 'Kullanıcı bulunamadı' using errcode = 'P0002'; end if;
+  perform app.require_role(v_bid, 'yonetici');
+  if length(coalesce(v_new, '')) > 80 then raise exception 'Unvan en fazla 80 karakter olabilir' using errcode = '22023'; end if;
+  update public.memberships set title = v_new where id = p_membership;
+  perform app.audit(v_bid, 'unvan', 'memberships', p_membership::text, jsonb_build_object('title', v_old), jsonb_build_object('title', v_new));
+end $$;
+
+create or replace function public.my_context() returns jsonb
+language sql stable security definer set search_path = public, pg_temp as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'business_id', b.id, 'business_name', b.name,
+    'location_id', app.default_location(b.id),
+    'membership_id', m.id, 'role', m.role, 'display_name', m.display_name, 'title', m.title,
+    'customer_id', m.customer_id, 'must_change_password', m.must_change_password
+  ) order by b.name), '[]'::jsonb)
+  from public.memberships m join public.businesses b on b.id = m.business_id
+  where m.user_id = auth.uid() and m.active
+$$;
+
+select app.apply_grants();
+insert into supabase_migrations.schema_migrations(version, name) values
+  ('20261010001900', 'dealer_privacy_routing'), ('20261010002000', 'member_title') on conflict do nothing;
+-- Unvanlar (kullanıcı isteği 10.10)
+update public.memberships set title = 'Accounting Specialist - Muhasebe Teknisyeni' where display_name = 'Selin Alay' and role <> 'musteri';
+update public.memberships set title = 'Warehouse and Logistics Executive - Depo ve Sevkiyat Yöneticisi' where display_name = 'Hüseyin Topaloğlu' and role <> 'musteri';
 commit;
-select (select count(*) from pg_trigger where tgname='customers_dealer_guard') as koruma, (select count(*) from pg_proc where proname in ('propose_dealer_customer','decide_customer_request','cancel_customer_request','assign_order_dealer')) as fonk, (select max(version) from supabase_migrations.schema_migrations) as surum;
+select 'SONUC: koruma=' || (select count(*) from pg_trigger where tgname = 'customers_dealer_guard')
+    || ' unvan=' || (select count(*) from public.memberships where title is not null)
+    || ' surum=' || (select max(version) from supabase_migrations.schema_migrations) as sonuc;
