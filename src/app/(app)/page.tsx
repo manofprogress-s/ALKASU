@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ClipboardList, ShoppingCart, Truck } from "lucide-react";
+import { AlertTriangle, ClipboardList, ShoppingCart, Store, Truck } from "lucide-react";
 import { getContext } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Card, PageHeader, Stat } from "@/components/ui/card";
@@ -76,6 +76,18 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <Stat label="Bendeki damacana/kap" value={d.containers ?? 0} />
           </div>
         </>
+      ) : null}
+      {ctx.role === "yonetici" ? (
+        <Link href="/urunler/magaza" className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 active:scale-[0.99]">
+          <span className="flex items-center gap-3">
+            <Store className="h-6 w-6 text-brand" />
+            <span>
+              <span className="block font-semibold">Mağaza düzeni</span>
+              <span className="block text-sm text-muted">Müşterinin sipariş ekranındaki ürünleri düzenle</span>
+            </span>
+          </span>
+          <span className="text-brand">→</span>
+        </Link>
       ) : null}
       {ctx.role !== "bayi" && d.my_open_orders !== undefined && can(ctx.role, "orders") ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">

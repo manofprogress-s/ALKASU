@@ -222,6 +222,7 @@
 - **W-08** Müşteri sipariş ekranı (hızlı sipariş ve kayıtlı müşteri aynı ekran): ürünler bölümlere ayrılır — önce markalar ("Gürpınar çeşitleri" vb., en çok ürünü olan önce), sonra son 60 günün **çok satanları**, sonra markasız ürünler kategoriye göre. Kartta fotoğraf, ad, birim, fiyat ve "+" vardır; seçim alttaki sabit çubukta özetlenir, "Sepeti onayla" ile sepet + adres adımına geçilir.
 - **W-09** Ürün fotoğrafını yalnızca yönetici yükler (Ürünler → ürün → Fotoğraf); tarayıcıda en fazla 600 px webp'ye küçültülür. Fotoğraf yoksa markanın renginde sade bir çizim gösterilir (logo çizilmez).
 - **W-10** Genel amaçlı markalar ("Envanter" gibi) mağazada bölüm açmaz; ürünleri kategoriye göre listelenir (`brands.show_in_shop`).
+- **W-11** **Mağaza düzeni** (yalnızca yönetici — Enes, Ayhan): Ürünler → Mağaza düzeni (ana sayfada da kısayol). Müşterinin gördüğü ekranın aynısı açılır; ürüne basılı tutulur (ya da dokunulur): **kaldır** (müşteri görmez, "Gizlenenler"den geri getirilir), **yerine başka ürün koy** (seçilen ürün aynı yere, gerekirse başka markadan, gelir; eskisi gizlenir), **yer değiştir** (ikinci ürüne dokunulur), **sola/sağa taşı**, **otomatik yerine döndür**. Değişiklik anında müşteriye yansır ve işlem geçmişine yazılır. "Çok satanlar" otomatiktir.
 - **W-07** Şifresini unutan müşteriye yönetici Ayarlar'dan geçici şifre verir (SMS altyapısı yok).
 
 ## 21. Bayiye verilen siparişler ve rota

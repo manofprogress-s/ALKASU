@@ -1,6 +1,6 @@
 "use client";
-import { useMemo, useState } from "react";
-import { ChevronRight, Droplet, Minus, Plus, ShoppingCart } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { ChevronRight, Droplet, Minus, MoreHorizontal, Plus, ShoppingCart } from "lucide-react";
 import { formatTRY, fromKurus, toKurus } from "@/lib/format";
 import { brandColor, buildSections, productKind, shortName, unitLabel, type ShopItem } from "@/lib/shop";
 import { ProductArt } from "./product-art";
@@ -53,22 +53,71 @@ export function Stepper({ n, onStep, size = "md", label }: { n: number; onStep: 
   );
 }
 
-function ItemCard({ item, n, onStep }: { item: ShopItem; n: number; onStep: (d: number) => void }) {
+/** Mağaza düzeni (yalnızca yönetici, W-11): basılı tut / dokun / "⋯" */
+export interface ShopEdit {
+  onPress: (item: ShopItem, how: "long" | "tap") => void;
+  selectedId?: string | null;
+}
+
+/** 450 ms basılı tutma (telefon); kaydırma başlarsa iptal */
+function useLongPress(onLong: () => void) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const fired = useRef(false);
+  const clear = () => { if (timer.current) clearTimeout(timer.current); timer.current = null; };
+  return {
+    fired,
+    handlers: {
+      onPointerDown: (e: React.PointerEvent) => {
+        fired.current = false;
+        start.current = { x: e.clientX, y: e.clientY };
+        clear();
+        timer.current = setTimeout(() => { fired.current = true; onLong(); }, 450);
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        if (start.current && Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > 10) clear();
+      },
+      onPointerUp: clear,
+      onPointerLeave: clear,
+      onPointerCancel: clear,
+      onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    },
+  };
+}
+
+function ItemCard({ item, n, onStep, edit }: { item: ShopItem; n: number; onStep: (d: number) => void; edit?: ShopEdit }) {
   const name = shortName(item);
+  const lp = useLongPress(() => edit?.onPress(item, "long"));
+  const selected = edit?.selectedId === item.unitId;
   return (
-    <div className={`flex h-full flex-col items-center rounded-2xl border bg-surface p-2.5 pb-3 text-center shadow-sm transition ${n ? "border-brand ring-2 ring-brand/25" : "border-border"}`}>
-      <ItemImage item={item} className="h-28 w-full" />
+    <div
+      {...(edit ? lp.handlers : {})}
+      onClick={edit ? () => { if (!lp.fired.current) edit.onPress(item, "tap"); } : undefined}
+      className={`flex h-full select-none flex-col items-center rounded-2xl border bg-surface p-2.5 pb-3 text-center shadow-sm transition [-webkit-touch-callout:none] ${
+        selected ? "border-warn ring-4 ring-warn/40" : n ? "border-brand ring-2 ring-brand/25" : "border-border"} ${edit ? "cursor-pointer active:scale-[0.98]" : ""}`}
+    >
+      <ItemImage item={item} className="pointer-events-none h-28 w-full" />
       <div className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-[15px] font-semibold leading-tight">{name}</div>
       <div className="mt-0.5 text-xs text-muted">{unitLabel(item)}</div>
       <div className="num mb-2 mt-0.5 font-semibold text-brand">{formatTRY(item.price)}</div>
-      <div className="mt-auto"><Stepper n={n} onStep={onStep} label={name} /></div>
+      <div className="mt-auto">
+        {edit ? (
+          <span className="inline-flex h-10 items-center gap-1 rounded-full bg-surface-2 px-3 text-sm text-muted">
+            <MoreHorizontal className="h-4 w-4" /> Düzenle
+          </span>
+        ) : <Stepper n={n} onStep={onStep} label={name} />}
+      </div>
     </div>
   );
 }
 
 /** Marka bölümleri + yatay kaydırmalı kartlar (W-08). "›" ile bölüm ızgara olarak açılır. */
-export function ShopCatalog({ items, qty, onStep }: { items: ShopItem[]; qty: Qty; onStep: (unitId: string, d: number) => void }) {
-  const sections = useMemo(() => buildSections(items), [items]);
+export function ShopCatalog({ items, qty, onStep, edit }: {
+  items: ShopItem[]; qty: Qty; onStep: (unitId: string, d: number) => void;
+  /** Yönetici düzenleme modu: çok satanlar otomatik olduğu için gösterilmez */
+  edit?: ShopEdit;
+}) {
+  const sections = useMemo(() => buildSections(items, edit ? 0 : undefined), [items, edit]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   return (
     <div className="space-y-4">
@@ -95,7 +144,7 @@ export function ShopCatalog({ items, qty, onStep }: { items: ShopItem[]; qty: Qt
               : "-mx-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}>
               {s.items.map((i) => (
                 <li key={i.unitId} className={expanded ? "" : "w-[42%] shrink-0 snap-start sm:w-44"}>
-                  <ItemCard item={i} n={qty[i.unitId] ?? 0} onStep={(d) => onStep(i.unitId, d)} />
+                  <ItemCard item={i} n={qty[i.unitId] ?? 0} onStep={(d) => onStep(i.unitId, d)} edit={edit} />
                 </li>
               ))}
             </ul>

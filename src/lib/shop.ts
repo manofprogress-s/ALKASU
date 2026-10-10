@@ -14,6 +14,10 @@ export interface ShopItem {
   category: string | null;
   imageUrl: string | null;
   popularity: number;
+  /** Mağaza düzeni (W-11): bölüm içi sıra, elle verilen bölüm, gizli */
+  sort: number | null;
+  section: string | null;
+  hidden: boolean;
 }
 
 export interface CatalogRow {
@@ -29,6 +33,9 @@ export interface CatalogRow {
   category_name?: string | null;
   image_path?: string | null;
   popularity?: number | null;
+  sort?: number | null;
+  section?: string | null;
+  hidden?: boolean | null;
 }
 
 export const PRODUCT_IMAGE_BUCKET = "urun";
@@ -51,6 +58,9 @@ export function toShopItems(rows: CatalogRow[]): ShopItem[] {
     category: r.category_name ?? null,
     imageUrl: productImageUrl(r.image_path),
     popularity: r.popularity ?? 0,
+    sort: r.sort ?? null,
+    section: r.section ?? null,
+    hidden: !!r.hidden,
   }));
 }
 
@@ -95,31 +105,52 @@ export interface ShopSection {
 function sortItems(items: ShopItem[]): ShopItem[] {
   return [...items].sort(
     (a, b) =>
+      // Elle verilen sıra önce (W-11), sonra otomatik: tür, satış, ad
+      (a.sort ?? Number.MAX_SAFE_INTEGER) - (b.sort ?? Number.MAX_SAFE_INTEGER) ||
       KIND_ORDER.indexOf(productKind(a)) - KIND_ORDER.indexOf(productKind(b)) ||
       b.popularity - a.popularity ||
       a.productName.localeCompare(b.productName, "tr"),
   );
 }
 
+/** Ürünün kendiliğinden düştüğü bölüm başlığı (marka ya da kategori) */
+export function naturalSection(i: Pick<ShopItem, "brand" | "category">): string {
+  return i.brand ? `${i.brand} çeşitleri` : i.category ?? "Diğer";
+}
+
+/** Ürünün gösterildiği bölüm: elle verilen bölüm, yoksa marka/kategori */
+export function sectionOf(i: Pick<ShopItem, "brand" | "category" | "section">): string {
+  return i.section ?? naturalSection(i);
+}
+
 /**
- * Bölümler (W-08): önce markalar (en çok ürünü olan önce), sonra son 60 günün çok satanları,
- * sonra markasız ürünler kategoriye göre.
+ * Bölümler (W-08, W-11): önce elle açılan bölümler, sonra markalar (en çok ürünü olan önce), sonra son 60 günün
+ * çok satanları, sonra markasız ürünler kategoriye göre. Gizli ürünler gösterilmez.
  */
 export function buildSections(items: ShopItem[], topCount = 6): ShopSection[] {
-  const byBrand = new Map<string, ShopItem[]>();
-  const byCat = new Map<string, ShopItem[]>();
-  for (const i of items) {
-    if (i.brand) byBrand.set(i.brand, [...(byBrand.get(i.brand) ?? []), i]);
-    else byCat.set(i.category ?? "Diğer", [...(byCat.get(i.category ?? "Diğer") ?? []), i]);
+  const visible = items.filter((i) => !i.hidden);
+  const groups = new Map<string, ShopItem[]>();
+  for (const i of visible) {
+    const title = sectionOf(i);
+    groups.set(title, [...(groups.get(title) ?? []), i]);
   }
-  const brands = [...byBrand.entries()]
-    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "tr"))
-    .map(([b, list]) => ({ key: `b:${b}`, title: `${b} çeşitleri`, items: sortItems(list) }));
-  const top = [...items].filter((i) => i.popularity > 0).sort((a, b) => b.popularity - a.popularity).slice(0, topCount);
-  const cats = [...byCat.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0], "tr"))
-    .map(([c, list]) => ({ key: `c:${c}`, title: c, items: sortItems(list) }));
-  return [...brands, ...(top.length ? [{ key: "top", title: "Çok satanlar", items: top }] : []), ...cats];
+  // Bölüm türü, o bölüme kendiliğinden düşen üründen gelir (marka 1, kategori 2); hiç yoksa elle açılmış bölümdür (0).
+  // Böylece bir bölüme başka markadan ürün konması bölümün yerini değiştirmez.
+  const kindOf = (title: string, list: ShopItem[]) => {
+    const own = list.find((i) => naturalSection(i) === title);
+    if (own) return own.brand ? 1 : 2;
+    return title.endsWith(" çeşitleri") ? 1 : 0;
+  };
+  const all = [...groups.entries()].map(([title, list]) => ({ key: `t:${title}`, title, kind: kindOf(title, list), items: sortItems(list) }));
+  const byKind = (k: number) => all.filter((g) => g.kind === k);
+  const strip = (g: { key: string; title: string; items: ShopItem[] }) => ({ key: g.key, title: g.title, items: g.items });
+  const top = [...visible].filter((i) => i.popularity > 0).sort((a, b) => b.popularity - a.popularity).slice(0, topCount);
+  return [
+    ...byKind(0).sort((a, b) => a.title.localeCompare(b.title, "tr")).map(strip),
+    ...byKind(1).sort((a, b) => b.items.length - a.items.length || a.title.localeCompare(b.title, "tr")).map(strip),
+    ...(top.length ? [{ key: "top", title: "Çok satanlar", items: top }] : []),
+    ...byKind(2).sort((a, b) => a.title.localeCompare(b.title, "tr")).map(strip),
+  ];
 }
 
 const BRAND_COLORS: Record<string, string> = {

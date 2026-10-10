@@ -38,6 +38,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         subtitle={`${rows.length} ürün`}
         actions={admin ? (
           <>
+            <Link href="/urunler/magaza" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Mağaza düzeni</Link>
             <Link href="/urunler/fiyatlar" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Fiyat listeleri</Link>
             <Link href="/urunler/ice-aktar" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Excel&apos;den aktar</Link>
             <Link href="/urunler/yeni" className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Yeni ürün</Link>
