@@ -27,7 +27,9 @@ export default async function MyCustomersPage() {
       .limit(30),
   ]);
   const rows = (data ?? []) as DealerCustomer[];
-  const requests = ((reqs ?? []) as CustomerRequest[]).filter((r) => r.status === "bekliyor" || Date.now() - Date.parse(r.decided_at ?? r.requested_at) < 7 * 864e5);
+  // Bekleyenlerin tamamı + sonuçlanan son 5 öneri
+  const all = (reqs ?? []) as CustomerRequest[];
+  const requests = [...all.filter((r) => r.status === "bekliyor"), ...all.filter((r) => r.status !== "bekliyor").slice(0, 5)];
   return (
     <div className="space-y-4">
       <PageHeader
