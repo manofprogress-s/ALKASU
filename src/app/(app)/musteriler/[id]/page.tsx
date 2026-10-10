@@ -22,9 +22,9 @@ export default async function CustomerPage({ params, searchParams }: { params: P
   const ctx = await requirePermission("customers");
   const { id } = await params;
   const supabase = await supabaseServer();
-  const { data: au } = await supabase.rpc("assignable_users", { p_business: ctx.businessId });
-  const assignees = (au ?? []) as AssigneeOption[];
+  const loadAssigneeOptions = async () => ((await supabase.rpc("assignable_users", { p_business: ctx.businessId })).data ?? []) as AssigneeOption[];
   if (id === "yeni") {
+    const assignees = await loadAssigneeOptions();
     return (
       <div className="space-y-4">
         <PageHeader title="Yeni müşteri" />
@@ -32,7 +32,8 @@ export default async function CustomerPage({ params, searchParams }: { params: P
       </div>
     );
   }
-  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }, { data: cprices }, products, { data: pev }] = await Promise.all([
+  // Tek dalga: tüm okumalar paralel (hız adımı 4)
+  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }, { data: cprices }, products, { data: pev }, assignees] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).maybeSingle(),
     supabase.rpc("customer_summary", { p_customer: id }),
     supabase.rpc("customer_statement", { p_customer: id }),
@@ -41,6 +42,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
     supabase.from("customer_prices").select("unit_id, price").eq("customer_id", id),
     loadOrderProducts(supabase, ctx.businessId),
     supabase.from("privacy_events").select("kind, channel, notice_version, created_at").eq("customer_id", id).order("created_at", { ascending: false }).limit(50),
+    loadAssigneeOptions(),
   ]);
   if (!c) notFound();
   // Bayiye ait kart / bayi kartı: bayinin listesi ve öneriler (G-13..G-15)

@@ -179,3 +179,11 @@
 |---|---|---|
 | D-077 | BETA#1 geri dönüş noktası: git etiketi `beta-1` + GitHub sürümü, Vercel yayın kimliği, veritabanında `snap_beta1` anlık görüntüsü ve test edilmiş geri yükleme betiği (docs/RELEASES.md). | ✅ |
 | D-078 | Gece yedeği (`backup.yml`) gizli anahtarlar tanımlı olmadığı için yedek üretmiyordu (her gece "atlandı"). Kurulum kullanıcıda: `SUPABASE_DB_URL` + `BACKUP_AGE_RECIPIENT` (docs/BACKUP_RESTORE.md). | ⏳ |
+
+## Hız adımları 3–5 (10.10.2026)
+
+| Kod | Karar | Durum |
+|---|---|---|
+| D-079 | Ölçüm (10.10): sunucu yanıtı tüm sayfalarda 0,18–0,41 sn. Asıl gecikme hissi: hiçbir sayfada `loading.tsx` yoktu → dokununca eski sayfa donuk kalıyor, dinamik sayfalar önceden yüklenemiyordu. 23 sayfaya iskelet yükleme ekranı eklendi (Next, menüdeki bağlantıların iskeletini önceden indirir; dokunma anında tepki). | ✅ |
+| D-080 | 23 eksik yabancı anahtar indeksi (kasa oturumu, iade, depozito, satış kalemi, ürün birimi vb.) — veri büyüdükçe yavaşlamayı önler (migration 0021). Müşteri kartı sorguları tek paralel dalgaya indirildi. | ✅ |
+| D-081 | Kod düzeni (adım 5) sürekli kural olarak uygulanıyor: ortak iş mantığı tek yerde (`lib/shop.ts`, `app.dealer_customer_write`, `components/ui/skeleton.tsx`); yeni sayfa eklerken `loading.tsx` zorunlu. | ✅ |
