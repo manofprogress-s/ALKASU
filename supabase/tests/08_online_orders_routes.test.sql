@@ -168,8 +168,8 @@ select test.login(test.u_bayi2());
 select public.save_order(test.biz(), jsonb_build_object('id', '88888888-0000-0000-0000-000000000009', 'items', jsonb_build_array(test.item('SU-005', 'Koli', 3))));
 select test.login(test.u_admin());
 select public.approve_order('88888888-0000-0000-0000-000000000009');
-select test.throws($$select public.assign_order_dealer('88888888-0000-0000-0000-000000000009', test.cust('B001'))$$, '%yalnızca ev müşterisi%',
-  'Bayinin kendi alım siparişi başka bayiye verilemez');
+select test.throws($$select public.assign_order_dealer('88888888-0000-0000-0000-000000000009', test.cust('B001'))$$, '%gerekçe%',
+  'Bayinin kendi alımını başka bayiye vermek özel yönlendirmedir: gerekçe zorunlu');
 select public.assign_order_dealer('88888888-0000-0000-0000-000000000002', test.cust('B002'));
 select test.throws($$select public.set_route(test.biz(), array['88888888-0000-0000-0000-000000000002']::uuid[])$$, '%size ait olmayan%',
   'Personel bayiye verilmiş siparişin sırasını değiştiremez');

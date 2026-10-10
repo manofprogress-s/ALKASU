@@ -247,3 +247,11 @@
 - **K-05** Cihaz konumu yalnızca müşteri "Konumumu kullan" düğmesine bastığında, açıklamasıyla birlikte, bir kez istenir. Konum zorunlu değildir; adres yazmak ve Google Maps bağlantısı yapıştırmak yeterlidir.
 - **K-06** KVKK kayıtları (aydınlatma, kampanya izni/ret) **değiştirilemez ve silinemez**. Görme: yönetici ve satış tümünü, bayi kendi müşterilerini, müşteri kendisini. Depo personeli görmez.
 - **K-07** Gürpınar ve Fuska bayileri **bağımsız işletmedir**: müşterinin teslimat için gereken verileri (ad, telefon, adres, konum, sipariş) bayiye aktarılır; bayi yalnızca kendisine verilen sipariş ve kendi müşterilerini görür (O-09, O-13).
+
+## 24. Bayi listesi gizliliği ve sevkiyat yönlendirme (10.10.2026)
+
+- **G-13** Bayiler merkezin müşteri listesini göremez. Bir bayi, bir müşteriyi yalnızca o müşterinin siparişi kendisine yönlendirildiğinde (sipariş üzerinden) görür.
+- **G-14** Merkez (yönetici dahil) bayinin müşteri listesini görür ama bayiye ait bir kartı **doğrudan değiştiremez**. Değişiklik "öneri" olarak bayiye gider; bayi onaylarsa uygulanır, reddederse uygulanmaz. Önerilmeyen alanlar olduğu gibi kalır. Bir müşteri için aynı anda tek bekleyen öneri olur.
+- **G-15** Merkez bayinin listesine müşteri ekleyebilir; yeni müşteri de bayinin onayına sunulur, bayi onaylamadan listeye girmez. Öneriyi gönderen (yönetici herhangi birini) bekleyen öneriyi geri çekebilir. Bayi bekleyen önerileri ana sayfasında ve Müşterilerim'de görür.
+- **G-16** **Özel yönlendirme** — bayinin kendi müşterisinin sevkiyatını depoya veya başka bayiye almak, kurumsal/bayi müşterisinin siparişini bir bayiye vermek — yalnızca **sevkiyat sorumlusu (Hüseyin)** ve yönetici tarafından yapılır; **gerekçe zorunludur**. Ev müşterisi siparişini bayiye vermek/geri almak normal yönlendirmedir (satış personeli de yapar).
+- **G-17** Her yönlendirme (normal ve özel) kaydedilir; kayıt değiştirilemez ve silinemez. Kayıtları ve gerekçeleri yalnızca yöneticiler (Ayhan, Enes) görür: Siparişler → Yönlendirmeler ve sipariş sayfasındaki "Yönlendirme geçmişi".

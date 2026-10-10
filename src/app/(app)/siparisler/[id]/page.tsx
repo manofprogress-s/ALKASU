@@ -31,7 +31,7 @@ interface OrderRow {
   source: string;
   cancelled_at: string | null;
   cancel_reason: string | null;
-  customers: { name: string; code: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; latitude: number | null; longitude: number | null; owner_dealer_id: string | null } | null;
+  customers: { name: string; code: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; latitude: number | null; longitude: number | null; owner_dealer_id: string | null; channel: string } | null;
   order_items: {
     id: string;
     line_no: number;
@@ -51,7 +51,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const { data } = await supabase
     .from("orders")
     .select(
-      "*, customers!orders_customer_id_fkey(name, code, phone, credit_limit, unlimited_credit, latitude, longitude, owner_dealer_id), order_items(id, line_no, product_id, unit_id, qty, unit_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
+      "*, customers!orders_customer_id_fkey(name, code, phone, credit_limit, unlimited_credit, latitude, longitude, owner_dealer_id, channel), order_items(id, line_no, product_id, unit_id, qty, unit_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -64,12 +64,17 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const isMine = o.customer_id === ctx.customerId || (isDealer && !!ctx.customerId && o.customers?.owner_dealer_id === ctx.customerId);
   const isMyDelivery = isDealer && !!ctx.customerId && o.dealer_customer_id === ctx.customerId;
   const open = o.status === "acik" || o.status === "onay_bekliyor";
-  const [assignees, dealers, bal, cont] = await Promise.all([
+  const [assignees, dealers, bal, cont, routing] = await Promise.all([
     isStaff ? loadAssignees(supabase, ctx.businessId) : Promise.resolve([] as Assignee[]),
     isStaff ? loadDealers(supabase, ctx.businessId) : Promise.resolve([] as Dealer[]),
     supabase.from("customer_balances").select("balance").eq("customer_id", o.customer_id).maybeSingle(),
     supabase.from("container_balances").select("product_id, qty, amount").eq("customer_id", o.customer_id),
+    // Yönlendirme geçmişi: yalnızca yönetici görür (RLS, G-17)
+    ctx.role === "yonetici"
+      ? supabase.from("order_routing_log").select("id, from_dealer, to_dealer, special, note, created_by, created_at").eq("order_id", o.id).order("created_at")
+      : Promise.resolve({ data: [] }),
   ]);
+  const routes = (routing.data ?? []) as { id: number; from_dealer: string | null; to_dealer: string | null; special: boolean; note: string | null; created_by: string | null; created_at: string }[];
   const names = new Map(assignees.map((a) => [a.user_id, a.display_name]));
   const items = [...o.order_items].sort((a, b) => a.line_no - b.line_no);
   const total = items.reduce((s, i) => s + Number(i.qty) * Number(i.unit_price), 0);
@@ -163,6 +168,20 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             ) : null}
             {o.cancelled_at ? <Alert tone="neutral">İptal: {formatDateTime(o.cancelled_at)} · {o.cancel_reason}</Alert> : null}
           </Card>
+          {routes.length ? (
+            <Card className="space-y-1 text-sm">
+              <h2 className="font-semibold">Yönlendirme geçmişi</h2>
+              {routes.map((r) => (
+                <div key={r.id} className="border-t border-border pt-1 first:border-0">
+                  <div className="flex flex-wrap items-center gap-1">
+                    {r.special ? <Badge tone="warn">Özel</Badge> : null}
+                    <span>{r.from_dealer ? dealers.find((d) => d.id === r.from_dealer)?.name ?? "Bayi" : "Depo"} → {r.to_dealer ? dealers.find((d) => d.id === r.to_dealer)?.name ?? "Bayi" : "Depo"}</span>
+                  </div>
+                  <div className="text-xs text-muted">{formatDateTime(r.created_at)} · {r.created_by ? names.get(r.created_by) ?? "" : ""}{r.note ? ` · ${r.note}` : ""}</div>
+                </div>
+              ))}
+            </Card>
+          ) : null}
           {o.status === "onay_bekliyor" && isStaff ? (
             <ApprovalActions
               orderId={o.id}
@@ -185,8 +204,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               canAssign={isStaff && can(ctx.role, "orderAssign")}
               canDeliver={canDeliver}
               canAssignDealer={isStaff && can(ctx.role, "orderAssign")}
+              canSpecial={ctx.role === "yonetici" || ctx.role === "sevkiyat"}
+              customerChannel={o.customers?.channel}
+              ownerDealerId={o.customers?.owner_dealer_id ?? null}
               canCancel={isStaff || notTakenByOther}
-              dealers={dealers}
+              dealers={dealers.filter((d) => d.id !== o.customer_id)}
               dealerId={o.dealer_customer_id}
               items={deliverItems}
               balance={Number(bal.data?.balance ?? 0)}

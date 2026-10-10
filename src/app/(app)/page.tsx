@@ -40,7 +40,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   if (ctx.role === "musteri") return <CustomerHome name={ctx.displayName} welcome={!!sp.hosgeldin} orderNo={sp.siparis} warning={sp.uyari} />;
   const supabase = await supabaseServer();
-  const { data, error } = await supabase.rpc("dashboard", { p_business: ctx.businessId });
+  const [{ data, error }, pendingReq] = await Promise.all([
+    supabase.rpc("dashboard", { p_business: ctx.businessId }),
+    ctx.role === "bayi" && ctx.customerId
+      ? supabase.from("customer_requests").select("id", { count: "exact", head: true }).eq("dealer_id", ctx.customerId).eq("status", "bekliyor")
+      : Promise.resolve({ count: 0 }),
+  ]);
   const d = (data ?? {}) as Dashboard;
 
   return (
@@ -56,6 +61,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       ) : null}
       {ctx.role === "bayi" ? (
         <>
+          {pendingReq.count ? (
+            <Link href="/musterilerim" className="block">
+              <Alert tone="warn">Merkezden onayınızı bekleyen {pendingReq.count} müşteri önerisi var. İncelemek için dokunun →</Alert>
+            </Link>
+          ) : null}
           <Link href="/siparisler/yeni" className="flex items-center justify-center gap-3 rounded-2xl bg-brand p-5 text-lg font-semibold text-white shadow-sm active:scale-[0.99]">
             <ClipboardList className="h-6 w-6" /> Yeni sipariş
           </Link>

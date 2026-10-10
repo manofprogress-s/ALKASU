@@ -162,3 +162,12 @@
 | D-069 | Kullanıcının çizdiği görsele göre mağaza düzeni: marka bölümleri, yatay kaydırmalı kartlar, "+", alt sabit sepet çubuğu, üstte sepet sayacı. Hızlı sipariş ve kayıtlı müşteri aynı bileşeni kullanır. Veri kaynağı `public_catalog()` (marka, kategori, fotoğraf, 60 günlük satış adedi eklendi). | ✅ |
 | D-070 | Ürün fotoğrafları Supabase Storage'da herkese açık `urun` kovasında (1 MB, webp/jpeg/png); yükleme/silme yalnızca yönetici (RLS). Marka logoları uygulamada çizilmez; gerçek ürün fotoğrafı işletme tarafından yüklenir. | ✅ |
 | D-071 | Giriş ekranında hızlı sipariş öne çıkarıldı; çalışan girişi küçük bağlantı olarak en alta alındı (kullanıcı isteği). | ✅ |
+
+## Bayi gizliliği ve yönlendirme (10.10.2026)
+
+| Kod | Karar | Durum |
+|---|---|---|
+| D-072 | Bayiye ait kart veritabanı tetikleyicisiyle korunur: bayi dışındaki her rolün ad/telefon/adres/not/konum/aktiflik değişikliği reddedilir (kullanıcı isteği: "bayilerden izinsiz düzeltme yapamayız"). | ✅ |
+| D-073 | Öneriler `customer_requests` tablosunda; bayi onayıyla `app.dealer_customer_write` çekirdeği uygular (bayinin kendi düzenlemesiyle aynı kod). | ✅ |
+| D-074 | Özel yönlendirme yetkisi sevkiyat + yönetici (varsayım: yöneticiler de yapabilir); gerekçe zorunlu (varsayım). Kullanıcı farklı isterse yalnızca sevkiyat'a daraltılabilir. | 🔁 |
+| D-075 | Yönlendirme kaydı `order_routing_log` — yalnızca yönetici okur, kimse değiştiremez. Önceki "bayinin kendi alımı başka bayiye verilemez" kuralı kaldırıldı; artık özel yönlendirme olarak yapılabilir. | ✅ |

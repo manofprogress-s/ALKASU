@@ -98,6 +98,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         actions={
           <>
             {can(ctx.role, "routes") ? <Link href="/rota" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Rota</Link> : null}
+            {ctx.role === "yonetici" ? <Link href="/siparisler/yonlendirmeler" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Yönlendirmeler</Link> : null}
             <Link href="/siparisler/yeni" className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Yeni sipariş</Link>
           </>
         }

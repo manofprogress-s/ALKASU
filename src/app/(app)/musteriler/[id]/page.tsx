@@ -16,6 +16,7 @@ import { LocationView } from "@/components/geo/location-view";
 import { toLatLng } from "@/lib/geo";
 import { ExportButton } from "@/components/reports/export-button";
 import { PrivacyCard, type PrivacyEvent } from "@/components/customers/privacy";
+import { ProposeCustomer, RequestList, type CardValues, type CustomerRequest } from "@/components/customers/dealer-requests";
 
 export default async function CustomerPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ kanal?: string }> }) {
   const ctx = await requirePermission("customers");
@@ -42,6 +43,24 @@ export default async function CustomerPage({ params, searchParams }: { params: P
     supabase.from("privacy_events").select("kind, channel, notice_version, created_at").eq("customer_id", id).order("created_at", { ascending: false }).limit(50),
   ]);
   if (!c) notFound();
+  // Bayiye ait kart / bayi kartı: bayinin listesi ve öneriler (G-13..G-15)
+  const dealerId: string | null = c.owner_dealer_id ?? (c.channel === "bayi" ? c.id : null);
+  const [ownerDealer, dealerCustomers, reqs] = dealerId
+    ? await Promise.all([
+        c.owner_dealer_id ? supabase.from("customers").select("id, name").eq("id", c.owner_dealer_id).maybeSingle() : Promise.resolve({ data: { id: c.id, name: c.name } }),
+        c.channel === "bayi"
+          ? supabase.from("customers").select("id, code, name, phone, address, note, latitude, longitude, active").eq("owner_dealer_id", c.id).order("name")
+          : Promise.resolve({ data: [] }),
+        (c.owner_dealer_id
+          ? supabase.from("customer_requests").select("id, customer_id, data, status, requested_at, decided_at, decision_note").eq("customer_id", c.id)
+          : supabase.from("customer_requests").select("id, customer_id, data, status, requested_at, decided_at, decision_note").eq("dealer_id", c.id)
+        ).order("requested_at", { ascending: false }).limit(20),
+      ])
+    : [null, null, null];
+  const dealerName = (ownerDealer?.data as { name: string } | null)?.name ?? "";
+  const ownList = ((dealerCustomers?.data ?? []) as (CardValues & { id: string; code: string; active: boolean })[]);
+  const requests = (reqs?.data ?? []) as CustomerRequest[];
+  const cardOf = (x: CardValues) => ({ name: x.name, phone: x.phone, address: x.address, note: x.note, latitude: x.latitude, longitude: x.longitude });
   const summary = sum as { balance: number; containers: { product_id: string; product_name: string; qty: number; amount: number }[] };
   const statement = ((st ?? []) as { at: string; description: string; debit: number | null; credit: number | null; balance: number }[]).reverse();
 
@@ -114,6 +133,36 @@ export default async function CustomerPage({ params, searchParams }: { params: P
             { key: "s", label: "Bakiye", align: "right", render: (r) => formatTRY(r.balance) },
           ]} empty="Hareket yok" />
       </Card>
+      {c.channel === "bayi" ? (
+        <Card className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold">Bayinin müşterileri ({ownList.length})</h2>
+            <ProposeCustomer dealerId={c.id} dealerName={c.name} />
+          </div>
+          <p className="text-sm text-muted">Bu liste bayiye aittir. Merkez görebilir; ekleme ve değişiklikler bayinin onayına gider.</p>
+          {ownList.length ? (
+            <ul className="divide-y divide-border">
+              {ownList.map((m) => (
+                <li key={m.id} className="flex items-center justify-between gap-2 py-2">
+                  <Link href={`/musteriler/${m.id}`} className="min-w-0">
+                    <span className="block font-medium">{m.name} {!m.active ? <Badge>Pasif</Badge> : null}</span>
+                    <span className="block truncate text-xs text-muted">{m.phone ?? ""} {m.address ?? ""}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </Card>
+      ) : null}
+      {dealerId ? (
+        <RequestList rows={requests} mode="staff" currentById={c.owner_dealer_id ? { [c.id]: cardOf(c) } : Object.fromEntries(ownList.map((m) => [m.id, cardOf(m)]))} />
+      ) : null}
+      {c.owner_dealer_id ? (
+        <Card className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm"><Badge tone="brand">Bayi müşterisi: {dealerName}</Badge> Kart bilgilerini yalnızca bayi değiştirir; siz öneri gönderebilirsiniz.</span>
+          <ProposeCustomer dealerId={c.owner_dealer_id} dealerName={dealerName} customerId={c.id} current={cardOf(c)} />
+        </Card>
+      ) : (
       <details className="rounded-2xl border border-border bg-surface p-4">
         <summary className="cursor-pointer font-semibold">Müşteri bilgilerini düzenle</summary>
         <div className="mt-3">
@@ -125,6 +174,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
           }} />
         </div>
       </details>
+      )}
     </div>
   );
 }

@@ -49,8 +49,12 @@ export function OrderActions(props: {
   containers: { productId: string; qty: number; amount: number }[];
   dealers?: Dealer[];
   dealerId?: string | null;
-  /** Ev müşterisi siparişi: bayiye verilebilir */
+  /** Sipariş bayiye verilebilir / bayiden alınabilir */
   canAssignDealer?: boolean;
+  /** Özel yönlendirme yetkisi: sevkiyat sorumlusu ve yönetici (G-16) */
+  canSpecial?: boolean;
+  customerChannel?: string;
+  ownerDealerId?: string | null;
   canCancel?: boolean;
 }) {
   const ctx = useAppContext();
@@ -60,6 +64,22 @@ export function OrderActions(props: {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [deliverOpen, setDeliverOpen] = useState(false);
+  const [route, setRoute] = useState<{ target: string | null } | null>(null);
+  const [routeNote, setRouteNote] = useState("");
+  const dealerName = (id: string | null) => (id ? props.dealers?.find((d) => d.id === id)?.name ?? "bayi" : "Merkez (depo)");
+  // Veritabanıyla aynı kural (assign_order_dealer): kurumsal/bayi siparişi bayiye, bayinin kendi sevkiyatı başkasına
+  const isSpecial = (target: string | null) =>
+    (!!target && props.customerChannel !== "perakende") || (!!props.ownerDealerId && props.dealerId === props.ownerDealerId);
+  // Bu siparişte her yönlendirme özel mi? (kurumsal/bayi müşterisi ya da bayinin kendi sevkiyatı)
+  const specialOrder = props.customerChannel !== "perakende" || (!!props.ownerDealerId && props.dealerId === props.ownerDealerId);
+  function routeTo(target: string | null) {
+    if (isSpecial(target)) {
+      setRouteNote("");
+      setRoute({ target });
+      return;
+    }
+    void call("assign_order_dealer", { p_order: props.orderId, p_dealer: target }, { success: target ? "Sipariş bayiye verildi" : "Bayi ataması kaldırıldı" });
+  }
 
   return (
     <Card className="space-y-3">
@@ -68,14 +88,13 @@ export function OrderActions(props: {
           <CheckCircle2 className="h-5 w-5" /> Teslim edildi
         </Button>
       ) : null}
-      {props.canAssignDealer && props.dealers?.length ? (
-        <Field label="Bayiye ver" hint="Bayi kendi stoğundan teslim eder; bizim stok ve kasa etkilenmez">
-          <Select
-            value={props.dealerId ?? ""}
-            disabled={busy}
-            onChange={(e) => void call("assign_order_dealer", { p_order: props.orderId, p_dealer: e.target.value || null }, { success: e.target.value ? "Sipariş bayiye verildi" : "Bayi ataması kaldırıldı" })}
-          >
-            <option value="">— Biz teslim ederiz</option>
+      {props.canAssignDealer && props.dealers?.length && (props.canSpecial || !specialOrder) ? (
+        <Field
+          label={props.canSpecial ? "Sevkiyatı yönlendir" : "Bayiye ver"}
+          hint={specialOrder ? "Özel yönlendirme: gerekçe istenir, yöneticiye bildirilir" : "Bayi kendi stoğundan teslim eder; bizim stok ve kasa etkilenmez"}
+        >
+          <Select value={props.dealerId ?? ""} disabled={busy} onChange={(e) => routeTo(e.target.value || null)}>
+            <option value="">— Biz teslim ederiz (depo)</option>
             {props.dealers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </Select>
         </Field>
@@ -97,6 +116,27 @@ export function OrderActions(props: {
           <XCircle className="h-4 w-4" /> Siparişi iptal et
         </Button>
       ) : null}
+
+      <Dialog
+        open={!!route}
+        onClose={() => setRoute(null)}
+        title="Özel yönlendirme"
+        footer={
+          <Button className="w-full" loading={busy} disabled={routeNote.trim().length < 3} onClick={async () => {
+            if (!route) return;
+            const ok = await call("assign_order_dealer", { p_order: props.orderId, p_dealer: route.target, p_note: routeNote }, { success: "Sevkiyat yönlendirildi" });
+            if (ok) setRoute(null);
+          }}>Yönlendir</Button>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm">
+            Sipariş #{props.orderNo}: <b>{dealerName(props.dealerId ?? null)}</b> → <b>{dealerName(route?.target ?? null)}</b>
+          </p>
+          <Alert tone="neutral">Bu yönlendirme sizin inisiyatifinizdedir; gerekçesiyle birlikte kaydedilir ve yöneticiler görür.</Alert>
+          <Field label="Gerekçe"><Input value={routeNote} maxLength={500} autoFocus onChange={(e) => setRouteNote(e.target.value)} placeholder="Örn. bayinin aracı arızalı, depodan gidecek" /></Field>
+        </div>
+      </Dialog>
 
       <Dialog
         open={cancelOpen}
