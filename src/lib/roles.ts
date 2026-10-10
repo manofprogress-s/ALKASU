@@ -31,7 +31,7 @@ export const PERMISSIONS = {
   count: ["yonetici", "depo", "sevkiyat"],
   approveCount: ["yonetici"],
   cash: ["yonetici"],
-  reports: ["yonetici", "izleyici"],
+  reports: ["yonetici"], // G-18: kâr ve dönemsel raporlar yalnızca yönetici
   users: ["yonetici"],
   audit: ["yonetici"],
   orders: ["yonetici", "satis", "sevkiyat", "bayi", "musteri"],

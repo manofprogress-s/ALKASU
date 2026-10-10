@@ -88,13 +88,25 @@ select test.eq((select count(*) from public.customer_statement(test.cust('C-10')
 select test.ok((public.dashboard(test.biz())->>'critical_count') is not null, 'Ana sayfa özeti');
 
 select test.login(test.u_izleyici());
-select test.ok((select gross_profit from public.report_product_sales(test.biz(), app.local_date(now()), app.local_date(now())) where key_name = 'Kola 1 L') is null,
-               'İzleyici satış raporunu görür ama kârı göremez (Y-02)');
+select test.throws($$select * from public.report_product_sales(test.biz(), current_date, current_date)$$, '%yetkiniz yok%',
+               'İzleyici ürün satış/kâr raporunu göremez (G-18)');
+select test.throws($$select * from public.report_daily_sales(test.biz(), current_date, current_date)$$, '%yetkiniz yok%',
+               'İzleyici dönemsel satış raporunu göremez (G-18)');
+select test.eq((public.dashboard(test.biz())->>'net_revenue')::numeric, 480.00::numeric, 'İzleyici bugünkü satışı ana sayfada görür (G-18)');
+select test.ok((public.dashboard(test.biz())->>'gross_profit') is null, 'İzleyici kârı görmez (G-18)');
 select test.ok((select stock_value from public.report_stock(test.biz()) where code = 'KL-1') is null, 'İzleyici stok değerini göremez');
 select test.throws($$select * from public.report_receivables(test.biz())$$, '%yetkiniz yok%', 'İzleyici veresiye raporunu göremez');
 select test.login(test.u_satis());
 select test.throws($$select * from public.report_daily_sales(test.biz(), current_date, current_date)$$, '%yetkiniz yok%', 'Satış personeli genel satış raporunu göremez');
 select test.ok((public.dashboard(test.biz())->>'my_sales_count') is not null, 'Satış personeli kendi günlük özetini görür');
 select test.ok((public.dashboard(test.biz())->>'gross_profit') is null, 'Satış personelinin özetinde kâr yok');
+select test.eq((public.dashboard(test.biz())->>'net_revenue')::numeric, 480.00::numeric, 'Satış personeli bugünkü toplam satışı görür (G-18)');
+select test.ok((public.dashboard(test.biz())->>'credit') is not null, 'Satış personeli bugünkü veresiye satışını görür (G-18)');
+select test.ok((public.dashboard(test.biz())->>'receivables_total') is null, 'Satış personeli toplam veresiye alacağını görmez (G-18)');
+select test.login(test.u_depo());
+select test.eq((public.dashboard(test.biz())->>'net_revenue')::numeric, 480.00::numeric, 'Depo personeli bugünkü satışı görür (G-18)');
+select test.ok((public.dashboard(test.biz())->>'gross_profit') is null, 'Depo personeli kârı görmez (G-18)');
+select test.login(test.u_admin());
+select test.ok((public.dashboard(test.biz())->>'gross_profit') is not null, 'Yönetici brüt kârı görür');
 
 rollback;

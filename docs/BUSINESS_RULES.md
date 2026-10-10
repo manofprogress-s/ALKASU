@@ -259,3 +259,8 @@
 - **G-15** Merkez bayinin listesine müşteri ekleyebilir; yeni müşteri de bayinin onayına sunulur, bayi onaylamadan listeye girmez. Öneriyi gönderen (yönetici herhangi birini) bekleyen öneriyi geri çekebilir. Bayi bekleyen önerileri ana sayfasında ve Müşterilerim'de görür.
 - **G-16** **Özel yönlendirme** — bayinin kendi müşterisinin sevkiyatını depoya veya başka bayiye almak, kurumsal/bayi müşterisinin siparişini bir bayiye vermek — yalnızca **sevkiyat sorumlusu (Hüseyin)** ve yönetici tarafından yapılır; **gerekçe zorunludur**. Ev müşterisi siparişini bayiye vermek/geri almak normal yönlendirmedir (satış personeli de yapar).
 - **G-17** Her yönlendirme (normal ve özel) kaydedilir; kayıt değiştirilemez ve silinemez. Kayıtları ve gerekçeleri yalnızca yöneticiler (Ayhan, Enes) görür: Siparişler → Yönlendirmeler ve sipariş sayfasındaki "Yönlendirme geçmişi".
+
+## 25. Rapor gizliliği (10.10.2026)
+
+- **G-18** **Bugünkü** satış tutarı, fiş sayısı, nakit/POS ve **bugünkü veresiye satışı** tüm personelin ana sayfasında görünür. **Brüt kâr**, **günlük/haftalık/aylık satış raporları**, ürün kârlılığı, toplam veresiye alacağı ve veresiye (alacak yaşlandırma) raporu **yalnızca yöneticiye** (Ayhan, Enes) açıktır. İzleyici rolü artık Raporlar'ı görmez. Satış personeli, satış anında limit kontrolü için müşterinin kendi bakiyesini görmeye devam eder.
+- **G-19** Bayi yalnızca kendi bilgisini görür: kendi bayi kartı, cari bakiyesi, kendi müşterileri ve kendisine yönlendirilen siparişler. Merkezin satışları, raporları, diğer bayi ve kullanıcılar kapalıdır (İbrahim → Sağlam Ticaret, Hüseyin Yıldız → Yıldız Ticaret).
