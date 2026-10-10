@@ -1,0 +1,81 @@
+
+> alkasu@0.1.0 build
+> next build
+
+▲ Next.js 16.3.7 (Turbopack)
+✓ Running next.config.ts took 25ms
+⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.0s
+  Running TypeScript ...
+
+  We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+  The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+  	- include was updated to add '.next/dev/types/**/*.ts'
+
+  The following mandatory changes were made to your tsconfig.json:
+
+  	- jsx was set to react-jsx (next.js uses the React automatic runtime)
+
+  Finished TypeScript in 7.6s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/7) ...
+  Generating static pages using 3 workers (1/7) 
+  Generating static pages using 3 workers (3/7) 
+  Generating static pages using 3 workers (5/7) 
+✓ Generating static pages using 3 workers (7/7) in 238ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /auth/callback
+├ ƒ /ayarlar
+├ ƒ /ayarlar/islem-gecmisi
+├ ○ /giris
+├ ƒ /hesabim
+├ ƒ /kasa
+├ ƒ /kasa/[id]
+├ ○ /kvkk
+├ ƒ /mal-kabul
+├ ƒ /mal-kabul/[id]
+├ ƒ /mal-kabul/yeni
+├ ƒ /musteriler
+├ ƒ /musteriler/[id]
+├ ƒ /musterilerim
+├ ƒ /raporlar
+├ ƒ /raporlar/veresiye
+├ ƒ /rota
+├ ƒ /satis
+├ ƒ /satislar
+├ ƒ /satislar/[id]
+├ ƒ /satislar/bekleyen
+├ ○ /sifre
+├ ƒ /siparis-ver
+├ ƒ /siparisler
+├ ƒ /siparisler/[id]
+├ ƒ /siparisler/[id]/duzenle
+├ ƒ /siparisler/yeni
+├ ƒ /siparisler/yonlendirmeler
+├ ƒ /stok
+├ ƒ /stok/[id]
+├ ƒ /stok/fire
+├ ƒ /stok/sayim
+├ ƒ /stok/sayim/[id]
+├ ƒ /tedarikciler
+├ ƒ /tedarikciler/[id]
+├ ƒ /urunler
+├ ƒ /urunler/[id]
+├ ƒ /urunler/fiyatlar
+├ ƒ /urunler/ice-aktar
+├ ƒ /urunler/magaza
+└ ○ /uyelik-yok
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
