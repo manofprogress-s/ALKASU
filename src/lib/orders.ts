@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CatalogUnit } from "@/lib/catalog";
 import type { PriceList } from "@/lib/roles";
+import { loadUnitLayout, shopInfo, type ProductShopInfo } from "@/lib/staff-catalog";
 
 export type OrderStatus = "onay_bekliyor" | "acik" | "teslim_edildi" | "iptal";
 export const ORDER_STATUS: Record<OrderStatus, string> = { onay_bekliyor: "Onay bekliyor", acik: "Açık", teslim_edildi: "Teslim edildi", iptal: "İptal" };
 
-export interface OrderProduct {
+export interface OrderProduct extends ProductShopInfo {
   id: string;
   code: string;
   name: string;
@@ -36,20 +37,24 @@ interface ProductRow {
   code: string;
   name: string;
   deposit_amount: string | number | null;
+  image_path: string | null;
+  brands: { name: string; show_in_shop: boolean | null } | null;
+  categories: { name: string } | null;
   product_units: { id: string; name: string; factor: number; price: string | number | null; is_base: boolean; active: boolean; sort: number }[];
 }
 
 /** Sipariş formu için ürünler (fiyat listeleriyle). Satış ekranından hafiftir; stok raporu gerektirmez (bayi de kullanır). */
 export async function loadOrderProducts(supabase: SupabaseClient, businessId: string): Promise<OrderProduct[]> {
-  const [prod, lp] = await Promise.all([
+  const [prod, lp, layout] = await Promise.all([
     supabase
       .from("products")
-      .select("id, code, name, deposit_amount, product_units(id, name, factor, price, is_base, active, sort)")
+      .select("id, code, name, deposit_amount, image_path, brands(name, show_in_shop), categories(name), product_units(id, name, factor, price, is_base, active, sort)")
       .eq("business_id", businessId)
       .eq("active", true)
       .eq("is_container", false)
       .order("name"),
     supabase.from("product_list_prices").select("unit_id, price_list, price").eq("business_id", businessId),
+    loadUnitLayout(supabase, businessId),
   ]);
   if (prod.error) throw prod.error;
   const lists = new Map<string, CatalogUnit["listPrices"]>();
@@ -62,6 +67,7 @@ export async function loadOrderProducts(supabase: SupabaseClient, businessId: st
       code: p.code,
       name: p.name,
       deposit: p.deposit_amount === null ? null : Number(p.deposit_amount),
+      ...shopInfo(p),
       units: p.product_units
         .filter((u) => u.active)
         .sort((a, b) => b.factor - a.factor || a.sort - b.sort)
@@ -72,6 +78,7 @@ export async function loadOrderProducts(supabase: SupabaseClient, businessId: st
           price: u.price === null ? null : Number(u.price),
           listPrices: lists.get(u.id) ?? {},
           isBase: u.is_base,
+          layout: layout[u.id],
         })),
     }))
     .filter((p) => p.units.some((u) => u.price !== null || Object.keys(u.listPrices).length > 0));

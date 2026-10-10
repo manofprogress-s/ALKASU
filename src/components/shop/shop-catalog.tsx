@@ -87,7 +87,7 @@ function useLongPress(onLong: () => void) {
   };
 }
 
-function ItemCard({ item, n, onStep, edit, plain }: { item: ShopItem; n: number; onStep: (d: number) => void; edit?: ShopEdit; plain?: boolean }) {
+function ItemCard({ item, n, onStep, edit, plain, compact }: { item: ShopItem; n: number; onStep: (d: number) => void; edit?: ShopEdit; plain?: boolean; compact?: boolean }) {
   const name = shortName(item);
   const lp = useLongPress(() => edit?.onPress(item, "long"));
   const selected = edit?.selectedId === item.unitId;
@@ -98,10 +98,11 @@ function ItemCard({ item, n, onStep, edit, plain }: { item: ShopItem; n: number;
       className={`flex h-full select-none flex-col items-center rounded-2xl border bg-surface p-2.5 pb-3 text-center shadow-sm transition [-webkit-touch-callout:none] ${
         selected ? "border-warn ring-4 ring-warn/40" : n ? "border-brand ring-2 ring-brand/25" : "border-border"} ${edit ? "cursor-pointer active:scale-[0.98]" : ""}`}
     >
-      <ItemImage item={item} className="pointer-events-none h-28 w-full" />
+      <ItemImage item={item} className={`pointer-events-none w-full ${compact ? "h-20" : "h-28"}`} />
       <div className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-[15px] font-semibold leading-tight">{name}</div>
       <div className="mt-0.5 text-xs text-muted">{unitLabel(item)}</div>
-      <div className="num mb-2 mt-0.5 font-semibold text-brand">{formatTRY(item.price)}</div>
+      <div className={`num mt-0.5 font-semibold text-brand ${item.note ? "" : "mb-2"}`}>{formatTRY(item.price)}</div>
+      {item.note ? <div className={`num mb-2 text-[11px] ${item.noteDanger ? "font-medium text-danger" : "text-muted"}`}>{item.note}</div> : null}
       <div className="mt-auto">
         {plain ? null : edit ? (
           <span className="inline-flex h-10 items-center gap-1 rounded-full bg-surface-2 px-3 text-sm text-muted">
@@ -114,25 +115,29 @@ function ItemCard({ item, n, onStep, edit, plain }: { item: ShopItem; n: number;
 }
 
 /** Marka bölümleri + yatay kaydırmalı kartlar (W-08). "›" ile bölüm ızgara olarak açılır. */
-export function ShopCatalog({ items, qty, onStep, edit }: {
+export function ShopCatalog({ items, qty, onStep, edit, staff }: {
   items: ShopItem[]; qty: Qty; onStep: (unitId: string, d: number) => void;
   /** Yönetici düzenleme modu: bölüm başlığında ↑ ↓; çok satanların ürünleri otomatiktir (yalnızca bölüm taşınır) */
   edit?: ShopEdit;
+  /** Satış / sipariş ekranı (W-13): karşılama yok, kartlar daha sıkı */
+  staff?: boolean;
 }) {
   const sections = useMemo(() => buildSections(items), [items]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 rounded-3xl bg-gradient-to-r from-brand-soft to-surface p-4 shadow-sm">
-        <Droplet className="h-8 w-8 shrink-0 fill-brand/20 text-brand" />
-        <p className="text-lg font-bold leading-snug">İhtiyacın olan suyu <span className="text-brand">kolayca seç</span></p>
-      </div>
+    <div className={staff ? "space-y-3" : "space-y-4"}>
+      {staff ? null : (
+        <div className="flex items-center gap-3 rounded-3xl bg-gradient-to-r from-brand-soft to-surface p-4 shadow-sm">
+          <Droplet className="h-8 w-8 shrink-0 fill-brand/20 text-brand" />
+          <p className="text-lg font-bold leading-snug">İhtiyacın olan suyu <span className="text-brand">kolayca seç</span></p>
+        </div>
+      )}
       {sections.map((s, si) => {
         const expanded = open[s.key] ?? false;
         return (
           <section key={s.key} className="rounded-3xl bg-brand-soft/60 p-3" aria-labelledby={`h-${s.key}`}>
             <div className="mb-2 flex items-center justify-between px-1">
-              <h2 id={`h-${s.key}`} className="text-xl font-bold tracking-tight">{s.title}</h2>
+              <h2 id={`h-${s.key}`} className={`${staff ? "text-lg" : "text-xl"} font-bold tracking-tight`}>{s.title}</h2>
               {edit?.onMoveSection ? (
                 <span className="flex gap-1.5">
                   <button type="button" aria-label={`${s.title} bölümünü yukarı taşı`} disabled={si === 0} onClick={() => edit.onMoveSection!(s.key, -1)}
@@ -158,7 +163,7 @@ export function ShopCatalog({ items, qty, onStep, edit }: {
               {s.items.map((i) => (
                 <li key={i.unitId} className={expanded ? "" : "w-[42%] shrink-0 snap-start sm:w-44"}>
                   <ItemCard item={i} n={qty[i.unitId] ?? 0} onStep={(d) => onStep(i.unitId, d)}
-                    edit={edit && s.key !== "top" ? edit : undefined} plain={!!edit && s.key === "top"} />
+                    edit={edit && s.key !== "top" ? edit : undefined} plain={!!edit && s.key === "top"} compact={staff} />
                 </li>
               ))}
             </ul>
@@ -166,6 +171,20 @@ export function ShopCatalog({ items, qty, onStep, edit }: {
         );
       })}
     </div>
+  );
+}
+
+/** Arama sonucu: bölümsüz ızgara (W-13) */
+export function ShopGrid({ items, qty, onStep, empty = "Ürün bulunamadı" }: { items: ShopItem[]; qty: Qty; onStep: (unitId: string, d: number) => void; empty?: string }) {
+  if (!items.length) return <p className="py-10 text-center text-muted">{empty}</p>;
+  return (
+    <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+      {items.map((i) => (
+        <li key={i.unitId}>
+          <ItemCard item={i} n={qty[i.unitId] ?? 0} onStep={(d) => onStep(i.unitId, d)} compact />
+        </li>
+      ))}
+    </ul>
   );
 }
 

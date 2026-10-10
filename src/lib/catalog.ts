@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PriceList } from "@/lib/roles";
+import { loadUnitLayout, shopInfo, type ProductShopInfo, type UnitLayout } from "@/lib/staff-catalog";
 
 export interface CatalogUnit {
   id: string;
@@ -9,6 +10,8 @@ export interface CatalogUnit {
   /** Bayi / palet liste fiyatları (F-10). Yoksa perakende fiyat geçerlidir. */
   listPrices: Partial<Record<Exclude<PriceList, "perakende">, number>>;
   isBase: boolean;
+  /** Mağaza düzenindeki yeri (W-13); yoksa otomatik */
+  layout?: UnitLayout;
 }
 
 /** Fiyat önceliği (F-13, app.customer_unit_price ile aynı kural): firmaya özel fiyat > fiyat listesi > perakende. */
@@ -21,7 +24,7 @@ export function unitPrice(u: CatalogUnit, list: PriceList | null | undefined): n
   if (!list || list === "perakende") return u.price;
   return u.listPrices?.[list] ?? u.price;
 }
-export interface CatalogProduct {
+export interface CatalogProduct extends ProductShopInfo {
   id: string;
   code: string;
   name: string;
@@ -60,18 +63,20 @@ interface ProductRow {
   base_unit_name: string;
   deposit_amount: string | number | null;
   empty_product_id: string | null;
-  brands: { name: string } | null;
+  image_path: string | null;
+  brands: { name: string; show_in_shop: boolean | null } | null;
+  categories: { name: string } | null;
   product_units: { id: string; name: string; factor: number; price: string | number | null; is_base: boolean; active: boolean; sort: number }[];
   product_barcodes: { barcode: string; unit_id: string | null }[];
 }
 
 /** Satış ekranı verisi. Hem sunucuda hem istemcide (yenileme) kullanılır. */
 export async function loadPosData(supabase: SupabaseClient, businessId: string): Promise<PosData> {
-  const [prod, stock, cust, bal, cont, lp, cp] = await Promise.all([
+  const [prod, stock, cust, bal, cont, lp, cp, layout] = await Promise.all([
     supabase
       .from("products")
       .select(
-        "id, code, name, base_unit_name, deposit_amount, empty_product_id, brands(name), product_units(id, name, factor, price, is_base, active, sort), product_barcodes(barcode, unit_id)",
+        "id, code, name, base_unit_name, deposit_amount, empty_product_id, image_path, brands(name, show_in_shop), categories(name), product_units(id, name, factor, price, is_base, active, sort), product_barcodes(barcode, unit_id)",
       )
       .eq("business_id", businessId)
       .eq("active", true)
@@ -83,6 +88,7 @@ export async function loadPosData(supabase: SupabaseClient, businessId: string):
     supabase.from("container_balances").select("customer_id, product_id, qty, amount").eq("business_id", businessId),
     supabase.from("product_list_prices").select("unit_id, price_list, price").eq("business_id", businessId),
     supabase.from("customer_prices").select("customer_id, unit_id, price").eq("business_id", businessId),
+    loadUnitLayout(supabase, businessId),
   ]);
   if (prod.error) throw prod.error;
   const stockMap = new Map<string, { qty: number; sold: number }>();
@@ -105,12 +111,13 @@ export async function loadPosData(supabase: SupabaseClient, businessId: string):
       const units = p.product_units
         .filter((u) => u.active)
         .sort((a, b) => Number(b.is_base) - Number(a.is_base) || a.sort - b.sort)
-        .map((u) => ({ id: u.id, name: u.name, factor: u.factor, price: u.price === null ? null : Number(u.price), listPrices: listMap.get(u.id) ?? {}, isBase: u.is_base }));
+        .map((u) => ({ id: u.id, name: u.name, factor: u.factor, price: u.price === null ? null : Number(u.price), listPrices: listMap.get(u.id) ?? {}, isBase: u.is_base, layout: layout[u.id] }));
       return {
         id: p.id,
         code: p.code,
         name: p.name,
         brand: p.brands?.name ?? null,
+        ...shopInfo(p),
         baseUnit: p.base_unit_name,
         deposit: p.deposit_amount === null ? null : Number(p.deposit_amount),
         emptyProductId: p.empty_product_id,

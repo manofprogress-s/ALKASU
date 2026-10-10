@@ -22,6 +22,9 @@ export interface ShopItem {
   sectionRank: number | null;
   /** "Çok satanlar" bölümünün sırası (W-12) */
   topRank: number | null;
+  /** Personel ekranında kartın altındaki küçük bilgi (ör. stok) (W-13) */
+  note?: string;
+  noteDanger?: boolean;
 }
 
 export interface CatalogRow {

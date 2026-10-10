@@ -14,6 +14,9 @@ import { priceFor, searchKey } from "@/lib/catalog";
 import { PRICE_LISTS, type PriceList } from "@/lib/roles";
 import type { Assignee, Dealer, OrderCustomer, OrderProduct } from "@/lib/orders";
 import Link from "next/link";
+import { Search, X } from "lucide-react";
+import { CartBar, ShopCatalog, ShopGrid, type Qty } from "@/components/shop/shop-catalog";
+import { staffItems } from "@/lib/staff-catalog";
 
 export interface OrderFormValue {
   id: string;
@@ -97,10 +100,17 @@ export function OrderForm({
   }, [customers, custQuery, dealerMode]);
   const ownPurchase = !!dealerMode && customerId === dealerMode.me.id;
   const needsApproval = !!dealerMode && isNew && (ownPurchase || deliverBy !== "self");
-  const prodMatches = useMemo(() => {
+  /** Mağaza görünümü (W-13): her fiyatlı birim bir kart, fiyat seçili müşteriye göre */
+  const items = useMemo(() => staffItems(products, (u) => priceFor(u, list, special)), [products, list, special]);
+  const foundItems = useMemo(() => {
     const k = searchKey(prodQuery.trim());
-    return (k ? products.filter((p) => searchKey(`${p.name} ${p.code}`).includes(k)) : products).slice(0, 40);
-  }, [products, prodQuery]);
+    return k ? items.filter((i) => searchKey(`${i.productName} ${i.productCode} ${i.brand ?? ""}`).includes(k)).slice(0, 60) : [];
+  }, [items, prodQuery]);
+  const qty: Qty = useMemo(() => {
+    const m: Qty = {};
+    for (const l of lines) m[l.unitId] = (m[l.unitId] ?? 0) + l.qty;
+    return m;
+  }, [lines]);
 
   function pickCustomer(c: OrderCustomer) {
     setCustomerId(c.id);
@@ -109,15 +119,16 @@ export function OrderForm({
     if (!assigneeTouched) setAssignee(c.defaultAssignee);
   }
 
-  function addProduct(p: OrderProduct) {
-    const u = p.units.find((x) => priceFor(x, list, special) !== null) ?? p.units[0];
-    if (!u) return;
+  /** Karttaki + / − (W-13) */
+  function onStep(unitId: string, d: number) {
+    const item = items.find((i) => i.unitId === unitId);
+    if (!item) return;
     setLines((ls) => {
-      const i = ls.findIndex((l) => l.productId === p.id && l.unitId === u.id);
-      if (i >= 0) return ls.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
-      return [...ls, { key: crypto.randomUUID(), productId: p.id, unitId: u.id, qty: 1, manualPrice: "" }];
+      const i = ls.findIndex((l) => l.unitId === unitId);
+      if (i < 0) return d > 0 ? [...ls, { key: crypto.randomUUID(), productId: item.productId, unitId, qty: d, manualPrice: "" }] : ls;
+      const n = (ls[i]?.qty ?? 0) + d;
+      return n <= 0 ? ls.filter((_, j) => j !== i) : ls.map((l, j) => (j === i ? { ...l, qty: n } : l));
     });
-    setProdQuery("");
   }
   const update = (key: string, patch: Partial<Line>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
@@ -234,9 +245,22 @@ export function OrderForm({
           ) : null}
         </Card>
 
-        <Card className="space-y-3">
-          <h2 className="font-semibold">Ürünler</h2>
-          {priced.length === 0 ? <div className="text-sm text-muted">Aşağıdan ürün ekleyin.</div> : null}
+        <section className="space-y-3" aria-label="Ürün seç">
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-muted" />
+            <Input value={prodQuery} onChange={(e) => setProdQuery(e.target.value)} placeholder="Ürün ara (ad, kod, marka)" className="h-12 pr-10 pl-10 text-base" autoComplete="off" enterKeyHint="search" />
+            {prodQuery ? (
+              <button type="button" className="absolute top-1/2 right-3 -translate-y-1/2 text-muted" onClick={() => setProdQuery("")} aria-label="Aramayı temizle">
+                <X className="h-5 w-5" />
+              </button>
+            ) : null}
+          </div>
+          {prodQuery.trim() ? <ShopGrid items={foundItems} qty={qty} onStep={onStep} /> : <ShopCatalog items={items} qty={qty} onStep={onStep} staff />}
+        </section>
+
+        <Card id="secilenler" className="scroll-mt-16 space-y-3">
+          <h2 className="font-semibold">Seçilen ürünler{priced.length ? ` (${priced.length})` : ""}</h2>
+          {priced.length === 0 ? <div className="text-sm text-muted">Yukarıdan ürün seçin: kartlardaki + ile ekleyin.</div> : null}
           {priced.map((l) => (
             <div key={l.key} className="rounded-xl border border-border p-2">
               <div className="flex items-start justify-between gap-2">
@@ -277,21 +301,6 @@ export function OrderForm({
               </div>
             </div>
           ))}
-          <div className="space-y-2 border-t border-border pt-3">
-            <Input value={prodQuery} onChange={(e) => setProdQuery(e.target.value)} placeholder="Ürün ara ve ekle" />
-            <div className="grid max-h-72 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2">
-              {prodMatches.map((p) => {
-                const u = p.units.find((x) => priceFor(x, list, special) !== null);
-                const pr = u ? priceFor(u, list, special) : null;
-                return (
-                  <button key={p.id} type="button" onClick={() => addProduct(p)} className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-left hover:bg-surface-2">
-                    <span className="min-w-0 truncate text-sm">{p.name}</span>
-                    <span className="num shrink-0 text-xs text-muted">{pr !== null ? `${formatTRY(pr)}/${u?.name}` : "—"}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </Card>
       </div>
 
@@ -311,7 +320,7 @@ export function OrderForm({
           <Field label="Teslimat adresi"><Textarea value={address} onChange={(e) => setAddress(e.target.value)} /></Field>
           <Field label="Not"><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Örn. sabah 10'dan önce" /></Field>
         </Card>
-        <Card className="space-y-2">
+        <Card id="siparis-ozet" className="scroll-mt-16 space-y-2">
           <div className="flex justify-between"><span className="text-muted">Ürün tutarı</span><span className="num font-semibold">{formatTRY(fromKurus(totalK))}</span></div>
           {containers > 0 ? <div className="text-xs text-muted">{containers} depozitolu kap · depozito teslimatta alınan boşa göre hesaplanır</div> : null}
           {error ? <Alert>{error}</Alert> : null}
@@ -320,6 +329,16 @@ export function OrderForm({
           </Button>
           {validation ? <div className="text-center text-xs text-muted">{validation}</div> : null}
         </Card>
+      </div>
+      <div className="pb-24 lg:hidden" aria-hidden />
+      <div className="lg:hidden">
+        <CartBar
+          count={priced.reduce((n, l) => n + l.qty, 0)}
+          totalK={totalK}
+          label="Devam"
+          inApp
+          onConfirm={() => document.getElementById("secilenler")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        />
       </div>
     </div>
   );

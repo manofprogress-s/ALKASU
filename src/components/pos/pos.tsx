@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Plus, ScanLine, Search, Trash2, User, UserX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
-import { Badge } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { useAppContext } from "@/components/shell/context";
 import { cn } from "@/lib/cn";
@@ -13,6 +12,8 @@ import { PRICE_LISTS } from "@/lib/roles";
 import { formatNumber, formatTRY, fromKurus } from "@/lib/format";
 import { loadCache, saveCache } from "@/lib/offline/queue";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { CartBar, ShopCatalog, ShopGrid, type Qty } from "@/components/shop/shop-catalog";
+import { staffItems } from "@/lib/staff-catalog";
 import { CustomerPicker } from "./customer-picker";
 import { PaymentDialog, type SaleResult } from "./payment-dialog";
 import { ReceiptDialog } from "./receipt-dialog";
@@ -63,10 +64,8 @@ export function Pos({ initial }: { initial: PosData }) {
 
   const filtered = useMemo(() => {
     const q = searchKey(query.trim());
-    const list = q
-      ? data.products.filter((p) => searchKey(`${p.name} ${p.code} ${p.brand ?? ""}`).includes(q) || p.barcodes.some((b) => b.barcode.startsWith(query.trim())))
-      : [...data.products].sort((a, b) => b.sold - a.sold || a.name.localeCompare(b.name, "tr"));
-    return list.slice(0, 60);
+    if (!q) return [];
+    return data.products.filter((p) => searchKey(`${p.name} ${p.code} ${p.brand ?? ""}`).includes(q) || p.barcodes.some((b) => b.barcode.startsWith(query.trim())));
   }, [data.products, query]);
 
   const balances: ContainerBalances = useMemo(() => {
@@ -76,6 +75,24 @@ export function Pos({ initial }: { initial: PosData }) {
   }, [data.containers, customer]);
 
   const priceList = customer?.priceList ?? "perakende";
+  /** Mağaza görünümü (W-13): her fiyatlı birim bir kart, fiyat seçili müşteriye göre, altında stok */
+  const items = useMemo(
+    () =>
+      staffItems(data.products, (u) => priceFor(u, priceList, customer?.specialPrices), (p, u) => ({
+        text: `Stok ${formatNumber(Math.floor(p.stock / Math.max(1, u.factor)))} ${u.factor > 1 ? u.name.toLocaleLowerCase("tr-TR") : p.baseUnit.toLocaleLowerCase("tr-TR")}`,
+        danger: p.stock <= 0,
+      })),
+    [data.products, priceList, customer],
+  );
+  const foundItems = useMemo(() => {
+    const ids = new Set(filtered.map((p) => p.id));
+    return items.filter((i) => ids.has(i.productId)).slice(0, 60);
+  }, [items, filtered]);
+  const qty: Qty = useMemo(() => {
+    const m: Qty = {};
+    for (const l of cart) m[l.unitId] = (m[l.unitId] ?? 0) + l.qty;
+    return m;
+  }, [cart]);
   /** F-10: müşteri değişince sepet o müşterinin fiyat listesine göre yeniden fiyatlanır. */
   function chooseCustomer(c: PosCustomer | null) {
     setCustomer(c);
@@ -96,7 +113,8 @@ export function Pos({ initial }: { initial: PosData }) {
   const itemCount = cart.reduce((s, l) => s + l.qty, 0);
 
   function addProduct(p: CatalogProduct, unitId?: string | null) {
-    const unit = p.units.find((u) => u.id === unitId && u.price !== null) ?? p.units.find((u) => u.price !== null);
+    const priced = (u: (typeof p.units)[number]) => priceFor(u, priceList, customer?.specialPrices) !== null;
+    const unit = p.units.find((u) => u.id === unitId && priced(u)) ?? p.units.find(priced);
     const price = unit ? priceFor(unit, priceList, customer?.specialPrices) : null;
     if (!unit || price === null) return toast(`${p.name} için satış fiyatı tanımlı değil`, "danger");
     setCart((c) => {
@@ -120,6 +138,16 @@ export function Pos({ initial }: { initial: PosData }) {
       ];
     });
     if (navigator.vibrate) navigator.vibrate(15);
+  }
+
+  /** Karttaki + / − (W-13) */
+  function onStep(unitId: string, d: number) {
+    const item = items.find((i) => i.unitId === unitId);
+    const p = item ? byId.get(item.productId) : undefined;
+    if (!p) return;
+    if (d > 0) return addProduct(p, unitId);
+    const line = [...cart].reverse().find((l) => l.unitId === unitId);
+    if (line) setQty(line.key, line.qty - 1);
   }
 
   function onSearchEnter() {
@@ -357,32 +385,12 @@ export function Pos({ initial }: { initial: PosData }) {
             )}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 px-3 pb-32 sm:grid-cols-3 md:overflow-y-auto md:pb-4 lg:grid-cols-4">
-          {filtered.map((p) => {
-            const base = p.units.find((u) => u.price !== null);
-            const basePrice = base ? priceFor(base, priceList, customer?.specialPrices) : null;
-            const inCart = cart.filter((l) => l.productId === p.id).reduce((s, l) => s + l.qty, 0);
-            return (
-              <button
-                key={p.id}
-                onClick={() => addProduct(p)}
-                className={cn(
-                  "relative flex min-h-24 flex-col justify-between rounded-2xl border bg-surface p-3 text-left active:scale-[0.98]",
-                  inCart ? "border-brand" : "border-border",
-                )}
-              >
-                <span className="line-clamp-2 text-[15px] leading-tight font-medium">{p.name}</span>
-                <span className="mt-2 flex items-end justify-between gap-1">
-                  <span className="num text-sm font-semibold">{basePrice !== null ? formatTRY(basePrice) : "—"}</span>
-                  <span className={cn("num text-xs", p.stock <= 0 ? "text-danger" : "text-muted")}>
-                    {formatNumber(p.stock)} {p.baseUnit.toLocaleLowerCase("tr-TR")}
-                  </span>
-                </span>
-                {inCart ? <Badge tone="brand" className="absolute -top-2 -right-1">{inCart}</Badge> : null}
-              </button>
-            );
-          })}
-          {filtered.length === 0 ? <div className="col-span-full py-10 text-center text-muted">Ürün bulunamadı</div> : null}
+        <div className="px-3 pb-36 md:min-h-0 md:flex-1 md:overflow-y-auto md:pb-4">
+          {query.trim() ? (
+            <ShopGrid items={foundItems} qty={qty} onStep={onStep} empty="Ürün bulunamadı. Barkod okuttuysanız Enter’a basın." />
+          ) : (
+            <ShopCatalog items={items} qty={qty} onStep={onStep} staff />
+          )}
         </div>
       </section>
 
@@ -390,14 +398,10 @@ export function Pos({ initial }: { initial: PosData }) {
       <aside className="hidden min-h-0 border-l border-border bg-surface md:block">{cartView}</aside>
 
       {/* Sepet: mobilde alt çubuk + tam ekran */}
-      {cart.length > 0 && !cartOpen ? (
-        <button
-          onClick={() => setCartOpen(true)}
-          className="fixed inset-x-3 bottom-[76px] z-30 flex items-center justify-between rounded-2xl bg-brand px-4 py-4 text-white shadow-lg md:hidden"
-        >
-          <span className="font-medium">{itemCount} ürün · Sepeti aç</span>
-          <span className="num text-lg font-bold">{formatTRY(fromKurus(totals.grandK))}</span>
-        </button>
+      {!cartOpen ? (
+        <div className="md:hidden">
+          <CartBar count={itemCount} totalK={totals.grandK} onConfirm={() => setCartOpen(true)} label="Sepet · Ödeme" inApp />
+        </div>
       ) : null}
       {cartOpen ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-surface md:hidden">
