@@ -172,3 +172,10 @@
 | D-074 | Özel yönlendirme yetkisi sevkiyat + yönetici (varsayım: yöneticiler de yapabilir); gerekçe zorunlu (varsayım). Kullanıcı farklı isterse yalnızca sevkiyat'a daraltılabilir. | 🔁 |
 | D-075 | Yönlendirme kaydı `order_routing_log` — yalnızca yönetici okur, kimse değiştiremez. Önceki "bayinin kendi alımı başka bayiye verilemez" kuralı kaldırıldı; artık özel yönlendirme olarak yapılabilir. | ✅ |
 | D-076 | Unvan ayrı alan (`memberships.title`), rolden bağımsız (kullanıcı isteği: Selin "Accounting Specialist - Muhasebe Teknisyeni", Hüseyin "Warehouse and Logistics Executive - Depo ve Sevkiyat Yöneticisi"). | ✅ |
+
+## BETA#1 (10.10.2026)
+
+| Kod | Karar | Durum |
+|---|---|---|
+| D-077 | BETA#1 geri dönüş noktası: git etiketi `beta-1` + GitHub sürümü, Vercel yayın kimliği, veritabanında `snap_beta1` anlık görüntüsü ve test edilmiş geri yükleme betiği (docs/RELEASES.md). | ✅ |
+| D-078 | Gece yedeği (`backup.yml`) gizli anahtarlar tanımlı olmadığı için yedek üretmiyordu (her gece "atlandı"). Kurulum kullanıcıda: `SUPABASE_DB_URL` + `BACKUP_AGE_RECIPIENT` (docs/BACKUP_RESTORE.md). | ⏳ |
