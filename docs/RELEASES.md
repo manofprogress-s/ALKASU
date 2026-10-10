@@ -6,7 +6,7 @@
 
 | Parça | Geri dönüş noktası |
 |---|---|
-| Kod (GitHub) | etiket **`beta-1`** → commit `6f8b835` · GitHub'da "BETA#1" sürümü |
+| Kod (GitHub) | dal **`surum/beta-1`** (değiştirilmez) → commit `6f8b835`; yerel etiket `beta-1`. GitHub "Release" kaydı elle açılır (aşağıda) |
 | Uygulama (Vercel) | yayın `6sbGHsfVTN5r7DvZM5Uc1n8Nnpi5` · kalıcı adres `alkasu-qi3hb8lvn-manofprogress-s.vercel.app` |
 | Veritabanı şeması | migration `20261010002000` (0001–0020) |
 | Veritabanı verisi | Supabase içinde **`snap_beta1`** şeması (54 tablo; 37 müşteri, 36 ürün) — alındığı an: 10.10.2026 ~12:30 |
@@ -32,7 +32,7 @@ Sırayla, gerektiği kadar:
    → "⋯" → **Promote to Production** (ya da "Instant Rollback"). Veritabanına dokunulmaz.
    Not: veritabanı BETA#1'den yeni bir sürüme taşındıysa eski uygulama yeni şemayla çalışmalıdır; migration'lar geriye
    uyumlu yazılır (sütun/tablo eklenir, kaldırılmaz), sorun çıkarsa 3. adım.
-2. **Kod:** `git checkout beta-1` (inceleme) veya yeni dal: `git switch -c geri-donus beta-1`. `main`e zorla yazılmaz;
+2. **Kod:** `git checkout surum/beta-1` (inceleme) veya yeni dal: `git switch -c geri-donus origin/surum/beta-1`. `main`e zorla yazılmaz;
    gerekirse geri dönüş dalı birleştirilir.
 3. **Veri (yalnızca gerçekten gerekiyorsa — BETA#1'den sonra girilen satış, sipariş, müşteri vb. SİLİNİR):**
    1. Önce o anki hali kaydedin: `beta1_snapshot.sql` içindeki `snap_beta1` adlarını örn. `snap_oncesi_20261101` yapıp çalıştırın.
@@ -40,6 +40,10 @@ Sırayla, gerektiği kadar:
    3. Çıktıdaki `SONUC:` satırını kontrol edin (BETA#1'de: 37 müşteri, 36 ürün).
    - `audit` (işlem geçmişi) ve `auth` (kullanıcılar, şifreler) geri alınmaz; geçmiş kaybolmaz.
    - Betik yerel kopyada denendi: veri değiştirildi → geri yüklendi → tüm tablo sayıları ve ürün verisi birebir aynı.
+
+### GitHub sürüm kaydı (bir kez, elle)
+Bu oturum GitHub'a etiket/sürüm yazamadığı için: GitHub → ALKASU → **Releases → Draft a new release** →
+"Choose a tag" kutusuna `beta-1` yazıp **Create new tag**, hedef: `surum/beta-1` dalı → başlık **BETA#1** → Publish.
 
 ## Sonraki sürüm için
 `beta1_snapshot.sql`'i kopyalayıp `snap_beta2` / etiket `beta-2` yapın; bu dosyaya yeni bir bölüm ekleyin.
