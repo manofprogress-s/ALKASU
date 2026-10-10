@@ -18,7 +18,7 @@ export default async function ShopLayoutPage() {
       <PageHeader title="Mağaza düzeni" subtitle="Müşterinin sipariş ekranında hangi ürün nerede görünsün"
         actions={<Link href="/urunler" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Ürünler</Link>} />
       {error ? <Alert>{error.message}</Alert> : items.length === 0 ? (
-        <Alert tone="warn">Fiyatı girilmiş aktif ürün yok. Ürünler'den fiyat girin.</Alert>
+        <Alert tone="warn">Fiyatı girilmiş aktif ürün yok. Ürünler’den fiyat girin.</Alert>
       ) : <ShopLayoutEditor initial={items} />}
     </div>
   );

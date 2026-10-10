@@ -69,7 +69,7 @@ export function ShopLayoutEditor({ initial }: { initial: ShopItem[] }) {
     <div className="space-y-4">
       <Alert tone="neutral">
         Müşterinin sipariş ekranı. Bir ürüne <b>basılı tutun</b> (ya da dokunun): kaldırın, yerine başka ürün koyun, yerini değiştirin.
-        Değişiklik anında müşteriye yansır. "Çok satanlar" bölümü otomatiktir.
+        Değişiklik anında müşteriye yansır. “Çok satanlar” bölümü otomatiktir.
       </Alert>
       {swapFrom ? (
         <div className="sticky top-2 z-20 flex items-center justify-between gap-2 rounded-2xl bg-warn-soft p-3 text-sm font-medium text-warn shadow">
