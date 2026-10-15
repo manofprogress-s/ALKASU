@@ -2,7 +2,7 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BriefcaseBusiness, ChevronLeft, ChevronRight, UserRound, Zap } from "lucide-react";
+import { BriefcaseBusiness, Building2, ChevronLeft, ChevronRight, House, Zap } from "lucide-react";
 import { ProductArt } from "@/components/shop/product-art";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
@@ -12,7 +12,10 @@ import { errorMessage } from "@/lib/errors";
 import { SITE_URL } from "@/lib/env";
 import { loginEmail, normalizePhone } from "@/lib/username";
 
-type Mode = "musteri" | "calisan";
+/** musteri = ev müşterisi (telefonla), kurumsal = firma (telefon veya kullanıcı adı), calisan = personel ve bayi */
+type Mode = "musteri" | "kurumsal" | "calisan";
+
+const TITLES: Record<Mode, string> = { musteri: "Ev müşterisi girişi", kurumsal: "Kurumsal müşteri girişi", calisan: "Çalışan girişi" };
 
 function LoginForm({ mode }: { mode: Mode }) {
   const params = useSearchParams();
@@ -22,6 +25,7 @@ function LoginForm({ mode }: { mode: Mode }) {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const isCustomer = mode === "musteri";
+  const isCorporate = mode === "kurumsal";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,7 +35,7 @@ function LoginForm({ mode }: { mode: Mode }) {
     const { error } = await supabaseBrowser().auth.signInWithPassword({ email: loginEmail(login), password });
     setLoading(false);
     if (error) {
-      setError(/invalid login/i.test(error.message) ? (isCustomer ? "Telefon veya şifre hatalı." : "Kullanıcı adı veya şifre hatalı.") : errorMessage(error));
+      setError(/invalid login/i.test(error.message) ? (isCustomer ? "Telefon veya şifre hatalı." : isCorporate ? "Telefon / kullanıcı adı veya şifre hatalı." : "Kullanıcı adı veya şifre hatalı.") : errorMessage(error));
       return;
     }
     const next = params.get("next");
@@ -41,8 +45,8 @@ function LoginForm({ mode }: { mode: Mode }) {
   }
 
   async function reset() {
-    if (isCustomer || !login.includes("@")) {
-      setError(isCustomer ? "Şifrenizi unuttuysanız bizi arayın; size yeni geçici şifre verelim." : "Kullanıcı adıyla giriş yapanların şifresini yönetici sıfırlar. Lütfen yöneticinize başvurun.");
+    if (isCustomer || isCorporate || !login.includes("@")) {
+      setError(isCustomer || isCorporate ? "Şifrenizi unuttuysanız bizi arayın; size yeni geçici şifre verelim." : "Kullanıcı adıyla giriş yapanların şifresini yönetici sıfırlar. Lütfen yöneticinize başvurun.");
       return;
     }
     setError(null);
@@ -55,7 +59,7 @@ function LoginForm({ mode }: { mode: Mode }) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <Field label={isCustomer ? "Cep telefonu" : "Kullanıcı adı veya e-posta"}>
+      <Field label={isCustomer ? "Cep telefonu" : isCorporate ? "Cep telefonu veya kullanıcı adı" : "Kullanıcı adı veya e-posta"}>
         <Input
           type={isCustomer ? "tel" : "text"}
           inputMode={isCustomer ? "tel" : undefined}
@@ -99,24 +103,33 @@ function QuickOrder() {
   );
 }
 
+function MenuLink({ href, icon, title, text }: { href: string; icon: React.ReactNode; title: string; text: string }) {
+  return (
+    <Link href={href} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 hover:bg-surface-2 active:scale-[0.99]">
+      {icon}
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold">{title}</span>
+        <span className="block text-sm text-muted">{text}</span>
+      </span>
+      <ChevronRight className="h-5 w-5 text-muted" />
+    </Link>
+  );
+}
+
 function Entry() {
   const params = useSearchParams();
   const router = useRouter();
   const tip = params.get("tip");
-  const mode: Mode | null = tip === "musteri" || tip === "calisan" ? tip : params.get("next") ? "calisan" : null;
+  const mode: Mode | null = tip === "musteri" || tip === "kurumsal" || tip === "calisan" ? tip : params.get("next") ? "calisan" : null;
 
   if (!mode) {
     return (
       <div className="space-y-4">
         <QuickOrder />
-        <Link href="/giris?tip=musteri" className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 hover:bg-surface-2 active:scale-[0.99]">
-          <UserRound className="h-7 w-7 shrink-0 text-brand" />
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold">Kayıtlı müşteri girişi</span>
-            <span className="block text-sm text-muted">Telefon numaran ve şifrenle gir, siparişini tekrarla.</span>
-          </span>
-          <ChevronRight className="h-5 w-5 text-muted" />
-        </Link>
+        <MenuLink href="/giris?tip=kurumsal" icon={<Building2 className="h-7 w-7 shrink-0 text-brand" />}
+          title="Kurumsal müşteriyim" text="Firma hesabınızla girin; size özel fiyatlarla sipariş verin." />
+        <MenuLink href="/giris?tip=musteri" icon={<House className="h-7 w-7 shrink-0 text-brand" />}
+          title="Ev müşterisiyim" text="Telefon numaran ve şifrenle gir, siparişini tekrarla." />
         <div className="pt-6 text-center">
           <Link href="/giris?tip=calisan" className="inline-flex items-center gap-1 text-xs text-muted hover:text-text">
             <BriefcaseBusiness className="h-3.5 w-3.5" /> Çalışan ve bayi girişi
@@ -130,11 +143,15 @@ function Entry() {
       <button type="button" onClick={() => router.push("/giris")} className="flex items-center gap-1 text-sm text-muted">
         <ChevronLeft className="h-4 w-4" /> Geri
       </button>
-      <h1 className="text-lg font-semibold">{mode === "musteri" ? "Kayıtlı müşteri girişi" : "Çalışan girişi"}</h1>
+      <h1 className="text-lg font-semibold">{TITLES[mode]}</h1>
       <LoginForm mode={mode} />
       {mode === "musteri" ? (
         <p className="text-center text-sm text-muted">
           Kaydınız yok mu? <Link href="/siparis-ver" className="text-brand">Sipariş verirken kayıt olun</Link>
+        </p>
+      ) : mode === "kurumsal" ? (
+        <p className="text-center text-sm text-muted">
+          Firma hesabınız yok mu? Bizi arayın, hesabınızı açalım. Beklemeden <Link href="/siparis-ver" className="text-brand">hızlı sipariş</Link> da verebilirsiniz.
         </p>
       ) : null}
     </div>

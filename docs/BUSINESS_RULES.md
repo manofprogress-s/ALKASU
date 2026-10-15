@@ -213,7 +213,7 @@
 
 ## 20. Müşterinin kendi siparişi (internet)
 
-- **W-01** Giriş sayfasında en üstte büyük **Hızlı sipariş ver** kartı (yeni müşteri, üyelik gerekmez), altında **Kayıtlı müşteri girişi** (telefon + şifre), en altta küçük **Çalışan ve bayi girişi** bağlantısı (kullanıcı adı/e-posta + şifre) bulunur.
+- **W-01** Giriş sayfası sırası (kullanıcı isteği 15.10): 1) en üstte büyük **Hızlı sipariş ver** kartı (üyelik gerekmez), 2) **Kurumsal müşteriyim** (firma hesabı: cep telefonu veya kullanıcı adı + şifre; hesabı olmayan firma bizi arar ya da hızlı sipariş verir), 3) **Ev müşterisiyim** (telefon + şifre; kaydı yoksa sipariş verirken kayıt olur). En altta küçük **Çalışan ve bayi girişi** bağlantısı.
 - **W-02** Yeni müşteri tek adımda ad soyad, cep telefonu, şifre, açık adres, isteğe bağlı Google Maps konumu ve ürünleri girer; kayıt ve sipariş birlikte oluşur. Kişisel veriler için onay kutusu yoktur; kısa aydınlatma metni ve tam metne bağlantı gösterilir (§23).
 - **W-03** İnternetten kayıt olan müşteri **ev müşterisi** (perakende fiyat) olarak açılır. İlk siparişi **onay bekliyor** durumundadır; personel müşteriyi arayıp onaylar veya reddeder. Onaydan sonra müşterinin siparişleri doğrudan açık olarak düşer.
 - **W-04** Müşteri yalnızca kendi kartını, siparişlerini, alımlarını ve ekstresini görür; stok, fiyat geçmişi, bayi/palet fiyatları ve ayarlar kapalıdır. Fiyatı müşteri belirleyemez; sipariş fiyatı sunucuda perakende listesinden alınır.
