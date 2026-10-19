@@ -39,7 +39,8 @@ select test.eq((select legacy_no from public.customers where id = test.cust('M00
 select test.eq((select name from public.customers where id = test.cust('M002')), 'Limitsiz Firma', 'Elle girilmiş ad korunur');
 select test.eq((select code from public.customers where legacy_no = 333 and business_id = test.biz()), 'A333', 'Yeni müşteri kodu A + abone no');
 select test.eq((select extra_phones from public.customers where legacy_no = 333), array['05551112233'], 'Ek telefonlar tekrarsız, geçersizler atılır');
-select test.ok((select latitude is not null and area = 'Köseköy' and brand_pref = 'Gurpinar' from public.customers where legacy_no = 333), 'Konum, saha, marka');
+select test.ok((select latitude is not null and area = 'Köseköy' from public.customers where legacy_no = 333), 'Konum, saha, marka');
+select test.eq((select brand_pref from public.customers where legacy_no = 333), 'Gürpınar', 'Marka görünen adla');
 select test.ok((select latitude is null and phone = '05376118342' from public.customers where legacy_no = 945), '0,0 konumu atılır');
 select test.ok((select phone is null from public.customers where legacy_no = 12), 'Sahte telefon kaydedilmez');
 select test.eq((select legacy_debt from public.customers where legacy_no = 730), 6120.00, 'Eski borç bilgi olarak saklanır');
@@ -58,6 +59,7 @@ select test.eq(jsonb_array_length(public.import_subscribers(test.biz(), '[{"row"
 
 -- Durum
 select test.logout();
+select test.eq(app.tr_initcap('İBRAHİM KÜÇÜK'), 'İbrahim Küçük', 'Türkçe büyük harf');
 select test.eq((select bucket from app.customer_status(test.biz(), null) where name = 'Ayşe Kaya'), 'duzenli', '10 gün önce, 25 günlük periyot: düzenli');
 select test.eq((select bucket from app.customer_status(test.biz(), null) where name = 'Limitsiz Firma'), 'gecikti', '34 gün, 16 günlük periyot (2 katını aştı): gecikti');
 select test.eq((select bucket from app.customer_status(test.biz(), null) where name = '17 Ağustos İlkokulu'), 'uyuyan', '400 gün: uyuyan');
