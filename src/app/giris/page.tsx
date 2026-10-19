@@ -46,7 +46,7 @@ function LoginForm({ mode }: { mode: Mode }) {
 
   async function reset() {
     if (isCustomer || isCorporate || !login.includes("@")) {
-      setError(isCustomer || isCorporate ? "Şifrenizi unuttuysanız bizi arayın; size yeni geçici şifre verelim." : "Kullanıcı adıyla giriş yapanların şifresini yönetici sıfırlar. Lütfen yöneticinize başvurun.");
+      setError(isCustomer || isCorporate ? "Şifrenizi unuttuysanız 0540 898 41 61’i arayın; size yeni geçici şifre verelim." : "Kullanıcı adıyla giriş yapanların şifresini yönetici sıfırlar. Lütfen yöneticinize başvurun.");
       return;
     }
     setError(null);
@@ -151,7 +151,7 @@ function Entry() {
         </p>
       ) : mode === "kurumsal" ? (
         <p className="text-center text-sm text-muted">
-          Firma hesabınız yok mu? Bizi arayın, hesabınızı açalım. Beklemeden <Link href="/siparis-ver" className="text-brand">hızlı sipariş</Link> da verebilirsiniz.
+          Firma hesabınız yok mu? <a href="tel:05408984161" className="font-semibold text-brand">0540 898 41 61</a>’i arayın, hesabınızı açalım. Beklemeden <Link href="/siparis-ver" className="text-brand">hızlı sipariş</Link> da verebilirsiniz.
         </p>
       ) : null}
     </div>

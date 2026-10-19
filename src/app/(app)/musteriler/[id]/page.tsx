@@ -16,6 +16,7 @@ import { LocationView } from "@/components/geo/location-view";
 import { toLatLng } from "@/lib/geo";
 import { ExportButton } from "@/components/reports/export-button";
 import { PrivacyCard, type PrivacyEvent } from "@/components/customers/privacy";
+import { FieldHistory, type CallRow } from "@/components/customers/field-history";
 import { ProposeCustomer, RequestList, type CardValues, type CustomerRequest } from "@/components/customers/dealer-requests";
 
 export default async function CustomerPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ kanal?: string }> }) {
@@ -33,7 +34,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
     );
   }
   // Tek dalga: tüm okumalar paralel (hız adımı 4)
-  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }, { data: cprices }, products, { data: pev }, assignees] = await Promise.all([
+  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }, { data: cprices }, products, { data: pev }, assignees, { data: calls }] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).maybeSingle(),
     supabase.rpc("customer_summary", { p_customer: id }),
     supabase.rpc("customer_statement", { p_customer: id }),
@@ -43,6 +44,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
     loadOrderProducts(supabase, ctx.businessId),
     supabase.from("privacy_events").select("kind, channel, notice_version, created_at").eq("customer_id", id).order("created_at", { ascending: false }).limit(50),
     loadAssigneeOptions(),
+    supabase.from("customer_calls").select("called_at, outcome, note, next_call_on, user_id").eq("customer_id", id).order("called_at", { ascending: false }).limit(10),
   ]);
   if (!c) notFound();
   // Bayiye ait kart / bayi kartı: bayinin listesi ve öneriler (G-13..G-15)
@@ -94,6 +96,12 @@ export default async function CustomerPage({ params, searchParams }: { params: P
           <LocationView point={toLatLng(c.latitude, c.longitude)} />
         </Card>
       ) : null}
+      <FieldHistory
+        c={c}
+        isAdmin={ctx.role === "yonetici"}
+        calls={(calls ?? []) as CallRow[]}
+        names={Object.fromEntries(assignees.map((a) => [a.user_id, a.display_name]))}
+      />
       {c.channel !== "perakende" || (cprices ?? []).length ? (
         <CustomerPrices
           customerId={c.id}

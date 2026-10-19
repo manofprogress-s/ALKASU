@@ -35,7 +35,12 @@ export default async function MyCustomersPage() {
       <PageHeader
         title="Müşterilerim"
         subtitle="Yalnızca siz ve merkez görür; merkez değişiklik yapamaz, yalnızca önerir. Kendi müşterinize kendiniz teslim edecekseniz sipariş onaysız açılır."
-        actions={<Link href="/siparisler/yeni" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Yeni sipariş</Link>}
+        actions={
+          <span className="flex flex-wrap gap-2">
+            <Link href="/musterilerim/durum" className="inline-flex h-11 items-center rounded-xl border border-brand bg-brand-soft px-4 font-medium text-brand">Durum raporu</Link>
+            <Link href="/siparisler/yeni" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Yeni sipariş</Link>
+          </span>
+        }
       />
       <RequestList rows={requests} mode="dealer" currentById={Object.fromEntries(rows.map((r) => [r.id, r]))} />
       <DealerCustomers rows={rows} />
