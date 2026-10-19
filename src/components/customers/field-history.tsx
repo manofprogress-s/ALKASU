@@ -38,7 +38,7 @@ export function FieldHistory({ c, isAdmin, calls, names }: { c: CustomerFields; 
   if (c.legacy_order_count) facts.push(["Sipariş sayısı (eski sistem)", String(c.legacy_order_count)]);
   if (c.legacy_period_days) facts.push(["Alım aralığı", `~${c.legacy_period_days} gün`]);
   if (isAdmin && c.legacy_total_sales) facts.push(["Toplam satış (eski sistem)", formatTRY(c.legacy_total_sales)]);
-  if (isAdmin && c.legacy_debt) facts.push(["Eski sistem borcu (cariye işlenmedi)", formatTRY(c.legacy_debt)]);
+  if (isAdmin && c.legacy_debt) facts.push(["Eski sistem borcu (listedeki)", formatTRY(c.legacy_debt)]);
   if (!facts.length && !calls.length) return null;
   return (
     <Card className="space-y-3">
