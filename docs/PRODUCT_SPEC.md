@@ -16,7 +16,7 @@ Başarı ölçütleri:
 
 ## 2. Kapsam dışı (v1)
 
-- Yasal belge üretimi (e-Fatura, e-Arşiv, ÖKC/yazarkasa entegrasyonu). Yasal fiş ve faturalar mevcut düzende kesilmeye devam eder.
+- Yasal belgeyi ALKASU kendisi üretmez (e-Fatura, e-Arşiv, ÖKC/yazarkasa). 19.10.2026'dan itibaren faturalar ALKASU'da hazırlanıp **Logo İşbaşı** üzerinden kesilecek (BUSINESS_RULES §28); bağlantı kurulana kadar Logo'da elle kesilir.
 - Tedarikçi cari hesabı (borç/ödeme takibi). Yalnızca alış kayıtları tutulur.
 - Kurye ve teslimat rotası yönetimi. Teslimat adresi müşteri kartında not olarak durur.
 - Parti/son kullanma tarihi takibi.

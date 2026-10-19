@@ -15,7 +15,7 @@ export const metadata = { title: "Müşteriler" };
 const PAGE = 100;
 type Row = { id: string; code: string; name: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; active: boolean; channel: Channel; price_list: PriceList; regions: string | null; dispenser_count: number; owner_dealer_id: string | null; area: string | null };
 
-export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string; borclu?: string; kanal?: string; s?: string }> }) {
+export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string; borclu?: string; kanal?: string; s?: string; fatura?: string }> }) {
   const ctx = await requirePermission("customers");
   const sp = await searchParams;
   const supabase = await supabaseServer();
@@ -35,6 +35,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     query = d.length >= 4 ? query.or(`search_key.like."*${key}*",phone.like.*${d}*`) : query.like("search_key", `%${key}%`);
   }
   if (sp.kanal) query = query.eq("channel", sp.kanal);
+  if (sp.fatura) query = query.eq("channel", "kurumsal").is("tax_no", null); // F-20: faturası kesilecek ama vergi no'su yok
   if (sp.borclu) query = query.in("id", debt.length ? debt.map((x) => x.customer_id) : ["00000000-0000-0000-0000-000000000000"]);
   const { data: cs, count } = await query.order("name").range(page * PAGE, page * PAGE + PAGE - 1);
   const list = (cs ?? []) as Row[];
@@ -54,7 +55,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const total = count ?? rows.length;
   const pageHref = (n: number) => {
     const p = new URLSearchParams();
-    for (const [key, v] of Object.entries({ q: sp.q, borclu: sp.borclu, kanal: sp.kanal })) if (v) p.set(key, v);
+    for (const [key, v] of Object.entries({ q: sp.q, borclu: sp.borclu, kanal: sp.kanal, fatura: sp.fatura })) if (v) p.set(key, v);
     if (n) p.set("s", String(n));
     return `/musteriler?${p.toString()}`;
   };
@@ -70,11 +71,12 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           </span>
         } />
       <div className="no-print -mx-3 mb-3 flex gap-2 overflow-x-auto px-3 [scrollbar-width:none]">
-        <Link href="/musteriler" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${!sp.borclu && !sp.kanal ? "bg-brand text-white" : "bg-surface-2"}`}>Tümü</Link>
+        <Link href="/musteriler" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${!sp.borclu && !sp.kanal && !sp.fatura ? "bg-brand text-white" : "bg-surface-2"}`}>Tümü</Link>
         <Link href="/musteriler?borclu=1" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${sp.borclu ? "bg-brand text-white" : "bg-surface-2"}`}>Borçlular</Link>
         <Link href="/musteriler?kanal=perakende" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${sp.kanal === "perakende" ? "bg-brand text-white" : "bg-surface-2"}`}>Ev müşterileri</Link>
         <Link href="/musteriler?kanal=bayi" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${sp.kanal === "bayi" ? "bg-brand text-white" : "bg-surface-2"}`}>Bayiler</Link>
         <Link href="/musteriler?kanal=kurumsal" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${sp.kanal === "kurumsal" ? "bg-brand text-white" : "bg-surface-2"}`}>Kurumsal</Link>
+        <Link href="/musteriler?fatura=eksik" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${sp.fatura ? "bg-warn text-white" : "bg-surface-2"}`}>Vergi no eksik</Link>
       </div>
       <SearchBox placeholder="Ad, kod veya telefon" />
       <DataTable rows={rows} rowKey={(r) => r.id} onRowClick={(r) => `/musteriler/${r.id}`} mobileTitle={(r) => r.name}

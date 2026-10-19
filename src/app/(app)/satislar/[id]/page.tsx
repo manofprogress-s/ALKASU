@@ -4,6 +4,9 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { Badge, Card, PageHeader } from "@/components/ui/card";
 import { formatDateTime, formatTRY } from "@/lib/format";
 import { SaleActions, type SaleItemForReturn } from "@/components/sales/sale-actions";
+import { SaleInvoice } from "@/components/invoices/sale-invoice";
+import { can } from "@/lib/roles";
+import type { InvoiceStatus } from "@/lib/invoice";
 
 const METHOD: Record<string, string> = { nakit: "Nakit", pos: "POS", veresiye: "Veresiye" };
 
@@ -38,6 +41,12 @@ export default async function SaleDetail({ params, searchParams }: { params: Pro
   if (ctx.role === "yonetici") {
     const { data: sess } = await supabase.from("cash_sessions").select("status").eq("id", sale.session_id).maybeSingle();
     sessionOpen = sess?.status === "acik";
+  }
+  // Fatura kaydı (F-21): yalnızca yönetici
+  let invoice: { id: string; no: number; status: InvoiceStatus } | null = null;
+  if (can(ctx.role, "invoices")) {
+    const { data: inv } = await supabase.from("invoices").select("id, no, status").eq("sale_id", sale.id).neq("status", "iptal").maybeSingle();
+    invoice = (inv as typeof invoice) ?? null;
   }
   let request: { id: string; reason: string; items: unknown } | null = null;
   if (sp.talep) {
@@ -100,6 +109,8 @@ export default async function SaleDetail({ params, searchParams }: { params: Pro
           ))}
         </div>
       </Card>
+
+      {can(ctx.role, "invoices") ? <SaleInvoice saleId={sale.id} saleActive={sale.status === "tamamlandi"} invoice={invoice} /> : null}
 
       {sale.returns.length > 0 ? (
         <Card>

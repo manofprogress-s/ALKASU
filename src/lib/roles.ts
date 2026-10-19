@@ -41,6 +41,7 @@ export const PERMISSIONS = {
   deliver: ["yonetici", "satis", "sevkiyat"],
   myAccount: ["bayi", "musteri"],
   dealerCustomers: ["bayi"],
+  invoices: ["yonetici"], // F-21: fatura hazırlama yalnızca yönetici (Logo bağlantısı kurulana kadar)
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

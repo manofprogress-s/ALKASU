@@ -17,10 +17,11 @@ import { toLatLng } from "@/lib/geo";
 import { ExportButton } from "@/components/reports/export-button";
 import { PrivacyCard, type PrivacyEvent } from "@/components/customers/privacy";
 import { OpeningBalance } from "@/components/customers/opening-balance";
+import { BillingCard } from "@/components/invoices/billing-card";
 import { FieldHistory, type CallRow } from "@/components/customers/field-history";
 import { ProposeCustomer, RequestList, type CardValues, type CustomerRequest } from "@/components/customers/dealer-requests";
 
-export default async function CustomerPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ kanal?: string }> }) {
+export default async function CustomerPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ kanal?: string; fatura?: string }> }) {
   const ctx = await requirePermission("customers");
   const { id } = await params;
   const supabase = await supabaseServer();
@@ -98,6 +99,12 @@ export default async function CustomerPage({ params, searchParams }: { params: P
           <LocationView point={toLatLng(c.latitude, c.longitude)} />
         </Card>
       ) : null}
+      <BillingCard
+        customerId={c.id}
+        v={{ legal_title: c.legal_title, tax_no: c.tax_no, tax_office: c.tax_office, email: c.email, city: c.city, district: c.district, address: c.address, channel: c.channel }}
+        canEdit={!c.owner_dealer_id}
+        highlight={(await searchParams).fatura === "1"}
+      />
       {ctx.role === "yonetici" ? <OpeningBalance customerId={c.id} current={opening} legacyDebt={c.legacy_debt === null ? null : Number(c.legacy_debt)} /> : null}
       <FieldHistory
         c={c}
