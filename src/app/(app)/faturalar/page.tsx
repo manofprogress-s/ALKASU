@@ -14,7 +14,7 @@ const TABS: { key: string; label: string }[] = [
   { key: "bekleyen", label: "Faturalanacak satışlar" },
   { key: "taslak", label: "Taslak" },
   { key: "hazir", label: "Gönderime hazır" },
-  { key: "logo", label: "Logo'da / resmî" },
+  { key: "logo", label: "Logo’da / resmî" },
   { key: "hatali", label: "Hatalı" },
   { key: "iptal", label: "İptal" },
 ];
@@ -47,7 +47,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   type U = { id: string; no: number; sold_at: string; customer_name: string | null; channel: string | null; tax_kind: "vkn" | "tckn" | null; grand_total: number; total_count: number };
   type I = { id: string; no: number; status: InvoiceStatus; customer: { name: string; legal_title?: string }; totals: { gross: number }; issues: { level: string }[]; created_at: string; logo_invoice_no: string | null; sales: { no: number; sold_at: string } | null };
   const urows = (uninv.data ?? []) as U[];
-  const irows = (inv.data ?? []) as I[];
+  const irows = (inv.data ?? []) as unknown as I[];
   const total = tab === "bekleyen" ? Number(urows[0]?.total_count ?? 0) : ((inv as { count?: number | null }).count ?? 0);
   const href = (p: Record<string, string | undefined>) => {
     const q = new URLSearchParams();

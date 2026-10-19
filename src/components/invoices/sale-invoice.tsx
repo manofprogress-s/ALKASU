@@ -68,7 +68,7 @@ export function SaleInvoice({ saleId, saleActive, invoice }: {
           <FileText className="h-5 w-5 text-muted" />
           <span>
             <span className="block font-semibold">Faturası yok</span>
-            <span className="block text-xs text-muted">Önizleyip taslak oluşturun. Logo'ya henüz gönderilmez.</span>
+            <span className="block text-xs text-muted">Önizleyip taslak oluşturun. Logo’ya henüz gönderilmez.</span>
           </span>
         </span>
         <Button loading={loading} onClick={() => void openPreview()}>Faturayı hazırla</Button>

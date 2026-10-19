@@ -45,7 +45,7 @@ export function InvoiceView({ customer, lines, totals, issues, docTypeHint }: {
         <div className="rounded-xl border border-border p-3 text-sm">
           <div className="text-xs font-medium uppercase tracking-wide text-muted">Belge türü</div>
           <div className="mt-1">{docTypeHint ?? "Logo İşbaşı belirleyecek"}</div>
-          <div className="mt-1 text-xs text-muted">Kesin tür ve fatura numarası Logo İşbaşı'ndan gelecek.</div>
+          <div className="mt-1 text-xs text-muted">Kesin tür ve fatura numarası Logo İşbaşı’ndan gelecek.</div>
         </div>
       </div>
 

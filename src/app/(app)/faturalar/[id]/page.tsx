@@ -41,7 +41,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           </span>
         }
       />
-      <p className="text-sm text-muted">{st.hint}. F-{v.no} ALKASU'nun iç numarasıdır, resmî fatura numarası değildir.</p>
+      <p className="text-sm text-muted">{st.hint}. F-{v.no} ALKASU’nun iç numarasıdır, resmî fatura numarası değildir.</p>
       {v.status === "iptal" && v.cancel_reason ? <Card className="bg-surface-2 text-sm">İptal nedeni: {v.cancel_reason}</Card> : null}
       {v.last_error ? <Card className="bg-danger-soft text-sm text-danger">Son hata: {v.last_error}</Card> : null}
       {v.logo_invoice_no || v.ettn ? (

@@ -12,7 +12,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import type { InvoiceStatus } from "@/lib/invoice";
 
-/** Fatura kaydı eylemleri (F-23). "Logo'ya gönder" bağlantı kurulana kadar kapalı. */
+/** Fatura kaydı eylemleri (F-23). "Logo’ya gönder" bağlantı kurulana kadar kapalı. */
 export function InvoiceActions({ invoiceId, status, errors }: { invoiceId: string; status: InvoiceStatus; errors: number }) {
   const ctx = useAppContext();
   const router = useRouter();
@@ -50,7 +50,7 @@ export function InvoiceActions({ invoiceId, status, errors }: { invoiceId: strin
           <>
             <Button variant="secondary" loading={busy === "taslaga"} onClick={() => void act("taslaga")}>Taslağa geri al</Button>
             <Button disabled title="Logo İşbaşı bağlantısı henüz kurulmadı">
-              <Send className="h-4 w-4" /> Logo'ya gönder
+              <Send className="h-4 w-4" /> Logo’ya gönder
             </Button>
           </>
         ) : null}
@@ -63,7 +63,7 @@ export function InvoiceActions({ invoiceId, status, errors }: { invoiceId: strin
       <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} title="Fatura kaydını iptal et"
         footer={<Button variant="danger" className="w-full" loading={busy === "iptal"} disabled={reason.trim().length < 3} onClick={() => void act("iptal", reason)}>İptal et</Button>}>
         <div className="space-y-2">
-          <p className="text-sm text-muted">Yalnızca ALKASU'daki kayıt iptal edilir; satış yeniden faturalanabilir. Logo'ya gönderilmiş bir şey yoktur.</p>
+          <p className="text-sm text-muted">Yalnızca ALKASU’daki kayıt iptal edilir; satış yeniden faturalanabilir. Logo’ya gönderilmiş bir şey yoktur.</p>
           <Field label="İptal nedeni"><Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Örn. yanlış müşteri seçilmiş" /></Field>
         </div>
       </Dialog>
