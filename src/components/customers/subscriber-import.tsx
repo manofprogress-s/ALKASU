@@ -12,7 +12,7 @@ import { readWorkbook } from "@/lib/excel/read";
 import { subscriberRows } from "@/lib/customer-status";
 
 interface Issue { row: number; field: string; message: string }
-interface Matched { row: number; abone: number; ad: string; eslesen: string }
+interface Matched { row: number; abone: number; ad: string; eslesen: string; nasil: string }
 interface Summary { rows: number; new: number; updated: number; phone_match: number; no_phone: number; with_location: number }
 interface Result { ok: boolean; applied: boolean; errors: Issue[]; matched: Matched[]; summary: Summary }
 
@@ -95,7 +95,7 @@ export function SubscriberImport() {
             onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = ""; }} />
         </label>
         <p className="text-xs text-muted">
-          Eski borç bakiyesi cariye <b>işlenmez</b>, yalnızca bilgi olarak görünür. Elle açılmış bir müşterinin telefonu tutarsa yeni kart açılmaz, o karta bağlanır.
+          Eski borç bakiyesi cariye <b>işlenmez</b>, yalnızca bilgi olarak görünür. Elle açılmış bir müşterinin telefonu ya da adı (tek aday varsa) tutarsa yeni kart açılmaz, o karta bağlanır.
         </p>
         {busy ? <Alert tone="neutral">İşleniyor…</Alert> : null}
         {error ? <Alert>{error}</Alert> : null}
@@ -107,7 +107,7 @@ export function SubscriberImport() {
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             <Stat label="Satır" value={r.summary.rows} />
             <Stat label="Yeni müşteri" value={r.summary.new} tone="ok" />
-            <Stat label="Güncellenecek" value={r.summary.updated} hint={r.summary.phone_match ? `${r.summary.phone_match} telefonla eşleşti` : undefined} />
+            <Stat label="Güncellenecek" value={r.summary.updated} hint={r.summary.phone_match ? `${r.summary.phone_match} mevcut karta bağlandı` : undefined} />
             <Stat label="Telefonsuz" value={r.summary.no_phone} tone={r.summary.no_phone ? "warn" : undefined} />
             <Stat label="Konumlu" value={r.summary.with_location} />
           </div>
@@ -121,9 +121,9 @@ export function SubscriberImport() {
           ) : null}
           {r.matched.length ? (
             <details className="text-sm">
-              <summary className="cursor-pointer text-brand">Telefonla mevcut karta bağlananlar ({r.matched.length})</summary>
+              <summary className="cursor-pointer text-brand">Mevcut karta bağlananlar ({r.matched.length}) — kontrol edin</summary>
               <ul className="mt-2 max-h-60 overflow-y-auto">
-                {r.matched.map((m) => <li key={m.abone}>Abone {m.abone} “{m.ad}” → {m.eslesen}</li>)}
+                {r.matched.map((m) => <li key={m.abone}>Abone {m.abone} “{m.ad}” → {m.eslesen} <span className="text-muted">({m.nasil === "telefon" ? "telefon" : m.nasil === "ad" ? "ad" : "elle"})</span></li>)}
               </ul>
             </details>
           ) : null}

@@ -1,5 +1,5 @@
 -- ALKASU 0027 — Abone listesi içe aktarma + Müşteri durum raporu + arama kaydı
--- Kural: BUSINESS_RULES §22 (M-20…M-26) · Karar: D-087
+-- Kural: BUSINESS_RULES §27 (M-20…M-26) · Karar: D-087
 -- 1) Eski sistemin abone listesi (abone no, tür, marka, saha, son satış, alım periyodu, sipariş sayısı, borç, konum…)
 --    müşteri kartına işlenir. Aynı dosya tekrar yüklenirse abone no ile güncellenir (çift kayıt olmaz).
 --    Eski borç bakiyesi CARİYE İŞLENMEZ; yalnızca bilgi olarak tutulur (legacy_debt). Cariye açılış ayrı karar.
@@ -56,7 +56,7 @@ language sql immutable as $$ select nullif(right(regexp_replace(coalesce(p, ''),
 
 -- ---------------------------------------------------------------------------
 -- 2) Abone listesi içe aktarma
--- Satır anahtarları: abone, tur, tip, ad, adres, ilce, tarif, marka, saha, son_satis, telefonlar[], kayit,
+-- Satır anahtarları: abone, baglan (isteğe bağlı: bağlanacak mevcut kart id), tur, tip, ad, adres, ilce, tarif, marka, saha, son_satis, telefonlar[], kayit,
 --                    periyot, siparis_sayisi, toplam_satis, borc, konum, tercih, row
 -- ---------------------------------------------------------------------------
 create or replace function app.import_subscribers(p_business uuid, p_rows jsonb, p_dry_run boolean, p_actor uuid)
@@ -66,6 +66,7 @@ declare
   r jsonb; v_row int; v_no int; v_errs jsonb := '[]'; v_matched jsonb := '[]'; v_seen int[] := '{}';
   v_id uuid; v_new int := 0; v_upd int := 0; v_phone_match int := 0; v_no_phone int := 0; v_loc int := 0;
   v_phones text[]; v_phone text; v_lat numeric; v_lng numeric; v_code text; v_last timestamptz; v_cnt int;
+  v_how text; v_key text; v_names jsonb := '{}';
 begin
   if jsonb_typeof(p_rows) <> 'array' or jsonb_array_length(p_rows) > 20000 then
     raise exception 'Geçersiz liste' using errcode = '22023';
@@ -84,6 +85,8 @@ begin
       v_errs := v_errs || jsonb_build_object('row', v_row, 'field', 'Abone', 'message', 'Abone numarası dosyada tekrar ediyor: ' || v_no);
     end if;
     v_seen := v_seen || v_no;
+    v_key := app.tr_key(regexp_replace(trim(coalesce(r->>'ad', '')), '\s+', ' ', 'g'));
+    v_names := v_names || jsonb_build_object(v_key, coalesce((v_names->>v_key)::int, 0) + 1);
   end loop;
 
   for r in select * from jsonb_array_elements(p_rows) loop
@@ -106,15 +109,36 @@ begin
     v_last := case when coalesce(r->>'son_satis', '') ~ '^\d{4}-\d{2}-\d{2}' then (r->>'son_satis')::timestamptz end;
 
     select id into v_id from public.customers where business_id = p_business and legacy_no = v_no;
+    v_how := null;
+    -- Daha önce elle açılmış (abone numarası olmayan) kart: 1) elle verilen bağlantı, 2) telefon, 3) ad, 4) ad başı.
+    -- Her biri yalnızca TEK aday varsa bağlanır; aksi halde yeni kart açılır.
+    if v_id is null and app.blank(r->>'baglan') is false then
+      select id into v_id from public.customers
+       where business_id = p_business and legacy_no is null and id::text = r->>'baglan';
+      if v_id is not null then v_how := 'elle'; end if;
+    end if;
     if v_id is null and v_phone is not null then
-      -- Daha önce elle açılmış müşteri: telefonu tek bir kayıtla eşleşiyorsa ona bağlanır
       select count(*), min(id::text)::uuid into v_cnt, v_id from public.customers
        where business_id = p_business and legacy_no is null and app.phone10(phone) = app.phone10(v_phone);
-      if v_cnt = 1 then
-        v_phone_match := v_phone_match + 1;
-        v_matched := v_matched || jsonb_build_object('row', v_row, 'abone', v_no, 'ad', trim(r->>'ad'),
-                       'eslesen', (select name from public.customers where id = v_id));
-      else v_id := null; end if;
+      if v_cnt = 1 then v_how := 'telefon'; else v_id := null; end if;
+    end if;
+    v_key := app.tr_key(regexp_replace(trim(r->>'ad'), '\s+', ' ', 'g'));
+    if v_id is null and coalesce((v_names->>v_key)::int, 0) = 1 then
+      select count(*), min(id::text)::uuid into v_cnt, v_id from public.customers
+       where business_id = p_business and legacy_no is null and channel <> 'bayi'
+         and app.tr_key(regexp_replace(trim(name), '\s+', ' ', 'g')) = v_key;
+      if v_cnt = 1 then v_how := 'ad'; else v_id := null; end if;
+      if v_id is null and v_cnt = 0 then
+        select count(*), min(id::text)::uuid into v_cnt, v_id from public.customers
+         where business_id = p_business and legacy_no is null and channel <> 'bayi'
+           and length(trim(name)) >= 4 and v_key like app.tr_key(regexp_replace(trim(name), '\s+', ' ', 'g')) || ' %';
+        if v_cnt = 1 then v_how := 'ad'; else v_id := null; end if;
+      end if;
+    end if;
+    if v_how is not null then
+      v_phone_match := v_phone_match + 1;
+      v_matched := v_matched || jsonb_build_object('row', v_row, 'abone', v_no, 'ad', trim(r->>'ad'), 'nasil', v_how,
+                     'eslesen', (select name from public.customers where id = v_id));
     end if;
 
     if v_id is null then v_new := v_new + 1; else v_upd := v_upd + 1; end if;

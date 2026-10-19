@@ -24,14 +24,15 @@ create temp table rows on commit drop as select $$[
   {"row":4,"abone":730,"tur":"İŞYERİ","tip":"Kurumsal","ad":"Antrepo AŞ","son_satis":"__D34__","telefonlar":["05321112233"],
    "periyot":16,"siparis_sayisi":27,"toplam_satis":28695,"borc":6120},
   {"row":5,"abone":12,"ad":"Hiç Almamış","telefonlar":["01010101010"],"siparis_sayisi":0},
-  {"row":6,"abone":13,"ad":"Düzenli Müşteri","son_satis":"__D3__","telefonlar":["05440000001"],"periyot":20,"siparis_sayisi":9}
+  {"row":6,"abone":13,"ad":"Düzenli Müşteri","son_satis":"__D3__","telefonlar":["05440000001"],"periyot":20,"siparis_sayisi":9},
+  {"row":7,"abone":14,"ad":"PEŞİNCİ  MÜŞTERİ SAN.","telefonlar":[]}
 ]$$::text as j;
 update rows set j = replace(replace(replace(replace(j,
   '__D10__', (now() - interval '10 days')::text), '__D400__', (now() - interval '400 days')::text),
   '__D34__', (now() - interval '34 days')::text), '__D3__', (now() - interval '3 days')::text);
 
 select test.eq((public.import_subscribers(test.biz(), (select j::jsonb from rows), true))->'summary'->>'new', '4', 'Ön kontrol: 4 yeni');
-select test.eq((public.import_subscribers(test.biz(), (select j::jsonb from rows), true))->'summary'->>'phone_match', '1', 'Telefonu tutan mevcut müşteri eşleşir');
+select test.eq((public.import_subscribers(test.biz(), (select j::jsonb from rows), true))->'summary'->>'phone_match', '2', 'Telefon ve ad başıyla mevcut kartlar eşleşir');
 select test.eq((select count(*) from public.customers where legacy_no is not null)::int, 0, 'Ön kontrol hiçbir şey yazmaz');
 select test.eq((public.import_subscribers(test.biz(), (select j::jsonb from rows), false))->>'applied', 'true', 'Aktarım uygulanır');
 select test.eq((select legacy_no from public.customers where id = test.cust('M002')), 730, 'Mevcut müşteri abone numarasına bağlandı (çift kayıt yok)');
@@ -47,7 +48,11 @@ select test.eq((select count(*) from audit.log where action = 'abone_ice_aktarma
 
 -- Tekrar yükleme: güncellenir, yeni kayıt açılmaz
 select test.eq((public.import_subscribers(test.biz(), (select j::jsonb from rows), false))->'summary'->>'new', '0', 'Aynı dosya tekrar: yeni kayıt yok');
-select test.eq((select count(*) from public.customers where legacy_no is not null)::int, 5, 'Toplam 5 abone');
+select test.eq((select count(*) from public.customers where legacy_no is not null)::int, 6, 'Toplam 6 abone');
+select test.eq((select legacy_no from public.customers where id = test.cust('M003')), 14, 'Adın başı tutan elle açılmış kart bağlandı');
+select test.eq((public.import_subscribers(test.biz(), '[{"row":2,"abone":99,"ad":"ahmet bakkal"},{"row":3,"abone":98,"ad":"Ahmet Bakkal"}]', true))->'summary'->>'phone_match', '0',
+               'Dosyada aynı ad iki kez geçerse adla bağlanmaz');
+select test.eq((public.import_subscribers(test.biz(), '[{"row":2,"abone":99,"ad":"ahmet  bakkal"}]', true))->'matched'->0->>'nasil', 'ad', 'Ad (büyük/küçük harf, boşluk farkı) eşleşir');
 select test.eq(jsonb_array_length(public.import_subscribers(test.biz(), '[{"row":2,"abone":1,"ad":"a"},{"row":3,"abone":1,"ad":"b"},{"row":4,"ad":"c"}]', true)->'errors'), 2,
                'Tekrar eden ve numarasız abone hata');
 
