@@ -67,6 +67,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           <span className="flex flex-wrap gap-2">
             <Link href="/musteriler/durum" className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-brand bg-brand-soft px-4 font-medium text-brand"><PhoneCall className="h-4 w-4" /> Durum raporu</Link>
             {ctx.role === "yonetici" ? <Link href="/musteriler/aktar" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Abone listesi yükle</Link> : null}
+            {ctx.role === "yonetici" ? <Link href="/musteriler/logo" className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">İşbaşı eşleştirme</Link> : null}
             <Link href={`/musteriler/yeni${sp.kanal ? `?kanal=${sp.kanal}` : ""}`} className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Yeni müşteri</Link>
           </span>
         } />

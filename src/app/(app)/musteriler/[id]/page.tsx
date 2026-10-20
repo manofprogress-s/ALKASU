@@ -101,7 +101,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
       ) : null}
       <BillingCard
         customerId={c.id}
-        v={{ legal_title: c.legal_title, tax_no: c.tax_no, tax_office: c.tax_office, email: c.email, city: c.city, district: c.district, address: c.address, channel: c.channel }}
+        v={{ legal_title: c.legal_title, tax_no: c.tax_no, tax_office: c.tax_office, email: c.email, city: c.city, district: c.district, address: c.address, channel: c.channel, logo_code: c.logo_code }}
         canEdit={!c.owner_dealer_id}
         highlight={(await searchParams).fatura === "1"}
       />

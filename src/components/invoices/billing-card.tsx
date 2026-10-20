@@ -15,6 +15,7 @@ import { taxIdKind, TAX_KIND_LABEL } from "@/lib/invoice";
 export interface BillingValues {
   legal_title: string | null; tax_no: string | null; tax_office: string | null; email: string | null;
   city: string | null; district: string | null; address: string | null; channel: string;
+  logo_code?: string | null;
 }
 
 /** Müşteri kartında fatura bilgileri (F-20). Personel girer; doğrulama anında gösterilir. */
@@ -39,6 +40,13 @@ export function BillingCard({ customerId, v, canEdit, highlight }: { customerId:
   if (!v.address) missing.push("adres");
   if (!v.city || !v.district) missing.push("il/ilçe");
   if (!v.email) missing.push("e-posta");
+
+  async function unlink() {
+    const { error } = await supabaseBrowser().rpc("logo_firm_unlink", { p_business: ctx.businessId, p_customer: customerId });
+    if (error) return toast(errorMessage(error), "danger");
+    toast("İşbaşı bağlantısı kaldırıldı", "ok");
+    router.refresh();
+  }
 
   async function save() {
     if (digits && !kind) return toast("VKN/TCKN geçersiz", "danger");
@@ -71,6 +79,12 @@ export function BillingCard({ customerId, v, canEdit, highlight }: { customerId:
       {missing.length ? (
         <p className="flex items-center gap-1.5 text-sm text-warn"><TriangleAlert className="h-4 w-4 shrink-0" /> Fatura için eksik: {missing.join(", ")}</p>
       ) : <p className="flex items-center gap-1.5 text-sm text-ok"><CheckCircle2 className="h-4 w-4" /> Fatura için bilgiler tamam</p>}
+      {v.logo_code ? (
+        <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
+          <span>İşbaşı cari kodu: <span className="num text-text">{v.logo_code.replace(/^0+/, "")}</span></span>
+          {ctx.role === "yonetici" ? <button type="button" className="text-danger underline-offset-2 hover:underline" onClick={() => void unlink()}>bağlantıyı kaldır</button> : null}
+        </p>
+      ) : ctx.role === "yonetici" ? <p className="text-xs text-muted">İşbaşı’ndaki cariyle henüz eşleştirilmedi.</p> : null}
 
       <Dialog open={open} onClose={() => setOpen(false)} title="Fatura bilgileri"
         footer={<Button size="lg" className="w-full" loading={saving} onClick={() => void save()}>Kaydet</Button>}>
