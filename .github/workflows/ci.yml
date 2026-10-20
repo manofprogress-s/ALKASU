@@ -13,7 +13,7 @@ concurrency:
 jobs:
   database:
     name: Veritabanı testleri
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: public.ecr.aws/docker/library/postgres:16
@@ -38,7 +38,7 @@ jobs:
 
   app:
     name: Lint, tip kontrolü, test, build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     env:
@@ -87,7 +87,7 @@ jobs:
     name: Migrationları uygula
     needs: [database, app]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: production
     steps:
       - uses: actions/checkout@v4
