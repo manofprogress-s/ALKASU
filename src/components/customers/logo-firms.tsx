@@ -54,7 +54,7 @@ export function LogoFirms() {
       setPreview(acc);
       // Kesin eşleşmeler hazır seçili; olası ve çoklu satırlar kullanıcı onayı bekler
       const c: Record<string, string> = {};
-      for (const r of acc.results) if (r.status === "kesin") c[r.code] = r.candidates[0].id;
+      for (const r of acc.results) { const id = r.candidates[0]?.id; if (r.status === "kesin" && id) c[r.code] = id; }
       setChoice(c);
       setOpen(acc.results.some((r) => r.status === "olasi" || r.status === "coklu") ? "olasi" : "kesin");
     } catch (e) {
@@ -193,7 +193,7 @@ export function LogoFirms() {
                 <div className="flex flex-wrap items-start gap-3">
                   {selectable && r.candidates.length === 1 ? (
                     <input type="checkbox" className="mt-1 h-5 w-5 accent-brand" checked={!!sel} aria-label="Bağla"
-                      onChange={(e) => setChoice((c) => ({ ...c, [r.code]: e.target.checked ? r.candidates[0].id : "" }))} />
+                      onChange={(e) => setChoice((c) => ({ ...c, [r.code]: e.target.checked ? (r.candidates[0]?.id ?? "") : "" }))} />
                   ) : null}
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">{r.unvan}</div>

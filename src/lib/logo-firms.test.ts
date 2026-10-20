@@ -19,8 +19,8 @@ describe("İşbaşı cari listesi okuma (F-28)", () => {
       ""].join("\r\n");
     const r = parseLogoPaste(text);
     expect(r).toHaveLength(2);
-    expect(r[0]).toMatchObject({ code: "0000000000000002", tip: "kurumsal", aktif: true, unvan: "AAT MAKİNA A.Ş.", sehir: "Kocaeli", ilce: null, vkn: "0010400968", vd: "YENİKAPI VD" });
-    expect(r[1]).toMatchObject({ tip: "bireysel", aktif: false, telefon: "0532 111 22 33", eposta: "ahmet@ornek.com", row: 3 });
+    expect(r[0]!).toMatchObject({ code: "0000000000000002", tip: "kurumsal", aktif: true, unvan: "AAT MAKİNA A.Ş.", sehir: "Kocaeli", ilce: null, vkn: "0010400968", vd: "YENİKAPI VD" });
+    expect(r[1]!).toMatchObject({ tip: "bireysel", aktif: false, telefon: "0532 111 22 33", eposta: "ahmet@ornek.com", row: 3 });
   });
   it("başlıksız metin boş döner", () => {
     expect(parseLogoPaste("0000000000000002\t2\tAktif")).toEqual([]);
@@ -29,17 +29,17 @@ describe("İşbaşı cari listesi okuma (F-28)", () => {
     expect(padDigits("2", 16)).toBe("0000000000000002");
     expect(padDigits("ABC1", 16)).toBe("ABC1");
     const r = logoFirmsFromSheet([{ row: "2", "müşteri_kodu": "43", "müşteri_ünvanı": "AC MANİFOLD", "müşteri_vkn_-_tckn": "31721015" }]);
-    expect(r[0].code).toBe("0000000000000043");
-    expect(r[0].vkn).toBe("0031721015");
+    expect(r[0]!.code).toBe("0000000000000043");
+    expect(r[0]!.vkn).toBe("0031721015");
     const r2 = logoFirmsFromSheet([{ row: "2", "müşteri_kodu": "2", "müşteri_ünvanı": "AAT", "müşteri_vkn_-_tckn": "10400968" }]);
-    expect(r2[0].vkn).toBe("0010400968");
+    expect(r2[0]!.vkn).toBe("0010400968");
     const r3 = logoFirmsFromSheet([{ row: "2", "müşteri_kodu": "2", "müşteri_ünvanı": "AAT", "müşteri_vkn_-_tckn": "310400968" }]);
-    expect(r3[0].vkn).toBe("0310400968");
+    expect(r3[0]!.vkn).toBe("0310400968");
   });
 });
 
 describe("doldurulacak alanlar", () => {
-  const firm = parseLogoPaste([HEAD, "1\t2\tAktif\tX LTD\t\t\t\tKocaeli\tKartepe\tAdres 1\t\t1234567890\tALEMDAR\t\t\t\t\t\t\tx@y.com"].join("\n"))[0];
+  const firm = parseLogoPaste([HEAD, "1\t2\tAktif\tX LTD\t\t\t\tKocaeli\tKartepe\tAdres 1\t\t1234567890\tALEMDAR\t\t\t\t\t\t\tx@y.com"].join("\n"))[0]!;
   const cand: MatchCandidate = { id: "a", code: "M1", name: "X", legal_title: null, tax_no: null, tax_office: null, phone: null, city: null,
     district: "Başiskele", address: null, email: null, channel: "kurumsal", logo_code: null };
   it("yalnızca boş alanlar", () => {

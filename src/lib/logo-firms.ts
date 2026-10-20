@@ -69,7 +69,7 @@ export function parseLogoPaste(text: string): LogoFirm[] {
   const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim() !== "");
   if (lines.length < 2) return [];
   const idx = new Map<Field, number>();
-  lines[0].split("\t").forEach((h, i) => { const f = headerField(h); if (f && !idx.has(f)) idx.set(f, i); });
+  (lines[0] ?? "").split("\t").forEach((h, i) => { const f = headerField(h); if (f && !idx.has(f)) idx.set(f, i); });
   if (!idx.has("code") || !(idx.has("unvan") || idx.has("ekran"))) return [];
   const out: LogoFirm[] = [];
   lines.slice(1).forEach((l, i) => {
