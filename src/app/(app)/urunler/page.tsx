@@ -6,11 +6,12 @@ import { DataTable } from "@/components/ui/table";
 import { formatNumber, formatTRY } from "@/lib/format";
 import { can } from "@/lib/roles";
 import { SearchBox } from "@/components/ui/search-box";
+import { ProductImageQuick } from "@/components/products/product-image";
 
 export const metadata = { title: "Ürünler" };
 
 interface Row {
-  id: string; code: string; name: string; active: boolean; is_container: boolean; deposit_amount: number | null; base_unit_name: string;
+  id: string; code: string; name: string; image_path: string | null; active: boolean; is_container: boolean; deposit_amount: number | null; base_unit_name: string;
   brands: { name: string } | null; categories: { name: string } | null;
   product_units: { name: string; factor: number; price: number | null; active: boolean; is_base: boolean }[];
 }
@@ -21,7 +22,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const supabase = await supabaseServer();
   let q = supabase
     .from("products")
-    .select("id, code, name, active, is_container, deposit_amount, base_unit_name, brands(name), categories(name), product_units(name, factor, price, active, is_base)")
+    .select("id, code, name, image_path, active, is_container, deposit_amount, base_unit_name, brands(name), categories(name), product_units(name, factor, price, active, is_base)")
     .eq("business_id", ctx.businessId)
     .order("name");
   if (!sp.pasif) q = q.eq("active", true);
@@ -63,6 +64,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             const s = stock.get(r.id) ?? 0;
             return <span className={s < 0 ? "text-danger" : ""}>{formatNumber(s)} {r.base_unit_name.toLocaleLowerCase("tr-TR")}</span>;
           } },
+          ...(admin ? [{ key: "image", label: "Görsel", align: "center" as const, interactive: true, className: "w-12 py-1",
+            render: (r: Row) => <ProductImageQuick productId={r.id} productName={r.name} path={r.image_path} /> }] : []),
         ]}
         empty={admin ? "Henüz ürün yok. Excel şablonuyla toplu aktarabilir veya tek tek ekleyebilirsiniz." : "Ürün yok"}
       />

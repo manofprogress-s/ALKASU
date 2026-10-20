@@ -9,6 +9,8 @@ export interface Column<T> {
   align?: "left" | "right" | "center";
   className?: string;
   hideOnMobile?: boolean;
+  /** Hücrede kendi düğmesi var: satır bağlantısına sarılmaz; mobilde kartın sağ üstünde gösterilir */
+  interactive?: boolean;
 }
 
 /** Masaüstünde tablo; mobilde her satırı kart olarak gösterir. */
@@ -41,7 +43,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, empty, mobileT
                 <tr key={rowKey(r)} className={cn(href && "cursor-pointer hover:bg-surface-2")}>
                   {columns.map((c) => (
                     <td key={c.key} className={cn("px-3 py-2", c.align === "right" && "num text-right", c.align === "center" && "text-center", c.className)}>
-                      {href ? <Link href={href} className="block">{c.render(r)}</Link> : c.render(r)}
+                      {href && !c.interactive ? <Link href={href} className="block">{c.render(r)}</Link> : c.render(r)}
                     </td>
                   ))}
                 </tr>
@@ -53,12 +55,13 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, empty, mobileT
       <ul className="space-y-2 md:hidden">
         {rows.map((r) => {
           const href = onRowClick?.(r);
+          const tools = columns.filter((c) => c.interactive && !c.hideOnMobile);
           const body = (
-            <div className="rounded-2xl border border-border bg-surface p-3">
+            <div className={cn("rounded-2xl border border-border bg-surface p-3", tools.length && "pr-12")}>
               {mobileTitle ? <div className="mb-1 font-medium">{mobileTitle(r)}</div> : null}
               <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
                 {columns
-                  .filter((c) => !c.hideOnMobile)
+                  .filter((c) => !c.hideOnMobile && !c.interactive)
                   .map((c) => (
                     <div key={c.key} className="contents">
                       <dt className="text-muted">{c.label}</dt>
@@ -68,7 +71,12 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, empty, mobileT
               </dl>
             </div>
           );
-          return <li key={rowKey(r)}>{href ? <Link href={href}>{body}</Link> : body}</li>;
+          return (
+            <li key={rowKey(r)} className={tools.length ? "relative" : undefined}>
+              {href ? <Link href={href}>{body}</Link> : body}
+              {tools.length ? <div className="absolute right-2 top-2 flex gap-1">{tools.map((c) => <span key={c.key}>{c.render(r)}</span>)}</div> : null}
+            </li>
+          );
         })}
       </ul>
     </>
