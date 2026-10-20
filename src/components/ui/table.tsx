@@ -57,7 +57,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, empty, mobileT
           const href = onRowClick?.(r);
           const tools = columns.filter((c) => c.interactive && !c.hideOnMobile);
           const body = (
-            <div className={cn("rounded-2xl border border-border bg-surface p-3", tools.length && "pr-12")}>
+            <div className={cn("rounded-2xl border border-border bg-surface p-3", tools.length > 0 && "pr-12")}>
               {mobileTitle ? <div className="mb-1 font-medium">{mobileTitle(r)}</div> : null}
               <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
                 {columns
