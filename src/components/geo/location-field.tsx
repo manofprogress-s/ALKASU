@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Crosshair, MapPin, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
-import { isShortMapsLink, parseLocation, type LatLng } from "@/lib/geo";
+import { locationInput, type LatLng } from "@/lib/geo";
 import { resolveMapsLink } from "@/lib/geo-actions";
 import { LocationView } from "./location-view";
 import { LOCATION_NOTICE } from "@/lib/kvkk";
@@ -25,13 +25,23 @@ export function LocationField({ value, onChange, address, customer = false }: {
 
   async function apply(input: string) {
     setError(null);
-    let p = parseLocation(input);
-    if (!p && isShortMapsLink(input)) {
+    if (!input.trim()) return;
+    const found = locationInput(input);
+    let p = found.point;
+    if (!p && found.link) {
       setBusy(true);
-      p = await resolveMapsLink(input);
-      setBusy(false);
+      try {
+        p = await resolveMapsLink(found.link);
+      } catch {
+        p = null; // sunucuya ulaşılamadı (ör. uygulama güncellendi): aşağıdaki açıklama gösterilir
+      } finally {
+        setBusy(false);
+      }
+      if (!p) {
+        return setError("Kısa Google Maps bağlantısı açılamadı. Bağlantıyı tarayıcıda açıp adres çubuğundaki uzun bağlantıyı kopyalayın ya da haritada yere uzun basıp çıkan '40.76, 29.94' koordinatını yapıştırın. Konum kaydedilmedi.");
+      }
     }
-    if (!p) return setError("Konum okunamadı. Google Maps'te yeri işaretleyip 'Paylaş → Bağlantıyı kopyala' ile aldığınız bağlantıyı veya '40.76, 29.94' biçiminde koordinat yapıştırın.");
+    if (!p) return setError("Konum okunamadı; konum kaydedilmedi. Google Maps'te yeri işaretleyip 'Paylaş → Bağlantıyı kopyala' ile aldığınız bağlantıyı veya '40.76, 29.94' biçiminde koordinat yapıştırın.");
     onChange(p);
     setText("");
   }
@@ -65,6 +75,14 @@ export function LocationField({ value, onChange, address, customer = false }: {
             value={text}
             placeholder="https://maps.app.goo.gl/… veya 40.76, 29.94"
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter formu (müşteriyi) konum uygulanmadan kaydetmesin: önce konumu uygula
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void apply(text);
+              }
+            }}
+            onBlur={() => { if (text.trim()) void apply(text); }}
             onPaste={(e) => {
               const t = e.clipboardData.getData("text");
               if (t) {

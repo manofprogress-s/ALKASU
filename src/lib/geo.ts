@@ -41,9 +41,29 @@ export function parseLocation(input: string | null | undefined): LatLng | null {
   return null;
 }
 
-/** Kısa bağlantı (maps.app.goo.gl) sunucuda açılmalıdır. */
+/** Kısa bağlantı (maps.app.goo.gl, goo.gl/maps, g.co/kgs) sunucuda açılmalıdır. */
 export function isShortMapsLink(input: string): boolean {
-  return /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(input.trim());
+  return /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs)\//i.test(input.trim());
+}
+
+/**
+ * Yapıştırılan metinden konum girdisi: Google Maps'in "Paylaş" metni çoğu zaman yer adı + bağlantı içerir
+ * ("Alay Ticaret\nhttps://maps.app.goo.gl/…"). Önce metnin tamamı, sonra içindeki ilk bağlantı denenir.
+ */
+export function locationInput(text: string): { point: LatLng | null; link: string | null } {
+  const t = (text ?? "").trim();
+  const direct = parseLocation(t);
+  if (direct) return { point: direct, link: null };
+  const url = t.match(/https?:\/\/[^\s"'<>]+/i)?.[0]?.replace(/[).,;]+$/, "") ?? null;
+  if (url) {
+    const p = parseLocation(url);
+    if (p) return { point: p, link: null };
+    if (isShortMapsLink(url)) return { point: null, link: url };
+  }
+  // Metnin içinde koordinat: "Konum: 40.7651, 29.9408"
+  const m = t.match(/(-?\d{1,2}\.\d{3,})\s*[,;]\s*(-?\d{1,3}\.\d{3,})/);
+  if (m) return { point: parseLocation(`${m[1]}, ${m[2]}`), link: null };
+  return { point: null, link: null };
 }
 
 export const mapsUrl = (p: LatLng) => `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`;

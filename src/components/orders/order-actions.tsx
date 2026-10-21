@@ -99,14 +99,23 @@ export function OrderActions(props: {
           </Select>
         </Field>
       ) : null}
-      {props.canAssign && !props.dealerId ? (
-        <Field label="Sorumlu">
+      {props.canAssign ? (
+        <Field
+          label="Siparişin sorumlusu (teslim edecek çalışan)"
+          hint={props.dealerId
+            ? `Şu an bayide: ${dealerName(props.dealerId)}. Bir çalışan seçerseniz sipariş bayiden alınıp ona devredilir.`
+            : "Yalnızca bu siparişin sorumlusu değişir; müşteri kartı ve müşterinin kurumsal/ev niteliği değişmez."}
+        >
           <Select
-            value={props.assignee ?? ""}
+            value={props.dealerId ? "" : props.assignee ?? ""}
             disabled={busy}
-            onChange={(e) => void call("assign_order", { p_order: props.orderId, p_assignee: e.target.value || null }, { success: "Sipariş atandı" })}
+            onChange={(e) => {
+              const id = e.target.value || null;
+              const name = props.assignees.find((a) => a.user_id === id)?.display_name;
+              void call("assign_order", { p_order: props.orderId, p_assignee: id }, { success: name ? `Sipariş ${name} adlı çalışana devredildi` : "Sorumlu kaldırıldı" });
+            }}
           >
-            <option value="">Atanmadı</option>
+            <option value="">{props.dealerId ? "— Bayide —" : "Atanmadı"}</option>
             {props.assignees.map((a) => <option key={a.user_id} value={a.user_id}>{a.display_name}</option>)}
           </Select>
         </Field>

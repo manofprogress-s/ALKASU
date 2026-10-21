@@ -11,14 +11,14 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
   const supabase = await supabaseServer();
   const { data } = await supabase
     .from("purchases")
-    .select("*, suppliers(name), purchase_items(id, qty, free_qty, factor, products(name), product_units(name)), purchase_empties(qty, products(name))")
+    .select("*, suppliers(name), purchase_items(id, qty, free_qty, factor, products(name), product_units(name)), purchase_empties(qty, direction, products(name))")
     .eq("id", id)
     .maybeSingle();
   if (!data) notFound();
   const p = data as unknown as {
     id: string; no: number; doc_no: string | null; doc_date: string; status: string; suppliers: { name: string } | null;
     purchase_items: { id: string; qty: number; free_qty: number; factor: number; products: { name: string }; product_units: { name: string } }[];
-    purchase_empties: { qty: number; products: { name: string } }[];
+    purchase_empties: { qty: number; direction: string; products: { name: string } }[];
   };
   let costs = new Map<string, { unit_cost: number; line_total: number }>();
   if (ctx.role === "yonetici") {
@@ -45,8 +45,13 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
       )}
       {p.purchase_empties.length ? (
         <Card className="text-sm">
-          <div className="mb-1 font-semibold">Tedarikçiye verilen boş kaplar</div>
-          {p.purchase_empties.map((e, k) => <div key={k}>{e.products.name}: {e.qty}</div>)}
+          <div className="mb-1 font-semibold">Verilen / alınan ürünler</div>
+          {p.purchase_empties.map((e, k) => (
+            <div key={k} className="flex justify-between gap-2">
+              <span>{e.products.name}: {e.qty}</span>
+              <Badge tone={e.direction === "alinan" ? "ok" : "neutral"}>{e.direction === "alinan" ? "Tedarikçiden alındı" : "Tedarikçiye verildi"}</Badge>
+            </div>
+          ))}
         </Card>
       ) : null}
     </div>

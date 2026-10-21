@@ -22,7 +22,10 @@ export default async function CountsPage() {
     <div className="space-y-4">
       <PageHeader title="Sayım" subtitle="Sayım farkları yönetici onayıyla stoğa yansır" />
       {open ? (
-        <Link href={`/stok/sayim/${open.id}`} className="block rounded-2xl bg-brand p-4 text-center font-semibold text-white">Açık sayıma devam et (#{open.no})</Link>
+        <Link href={`/stok/sayim/${open.id}`} className="block rounded-2xl bg-brand p-4 text-center font-semibold text-white">
+          Açık sayım #{open.no} · {ctx.role === "yonetici" ? "devam et / onayla" : "devam et"}
+          <span className="block text-sm font-normal opacity-90">Stoğa henüz işlenmedi; yönetici onayıyla işlenir.</span>
+        </Link>
       ) : (
         <StartCount products={products} />
       )}
@@ -31,7 +34,8 @@ export default async function CountsPage() {
           { key: "no", label: "No", hideOnMobile: true, render: (r) => `#${r.no}` },
           { key: "t", label: "Başlangıç", render: (r) => formatDateTime(r.started_at) },
           { key: "s", label: "Kapsam", render: (r) => (r.scope === "tam" ? "Tam sayım" : "Kısmi") },
-          { key: "d", label: "Durum", render: (r) => <Badge tone={r.status === "acik" ? "brand" : r.status === "onaylandi" ? "ok" : "neutral"}>{r.status === "acik" ? "Açık" : r.status === "onaylandi" ? "Onaylandı" : "İptal"}</Badge> },
+          { key: "d", label: "Durum", render: (r) => <Badge tone={r.status === "acik" ? "warn" : r.status === "onaylandi" ? "ok" : "neutral"}>{r.status === "acik" ? "Beklemede · stoğa işlenmedi" : r.status === "onaylandi" ? "Stoğa işlendi" : "İptal"}</Badge> },
+          { key: "k", label: "Onay", hideOnMobile: true, render: (r) => (r.decided_at ? formatDateTime(r.decided_at) : "—") },
         ]} />
     </div>
   );

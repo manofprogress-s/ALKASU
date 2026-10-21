@@ -79,7 +79,7 @@ select public.receive_goods(test.biz(), jsonb_build_object('id', gen_random_uuid
   'empties', jsonb_build_array(jsonb_build_object('product_id', test.pid('BK-001'), 'qty', 30))));
 select test.eq(test.stock('BK-001'), 60 - 30, 'Satışta gelen 60 boş, tedarikçiye 30 iade');
 select test.throws($$select public.receive_goods(test.biz(), jsonb_build_object('id', gen_random_uuid(),
-  'empties', jsonb_build_array(jsonb_build_object('product_id', test.pid('SU-005'), 'qty', 1))))$$, '%boş kap%', 'Yalnızca boş kap ürünü iade edilir');
+  'empties', jsonb_build_array(jsonb_build_object('product_id', test.pid('SU-005'), 'qty', 1))))$$, '%kap / ambalaj%', 'Yalnızca boş kap ürünü iade edilir');
 
 -- Idempotency
 select test.eq((public.receive_goods(test.biz(), jsonb_build_object('id', '22222222-0000-0000-0000-000000000001', 'items', '[]'::jsonb))->>'duplicate')::boolean,

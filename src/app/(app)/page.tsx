@@ -40,12 +40,17 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   if (ctx.role === "musteri") return <CustomerHome name={ctx.displayName} welcome={!!sp.hosgeldin} orderNo={sp.siparis} warning={sp.uyari} />;
   const supabase = await supabaseServer();
-  const [{ data, error }, pendingReq] = await Promise.all([
+  const [{ data, error }, pendingReq, openCount] = await Promise.all([
     supabase.rpc("dashboard", { p_business: ctx.businessId }),
     ctx.role === "bayi" && ctx.customerId
       ? supabase.from("customer_requests").select("id", { count: "exact", head: true }).eq("dealer_id", ctx.customerId).eq("status", "bekliyor")
       : Promise.resolve({ count: 0 }),
+    // Onay bekleyen sayım (T-04): yöneticiye ana sayfada hatırlatılır
+    ctx.role === "yonetici"
+      ? supabase.from("stock_counts").select("id, no").eq("business_id", ctx.businessId).eq("status", "acik").limit(1).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
+  const pendingCount = openCount.data as { id: string; no: number } | null;
   const d = (data ?? {}) as Dashboard;
 
   return (
@@ -53,6 +58,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <PageHeader title={`Merhaba, ${ctx.displayName}`} subtitle={formatDate(d.today ?? new Date())} />
       {sp.yetki === "yok" ? <Alert tone="warn">Bu sayfa için yetkiniz yok.</Alert> : null}
       {error ? <Alert>{error.message}</Alert> : null}
+      {pendingCount ? (
+        <Link href={`/stok/sayim/${pendingCount.id}`} className="block">
+          <Alert tone="warn">Sayım #{pendingCount.no} onayınızı bekliyor; stoğa henüz işlenmedi. Farkları görüp onaylamak için dokunun →</Alert>
+        </Link>
+      ) : null}
 
       {can(ctx.role, "sell") ? (
         <Link href="/satis" className="flex items-center justify-center gap-3 rounded-2xl bg-brand p-5 text-lg font-semibold text-white shadow-sm active:scale-[0.99]">
@@ -103,13 +113,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       ) : null}
       {ctx.role !== "bayi" && d.my_open_orders !== undefined && can(ctx.role, "orders") ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          <Stat label="Bana atanan açık sipariş" value={d.my_open_orders ?? 0} hint={<Link href="/siparisler?atanan=ben" className="text-brand">Teslimatlarım →</Link>} tone={d.my_open_orders ? "warn" : undefined} />
-          <Stat label="Bugün teslim edilecek" value={d.orders_today ?? 0} hint={<Link href="/siparisler" className="text-brand">Siparişler →</Link>} />
+          <Stat label="Bana atanan açık sipariş" value={d.my_open_orders ?? 0} hint={<Link href="/siparisler?durum=acik&atanan=ben" className="text-brand">Teslimatlarım →</Link>} tone={d.my_open_orders ? "warn" : undefined} />
+          <Stat label="Bugün teslim edilecek" value={d.orders_today ?? 0} hint={<Link href="/siparisler?durum=acik&gun=bugun" className="text-brand">Siparişler →</Link>} />
           {d.pending_approval ? (
             <Stat label="Onay bekleyen (internet)" value={d.pending_approval} hint={<Link href="/siparisler?durum=onay_bekliyor" className="text-brand">Onayla →</Link>} tone="warn" />
           ) : null}
           {d.unassigned_orders !== undefined ? (
-            <Stat label="Atanmamış sipariş" value={d.unassigned_orders} hint={<Link href="/siparisler?atanan=yok" className="text-brand">Ata →</Link>} tone={d.unassigned_orders ? "warn" : undefined} />
+            <Stat label="Atanmamış sipariş" value={d.unassigned_orders} hint={<Link href="/siparisler?durum=acik&atanan=yok" className="text-brand">Ata →</Link>} tone={d.unassigned_orders ? "warn" : undefined} />
           ) : null}
         </div>
       ) : null}
@@ -121,7 +131,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       {d.net_revenue !== undefined ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Bugünkü satış" value={formatTRY(d.net_revenue)} hint={`${d.sales_count ?? 0} fiş`} />
+          {ctx.role === "yonetici" ? (
+            <Link href="/satislar" className="block"><Stat label="Bugünkü satış (tüm işletme)" value={formatTRY(d.net_revenue)} hint={<span className="text-brand">{d.sales_count ?? 0} fiş · listele →</span>} /></Link>
+          ) : <Stat label="Bugünkü satış (tüm işletme)" value={formatTRY(d.net_revenue)} hint={`${d.sales_count ?? 0} fiş`} />}
           {d.gross_profit !== null && d.gross_profit !== undefined ? <Stat label="Brüt kâr" value={formatTRY(d.gross_profit)} tone="ok" /> : null}
           <Stat label="Nakit / POS" value={formatTRY(d.cash)} hint={`POS ${formatTRY(d.pos)}`} />
           <Stat label="Veresiye satış" value={formatTRY(d.credit)} hint={`Depozito ${formatTRY(d.deposit)}`} />
@@ -130,7 +142,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       {d.my_sales_count !== undefined ? (
         <div className="grid grid-cols-2 gap-3">
-          <Stat label="Bugün sattığım" value={formatTRY(d.my_sales_total)} hint={`${d.my_sales_count} fiş`} />
+          <Link href="/satislar" className="block"><Stat label="Bugün sattığım" value={formatTRY(d.my_sales_total)} hint={<span className="text-brand">{d.my_sales_count} fiş · listele →</span>} /></Link>
         </div>
       ) : null}
 

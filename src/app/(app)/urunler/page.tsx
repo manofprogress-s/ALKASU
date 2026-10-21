@@ -55,7 +55,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         columns={[
           { key: "code", label: "Kod", render: (r) => r.code },
           { key: "name", label: "Ürün", hideOnMobile: true, render: (r) => (
-            <span className="flex items-center gap-2">{r.name}{!r.active ? <Badge>Pasif</Badge> : null}{r.is_container ? <Badge tone="brand">Boş kap</Badge> : null}{r.deposit_amount ? <Badge tone="brand">Depozitolu</Badge> : null}</span>
+            <span className="flex items-center gap-2">{r.name}{!r.active ? <Badge>Pasif</Badge> : null}{r.is_container ? <Badge tone="brand">Kap / ambalaj</Badge> : null}{r.deposit_amount ? <Badge tone="brand">Depozitolu</Badge> : null}</span>
           ) },
           { key: "brand", label: "Marka", render: (r) => r.brands?.name ?? "—" },
           { key: "units", label: "Birim / fiyat", render: (r) => r.product_units.filter((u) => u.active).sort((a, b) => a.factor - b.factor)

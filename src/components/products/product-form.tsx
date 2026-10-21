@@ -113,7 +113,7 @@ export function ProductForm({ initial, brands, categories, containers }: {
           <Select value={v.kind} onChange={(e) => set("kind", e.target.value as ProductFormValue["kind"])}>
             <option value="normal">Normal ürün</option>
             <option value="depozitolu">Depozitolu (dolu damacana vb.)</option>
-            <option value="bos_kap">Boş kap (satılmaz, stoğu izlenir)</option>
+            <option value="bos_kap">Kap / ambalaj: boş damacana, viyol, palet (satılmaz, stoğu izlenir)</option>
           </Select>
         </Field>
         <Field label="KDV oranı">

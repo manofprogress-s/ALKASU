@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { directionsUrl, isShortMapsLink, parseLocation, toLatLng } from "./geo";
+import { directionsUrl, isShortMapsLink, locationInput, parseLocation, toLatLng } from "./geo";
 
 describe("konum", () => {
   it("düz koordinat", () => {
@@ -23,5 +23,21 @@ describe("konum", () => {
     expect(isShortMapsLink("https://maps.app.goo.gl/abc123")).toBe(true);
     expect(isShortMapsLink("https://www.google.com/maps/@1,2")).toBe(false);
     expect(directionsUrl({ lat: 40.1, lng: 29.2 })).toBe("https://www.google.com/maps/dir/?api=1&destination=40.1,29.2");
+  });
+});
+
+describe("paylaşılan metinden konum (saha hatası 21.10)", () => {
+  it("yer adı + kısa bağlantı", () => {
+    expect(locationInput("Alay Ticaret\nhttps://maps.app.goo.gl/AbC123?g_st=iw")).toEqual({ point: null, link: "https://maps.app.goo.gl/AbC123?g_st=iw" });
+    expect(locationInput("Şuraya bak: https://g.co/kgs/xYz9.")).toEqual({ point: null, link: "https://g.co/kgs/xYz9" });
+  });
+  it("metin içinde uzun bağlantı veya koordinat", () => {
+    expect(locationInput("Konum https://www.google.com/maps/@40.7531,30.0212,15z burada").point).toEqual({ lat: 40.7531, lng: 30.0212 });
+    expect(locationInput("Koordinat: 40.765123, 29.940812").point).toEqual({ lat: 40.765123, lng: 29.940812 });
+    expect(locationInput("40.76, 29.94").point).toEqual({ lat: 40.76, lng: 29.94 });
+  });
+  it("konum yoksa boş", () => {
+    expect(locationInput("Kartepe Köseköy")).toEqual({ point: null, link: null });
+    expect(isShortMapsLink("https://g.co/kgs/abc")).toBe(true);
   });
 });

@@ -86,6 +86,7 @@
 - **A-04** Onaylanmış mal kabul değiştirilemez. Hata, "Mal kabul düzeltmesi" (ters kayıt + yeni fiş) ile giderilir.
 - **A-05** Bedelsiz miktar stoğa girer, maliyeti sıfırdır ve ortalamayı düşürür.
 - **A-06** Dolu damacana mal kabulünde, tedarikçiye verilen boş kap sayısı aynı fişte girilebilir (D-07).
+- **A-07** (21.10) Mal kabulde **verilen / alınan ürünler**: kap-ambalaj kalemleri (boş damacana, viyol, tahta palet …) tedarikçiye verildi (stok −) veya tedarikçiden alındı (stok +) olarak girilir. Bu kalemler "kap / ambalaj" ürünüdür: satılmaz, satış stoğuna karışmaz, her biri ayrı izlenir. Listede olmayan kalemi yönetici formdan hemen tanımlayabilir.
 
 ## 9. İptal ve iade
 
@@ -107,6 +108,7 @@
   2. Sayılan miktarlar birim seçilerek girilir (ör. 3 koli + 5 adet).
   3. Sayım süresince yapılan satışlar farka yansıtılır: `fark = sayılan − (anlık_görüntü + sayım_süresindeki_hareketler)`. v1'de öneri, sayımın satış dışı saatte yapılmasıdır.
   4. Yönetici farkları onaylar. Her fark için `sayim_duzeltme` hareketi oluşur. Onaylanan sayım kilitlenir.
+  5. (21.10) Sayımı depo/sevkiyat personeli girebilir; **stok yalnızca yönetici onayıyla değişir**. Onaya kadar sayım "Beklemede · stoğa işlenmedi" görünür ve yöneticinin ana sayfasında hatırlatılır. Onay penceresi değişecek ürünleri önce gösterir. Onaylanan sayım ikinci kez uygulanamaz (satır kilidi + durum kontrolü).
 - **T-05** Kritik stok: ürün kartındaki "kritik seviye" (temel birim) değerinde veya altında olan ürünler uyarı listesine girer. Sistem, son 30 günlük ortalama günlük satış × **7 gün** (Ayar) formülüyle öneri değer gösterir.
 - **T-06** Hızlı/yavaş hareket (seçilen dönem, varsayılan 30 gün):
   - Hızlı: satış miktarına göre en üstteki %20'lik dilim.
@@ -198,6 +200,9 @@
 - **O-05** Teslimatta veresiye limiti aşılırsa teslimat reddedilmez (mal teslim edilmiştir); satış "limit aşımı" olarak işaretlenir ve yöneticinin ana sayfasında uyarı görünür.
 - **O-06** Teslim edilmeyen sipariş iptal edilir; iptal nedeni zorunludur. Kapanmış (teslim edilmiş/iptal) sipariş değiştirilemez. Aynı teslimatın tekrar gönderilmesi ikinci satış oluşturmaz.
 - **O-07** Sipariş durumları: Açık → Teslim edildi / İptal.
+- **O-08** (21.10) Sipariş sorumlusu sipariş bazında başka çalışana devredilebilir (kurumsal ve ev müşterisi farkı yoktur; bayideki sipariş de çalışana alınabilir). Yalnızca o siparişin sorumlusu değişir; müşteri kartı, varsayılan sorumlu ve müşterinin kurumsal/ev niteliği değişmez. Devir kayıt altına alınır; güncel sorumlu sipariş başlığında görünür.
+- **O-09** (21.10) Sipariş listesi personel için varsayılan olarak **tüm** siparişleri gösterir; Açık / Teslim edildi / İptal (teslim edilmedi) / Onay bekliyor ile süzülür. Bayi varsayılanı kendi açık teslimatlarıdır.
+- **O-10** (21.10) Satışlar ekranı kurumsal, perakende (ev müşterisi + müşterisiz) ve varsa bayi satışlarını ayrı toplar ve genel toplamı gösterir (iptaller hariç, her fiş bir kez). Yönetici tüm satışları, diğer personel yalnızca kendi kaydettiği satışları (teslim ettiği siparişler dahil) görür; "Bugün sattığım" bu listeye götürür.
 
 ## 18. Yeni roller
 

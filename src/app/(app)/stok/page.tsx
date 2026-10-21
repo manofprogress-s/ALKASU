@@ -73,7 +73,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         onRowClick={can(ctx.role, "receiveGoods") ? (r) => `/stok/${r.product_id}` : undefined}
         mobileTitle={(r) => r.name}
         columns={[
-          { key: "name", label: "Ürün", hideOnMobile: true, render: (r) => <span>{r.name}{r.is_container ? <Badge tone="brand" className="ml-2">Boş kap</Badge> : null}</span> },
+          { key: "name", label: "Ürün", hideOnMobile: true, render: (r) => <span>{r.name}{r.is_container ? <Badge tone="brand" className="ml-2">Kap / ambalaj</Badge> : null}</span> },
           { key: "qty", label: "Stok", align: "right", render: (r) => (
             <span className={r.status === "negatif" ? "font-semibold text-danger" : r.status === "kritik" ? "font-semibold text-warn" : ""}>
               {formatNumber(r.qty)} {r.base_unit_name.toLocaleLowerCase("tr-TR")}

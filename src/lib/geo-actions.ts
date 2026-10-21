@@ -1,7 +1,7 @@
 "use server";
 import { isShortMapsLink, parseLocation, type LatLng } from "@/lib/geo";
 
-const GOOGLE_HOST = /^(maps\.app\.goo\.gl|goo\.gl|(www\.|maps\.)?google\.[a-z.]+)$/i;
+const GOOGLE_HOST = /^(maps\.app\.goo\.gl|goo\.gl|g\.co|([a-z]+\.)?google\.[a-z.]+)$/i;
 const MAX_BODY = 200_000;
 const MAX_HOPS = 4;
 
@@ -37,6 +37,11 @@ export async function resolveMapsLink(url: string): Promise<LatLng | null> {
       if (current.protocol !== "https:" || !GOOGLE_HOST.test(current.hostname)) return null;
       const fromUrl = parseLocation(current.toString());
       if (fromUrl) return fromUrl;
+      // AB çerez onayı sayfası: asıl adres "continue" parametresinde
+      if (/^consent\./i.test(current.hostname) && current.searchParams.get("continue")) {
+        current = new URL(current.searchParams.get("continue")!);
+        continue;
+      }
       const res = await fetch(current, { redirect: "manual", signal: AbortSignal.timeout(6000), headers: { "User-Agent": "Mozilla/5.0" } });
       const loc = res.headers.get("location");
       if (res.status >= 300 && res.status < 400 && loc) {
@@ -46,7 +51,13 @@ export async function resolveMapsLink(url: string): Promise<LatLng | null> {
       }
       const body = await readCapped(res);
       const m = body.match(/https:\/\/www\.google\.com\/maps\/[^"'\s\\]+/);
-      return m ? parseLocation(m[0]) : null;
+      const fromLink = m ? parseLocation(m[0]) : null;
+      if (fromLink) return fromLink;
+      // Sayfa içindeki koordinat izleri: "!3d40.7!4d29.9" ya da APP_INITIALIZATION_STATE=[[[ölçek,boylam,enlem]
+      const d = body.match(/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/);
+      if (d) return parseLocation(`${d[1]}, ${d[2]}`);
+      const st = body.match(/APP_INITIALIZATION_STATE=\[\[\[[\d.]+,(-?\d{1,3}\.\d+),(-?\d{1,2}\.\d+)\]/);
+      return st ? parseLocation(`${st[2]}, ${st[1]}`) : null;
     }
     return null;
   } catch {

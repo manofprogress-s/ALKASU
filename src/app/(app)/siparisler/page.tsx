@@ -36,7 +36,9 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const isStaff = !isDealer && !isCustomer;
   // Bayi: "teslimat" = kendisine atanan ev müşterisi siparişleri, "alim" = bizden kendi siparişleri
   const tur = isDealer ? (sp.tur === "alim" ? "alim" : sp.tur === "musterilerim" ? "musterilerim" : "teslimat") : null;
-  const durum = (sp.durum ?? (isCustomer ? "tumu" : "acik")) as OrderStatus | "tumu";
+  // Varsayılan: bayi kendi açık teslimatlarını, personel ve müşteri tüm siparişleri görür (S-27)
+  const defaultDurum = isDealer ? "acik" : "tumu";
+  const durum = (sp.durum ?? defaultDurum) as OrderStatus | "tumu";
   const routeSorted = (sp.atanan === "ben" || tur === "teslimat") && durum === "acik";
 
   const supabase = await supabaseServer();
@@ -83,8 +85,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     return `/siparisler${s ? `?${s}` : ""}`;
   };
   const statuses: (OrderStatus | "tumu")[] = isStaff || isDealer
-    ? ["onay_bekliyor", "acik", "teslim_edildi", "iptal", "tumu"]
-    : ["acik", "teslim_edildi", "iptal", "tumu"];
+    ? ["tumu", "onay_bekliyor", "acik", "teslim_edildi", "iptal"]
+    : ["tumu", "acik", "teslim_edildi", "iptal"];
   const owner = (r: Row) =>
     r.dealer_customer_id ? <Badge tone="brand">Bayi: {dealerNames.get(r.dealer_customer_id) ?? "—"}</Badge>
       : r.assignee ? people.get(r.assignee) ?? "—"
@@ -113,8 +115,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           </>
         ) : null}
         {statuses.map((s) => (
-          <Link key={s} href={link({ durum: s === (isCustomer ? "tumu" : "acik") ? undefined : s })} className={chip(durum === s)}>
-            {s === "tumu" ? "Tümü" : ORDER_STATUS[s]}
+          <Link key={s} href={link({ durum: s === defaultDurum ? undefined : s })} className={chip(durum === s)}>
+            {s === "tumu" ? "Tümü" : s === "iptal" ? "İptal / teslim edilmedi" : ORDER_STATUS[s]}
           </Link>
         ))}
         {isStaff ? (

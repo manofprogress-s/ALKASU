@@ -26,7 +26,9 @@ export function PurchaseForm({ products, suppliers }: { products: LiteProduct[];
   const [docNo, setDocNo] = useState("");
   const [docDate, setDocDate] = useState(todayISO());
   const [lines, setLines] = useState<Line[]>([]);
-  const [empties, setEmpties] = useState<{ key: string; product: LiteProduct; qty: string }[]>([]);
+  // Verilen / alınan kap-ambalaj (boş damacana, viyol, palet …): yalnızca "kap / ambalaj" ürünleri (A-07)
+  const [empties, setEmpties] = useState<{ key: string; product: LiteProduct; qty: string; direction: "verilen" | "alinan" }[]>([]);
+  const [productList, setProductList] = useState(products);
   const [pick, setPick] = useState<"item" | "empty" | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +44,21 @@ export function PurchaseForm({ products, suppliers }: { products: LiteProduct[];
     setSupplierId(data as string);
   }
 
+  // Yönetici: listede olmayan kap/ambalaj kalemini (ör. viyol, tahta palet) hemen tanımlar
+  async function newPackaging() {
+    const name = prompt("Yeni kalem adı (ör. Viyol, Tahta palet)")?.trim();
+    if (!name) return;
+    const code = `AMB-${name.toLocaleUpperCase("tr-TR").replace(/[^A-Z0-9ÇĞİÖŞÜ]+/g, "-").replace(/^-|-$/g, "").slice(0, 20)}`;
+    const { data, error } = await supabaseBrowser().rpc("upsert_product", {
+      p_business: ctx.businessId, p: { code, name, base_unit_name: "Adet", is_container: true, vat_rate: 20, units: [] },
+    });
+    if (error) return toast(errorMessage(error), "danger");
+    const p: LiteProduct = { id: data as string, code, name, baseUnit: "Adet", isContainer: true, units: [] };
+    setProductList((x) => [...x, p]);
+    setEmpties((x) => [...x, { key: crypto.randomUUID(), product: p, qty: "", direction: "verilen" }]);
+    setPick(null);
+  }
+
   async function save() {
     setError(null);
     const items = lines.map((l) => ({
@@ -54,7 +71,7 @@ export function PurchaseForm({ products, suppliers }: { products: LiteProduct[];
     const { data, error } = await supabaseBrowser().rpc("receive_goods", {
       p_business: ctx.businessId,
       p: { id, supplier_id: supplierId || null, doc_no: docNo, doc_date: docDate, items,
-           empties: empties.map((e) => ({ product_id: e.product.id, qty: parseInt(e.qty || "0", 10) })).filter((e) => e.qty > 0) },
+           empties: empties.map((e) => ({ product_id: e.product.id, qty: parseInt(e.qty || "0", 10), direction: e.direction })).filter((e) => e.qty > 0) },
     });
     setSaving(false);
     if (error) return setError(errorMessage(error));
@@ -100,24 +117,34 @@ export function PurchaseForm({ products, suppliers }: { products: LiteProduct[];
       </Card>
 
       <Card className="space-y-3">
-        <h2 className="font-semibold">Tedarikçiye verilen boş kaplar</h2>
+        <div>
+          <h2 className="font-semibold">Verilen / alınan ürünler</h2>
+          <p className="text-sm text-muted">Boş damacana, viyol, tahta palet gibi kalemler. Satış stoğuna karışmaz; her biri ayrı izlenir.</p>
+        </div>
         {empties.map((e) => (
-          <div key={e.key} className="grid grid-cols-[1fr_100px_44px] items-center gap-2">
-            <span>{e.product.name}</span>
-            <Input inputMode="numeric" value={e.qty} onChange={(ev) => setEmpties((x) => x.map((y) => (y.key === e.key ? { ...y, qty: ev.target.value.replace(/\D/g, "") } : y)))} aria-label="Adet" />
-            <Button variant="ghost" size="icon" onClick={() => setEmpties((x) => x.filter((y) => y.key !== e.key))} aria-label="Kaldır"><Trash2 className="h-4 w-4" /></Button>
+          <div key={e.key} className="grid grid-cols-[1fr_auto] items-center gap-2 sm:grid-cols-[1fr_150px_100px_44px]">
+            <span className="font-medium">{e.product.name}</span>
+            <Button variant="ghost" size="icon" className="sm:order-last" onClick={() => setEmpties((x) => x.filter((y) => y.key !== e.key))} aria-label="Kaldır"><Trash2 className="h-4 w-4" /></Button>
+            <Select value={e.direction} aria-label="Yön" onChange={(ev) => setEmpties((x) => x.map((y) => (y.key === e.key ? { ...y, direction: ev.target.value as "verilen" | "alinan" } : y)))}>
+              <option value="verilen">Tedarikçiye verildi</option>
+              <option value="alinan">Tedarikçiden alındı</option>
+            </Select>
+            <Input inputMode="numeric" value={e.qty} placeholder="Adet" onChange={(ev) => setEmpties((x) => x.map((y) => (y.key === e.key ? { ...y, qty: ev.target.value.replace(/\D/g, "") } : y)))} aria-label="Adet" />
           </div>
         ))}
-        <Button variant="secondary" onClick={() => setPick("empty")}><Plus className="h-4 w-4" /> Boş kap ekle</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => setPick("empty")}><Plus className="h-4 w-4" /> Kalem ekle</Button>
+          {isAdmin ? <Button variant="ghost" onClick={() => void newPackaging()}>Listede yok: yeni kalem tanımla</Button> : null}
+        </div>
       </Card>
 
       {error ? <Alert>{error}</Alert> : null}
       <Button size="lg" className="w-full" loading={saving} disabled={lines.length === 0 && empties.length === 0} onClick={save}>Mal kabulü kaydet</Button>
 
-      <ProductSelect open={pick !== null} onClose={() => setPick(null)} products={products}
+      <ProductSelect open={pick !== null} onClose={() => setPick(null)} products={productList}
         filter={pick === "empty" ? (p) => p.isContainer : undefined}
         onPick={(p) => {
-          if (pick === "empty") setEmpties((x) => [...x, { key: crypto.randomUUID(), product: p, qty: "" }]);
+          if (pick === "empty") setEmpties((x) => [...x, { key: crypto.randomUUID(), product: p, qty: "", direction: "verilen" }]);
           else {
             const biggest = [...p.units].sort((a, b) => b.factor - a.factor)[0];
             setLines((x) => [...x, { key: crypto.randomUUID(), product: p, unitId: biggest?.id ?? "", qty: "", free: "", cost: "" }]);

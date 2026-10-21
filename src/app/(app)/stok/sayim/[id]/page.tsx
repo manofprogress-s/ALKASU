@@ -25,7 +25,7 @@ export default async function CountPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="space-y-4">
       <PageHeader title={`Sayım #${c.no}`} subtitle={`${c.scope === "tam" ? "Tam sayım" : "Kısmi sayım"} · ${formatDateTime(c.started_at)}${c.note ? ` · ${c.note}` : ""}`} />
-      <CountSheet countId={id} status={c.status} lines={rows} canApprove={ctx.role === "yonetici"} />
+      <CountSheet countId={id} status={c.status} lines={rows} canApprove={ctx.role === "yonetici"} decidedText={c.decided_at ? formatDateTime(c.decided_at) : null} />
     </div>
   );
 }

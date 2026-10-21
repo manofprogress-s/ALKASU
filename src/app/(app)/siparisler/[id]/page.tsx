@@ -109,6 +109,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             </Badge>
             {o.source === "online" && isStaff ? <Badge>İnternet siparişi</Badge> : null}
             Teslim: {formatDate(o.delivery_date)}
+            {isStaff ? (
+              <Badge tone={dealerName || o.assignee ? "neutral" : "warn"}>
+                Sorumlu: {dealerName ? `Bayi · ${dealerName}` : o.assignee ? names.get(o.assignee) ?? "—" : "atanmadı"}
+              </Badge>
+            ) : null}
+            {isStaff && o.customers?.channel === "kurumsal" ? <Badge tone="brand">Kurumsal</Badge> : null}
             {o.price_list !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[o.price_list]} fiyatı</Badge> : null}
           </span>
         }
@@ -156,7 +162,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         <div className="space-y-3">
           <Card className="space-y-1 text-sm">
             {isStaff ? (
-              <div className="flex justify-between gap-2"><span className="text-muted">Teslim eden</span><span>{dealerName ? <Badge tone="brand">Bayi: {dealerName}</Badge> : o.assignee ? names.get(o.assignee) ?? "—" : <Badge tone="warn">Atanmadı</Badge>}</span></div>
+              <div className="flex justify-between gap-2"><span className="text-muted">Sorumlu (teslim eden)</span><span>{dealerName ? <Badge tone="brand">Bayi: {dealerName}</Badge> : o.assignee ? names.get(o.assignee) ?? "—" : <Badge tone="warn">Atanmadı</Badge>}</span></div>
             ) : null}
             {o.dealer_note && (isStaff || isMyDelivery) ? <Alert tone="neutral">Bayi notu: {o.dealer_note}</Alert> : null}
             <div className="flex justify-between gap-2"><span className="text-muted">Oluşturma</span><span>{formatDateTime(o.created_at)}</span></div>
