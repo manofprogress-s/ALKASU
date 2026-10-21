@@ -67,6 +67,7 @@ select test.login(test.u_depo());
 select public.save_stock_count_lines('bbbbbbbb-0000-0000-0000-000000000001', jsonb_build_array(
   jsonb_build_object('product_id', test.pid('SU-005'), 'counted_qty', 230),   -- beklenen 234 → fark −4
   jsonb_build_object('product_id', test.pid('KL-1'), 'counted_qty', 120)));   -- fark 0
+select public.submit_stock_count('bbbbbbbb-0000-0000-0000-000000000001');
 select test.throws($$select public.approve_stock_count('bbbbbbbb-0000-0000-0000-000000000001')$$, '%yetkiniz yok%', 'Sayımı depo onaylayamaz');
 select test.login(test.u_admin());
 select test.eq((public.approve_stock_count('bbbbbbbb-0000-0000-0000-000000000001')->>'net_diff')::int, -4, 'Fark = sayılan − (görüntü + sayım sırasındaki hareket)');

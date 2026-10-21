@@ -6,6 +6,7 @@ import { DataTable } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/format";
 import { loadLiteProducts } from "@/lib/products-lite";
 import { StartCount } from "@/components/stock/start-count";
+import { COUNT_STATUS, type CountStatus } from "@/lib/stock-count";
 
 export const metadata = { title: "Sayım" };
 
@@ -17,14 +18,14 @@ export default async function CountsPage() {
     loadLiteProducts(supabase, ctx.businessId),
   ]);
   const rows = (data ?? []) as { id: string; no: number; scope: string; status: string; started_at: string; decided_at: string | null; note: string | null }[];
-  const open = rows.find((r) => r.status === "acik");
+  const open = rows.find((r) => r.status === "acik" || r.status === "onayda");
   return (
     <div className="space-y-4">
-      <PageHeader title="Sayım" subtitle="Sayım farkları yönetici onayıyla stoğa yansır" />
+      <PageHeader title="Sayım" subtitle="Sayan kişi onaya gönderir; farklar iki yönetici onayından sonra stoğa yansır" />
       {open ? (
         <Link href={`/stok/sayim/${open.id}`} className="block rounded-2xl bg-brand p-4 text-center font-semibold text-white">
-          Açık sayım #{open.no} · {ctx.role === "yonetici" ? "devam et / onayla" : "devam et"}
-          <span className="block text-sm font-normal opacity-90">Stoğa henüz işlenmedi; yönetici onayıyla işlenir.</span>
+          Sayım #{open.no} · {open.status === "onayda" ? (ctx.role === "yonetici" ? "fark raporu ve onay" : "yönetim onayında") : "devam et"}
+          <span className="block text-sm font-normal opacity-90">Stoğa henüz işlenmedi; iki yönetici onayından sonra işlenir.</span>
         </Link>
       ) : (
         <StartCount products={products} />
@@ -34,7 +35,7 @@ export default async function CountsPage() {
           { key: "no", label: "No", hideOnMobile: true, render: (r) => `#${r.no}` },
           { key: "t", label: "Başlangıç", render: (r) => formatDateTime(r.started_at) },
           { key: "s", label: "Kapsam", render: (r) => (r.scope === "tam" ? "Tam sayım" : "Kısmi") },
-          { key: "d", label: "Durum", render: (r) => <Badge tone={r.status === "acik" ? "warn" : r.status === "onaylandi" ? "ok" : "neutral"}>{r.status === "acik" ? "Beklemede · stoğa işlenmedi" : r.status === "onaylandi" ? "Stoğa işlendi" : "İptal"}</Badge> },
+          { key: "d", label: "Durum", render: (r) => { const st = COUNT_STATUS[r.status as CountStatus] ?? COUNT_STATUS.acik; return <Badge tone={st.tone}>{st.label}</Badge>; } },
           { key: "k", label: "Onay", hideOnMobile: true, render: (r) => (r.decided_at ? formatDateTime(r.decided_at) : "—") },
         ]} />
     </div>

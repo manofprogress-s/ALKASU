@@ -2,10 +2,12 @@
 begin;
 select test.fixture();
 create function test.u_sv() returns uuid language sql immutable as $$ select '00000000-0000-0000-0000-000000000033'::uuid $$;
+create function test.u_y2() returns uuid language sql immutable as $$ select '00000000-0000-0000-0000-000000000034'::uuid $$;
 grant execute on all functions in schema test to authenticated;
-insert into auth.users(id, email) values (test.u_sv(), 'sv@t');
+insert into auth.users(id, email) values (test.u_sv(), 'sv@t'), (test.u_y2(), 'y2@t');
 select test.login(test.u_admin());
 select public.add_member(test.biz(), test.u_sv(), 'sevkiyat', 'Selin');
+select public.add_member(test.biz(), test.u_y2(), 'yonetici', 'Ayhan');
 
 -- ---------------------------------------------------------------- sayım
 select public.start_stock_count(test.biz(), jsonb_build_object('id', 'cccccccc-0000-0000-0000-000000000001',
@@ -15,12 +17,22 @@ select public.save_stock_count_lines('cccccccc-0000-0000-0000-000000000001', jso
   jsonb_build_object('product_id', test.pid('SU-005'), 'counted_qty', test.stock('SU-005') - 5)));
 select test.eq((public.stock_count_preview('cccccccc-0000-0000-0000-000000000001')->'lines'->0->>'diff')::int, -5, 'Önizleme farkı gösterir');
 select test.throws($$select public.approve_stock_count('cccccccc-0000-0000-0000-000000000001')$$, '%yetkiniz yok%', 'Sevkiyat onaylayamaz (yönetici onayı)');
-select test.eq((select status from public.stock_counts where id = 'cccccccc-0000-0000-0000-000000000001'), 'acik', 'Onaylanana kadar beklemede');
+select test.login(test.u_admin());
+select test.throws($$select public.approve_stock_count('cccccccc-0000-0000-0000-000000000001')$$, '%onaya gönderilmedi%', 'Onaya gönderilmeden onaylanamaz');
+select test.login(test.u_sv());
+select test.eq(public.submit_stock_count('cccccccc-0000-0000-0000-000000000001')->>'required', '2', 'İki yönetici varken iki onay gerekir');
+select test.throws($$select public.save_stock_count_lines('cccccccc-0000-0000-0000-000000000001', '[]')$$, '%kapanmış%', 'Onaydaki sayım değiştirilemez');
+select test.eq((select summary->0->>'diff' from public.stock_counts where id = 'cccccccc-0000-0000-0000-000000000001'), '-5', 'Gönderimde fark raporu saklanır');
 select test.login(test.u_admin());
 create temp table st0 on commit drop as select test.stock('SU-005') as q;
-select test.eq((public.approve_stock_count('cccccccc-0000-0000-0000-000000000001')->>'net_diff')::int, -5, 'Onayda fark stoğa işlenir');
+select test.eq(public.approve_stock_count('cccccccc-0000-0000-0000-000000000001')->>'applied', 'false', 'İlk onay stoğu değiştirmez');
+select test.eq(test.stock('SU-005'), (select q from st0), 'Tek onayda stok aynı');
+select test.throws($$select public.approve_stock_count('cccccccc-0000-0000-0000-000000000001')$$, '%zaten onayladınız%', 'Aynı yönetici iki kez onaylayamaz');
+select test.login(test.u_y2());
+select test.eq((public.approve_stock_count('cccccccc-0000-0000-0000-000000000001')->>'net_diff')::int, -5, 'İkinci yönetici onayıyla fark stoğa işlenir');
 select test.eq(test.stock('SU-005'), (select q from st0) - 5, 'Stok sayılan miktara eşit');
 select test.throws($$select public.approve_stock_count('cccccccc-0000-0000-0000-000000000001')$$, '%kapanmış%', 'Aynı sayım ikinci kez uygulanamaz');
+select test.login(test.u_admin());
 select test.eq(test.stock('SU-005'), (select q from st0) - 5, 'İkinci deneme stoğu değiştirmez');
 
 -- ---------------------------------------------------------------- mal kabul: verilen / alınan kap-ambalaj
@@ -54,4 +66,15 @@ select test.eq((select channel from public.customers where id = test.cust('M002'
 select test.eq((select default_assignee from public.customers where id = test.cust('M002')), null::uuid, 'Müşteri kartındaki varsayılan sorumlu değişmez');
 select test.logout();
 select test.ok(exists (select 1 from audit.log where action = 'siparis_devir'), 'Devir kayıt altına alınır');
+
+-- Düzeltme için geri gönderme: onaylar silinir, girişler açılır
+select test.login(test.u_admin());
+select public.start_stock_count(test.biz(), jsonb_build_object('id', 'cccccccc-0000-0000-0000-000000000002', 'product_ids', jsonb_build_array(test.pid('SU-005'))));
+select public.save_stock_count_lines('cccccccc-0000-0000-0000-000000000002', jsonb_build_array(jsonb_build_object('product_id', test.pid('SU-005'), 'counted_qty', 1)));
+select public.submit_stock_count('cccccccc-0000-0000-0000-000000000002');
+select public.approve_stock_count('cccccccc-0000-0000-0000-000000000002');
+select test.throws($$select public.start_stock_count(test.biz(), jsonb_build_object('id', gen_random_uuid()))$$, '%sayım var%', 'Onaydaki sayım varken yenisi açılamaz');
+select public.reopen_stock_count('cccccccc-0000-0000-0000-000000000002', 'tekrar say');
+select test.eq((select status from public.stock_counts where id = 'cccccccc-0000-0000-0000-000000000002'), 'acik', 'Geri gönderilen sayım tekrar açılır');
+select test.eq((select count(*) from public.stock_count_approvals where count_id = 'cccccccc-0000-0000-0000-000000000002')::int, 0, 'Verilen onaylar silinir');
 rollback;

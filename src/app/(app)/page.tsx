@@ -47,10 +47,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       : Promise.resolve({ count: 0 }),
     // Onay bekleyen sayım (T-04): yöneticiye ana sayfada hatırlatılır
     ctx.role === "yonetici"
-      ? supabase.from("stock_counts").select("id, no").eq("business_id", ctx.businessId).eq("status", "acik").limit(1).maybeSingle()
+      ? supabase.from("stock_counts").select("id, no, stock_count_approvals(user_id)").eq("business_id", ctx.businessId).eq("status", "onayda").limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
-  const pendingCount = openCount.data as { id: string; no: number } | null;
+  const pc = openCount.data as { id: string; no: number; stock_count_approvals: { user_id: string }[] } | null;
+  const pendingCount = pc && !pc.stock_count_approvals.some((a) => a.user_id === ctx.userId) ? pc : null;
   const d = (data ?? {}) as Dashboard;
 
   return (
@@ -60,7 +61,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       {error ? <Alert>{error.message}</Alert> : null}
       {pendingCount ? (
         <Link href={`/stok/sayim/${pendingCount.id}`} className="block">
-          <Alert tone="warn">Sayım #{pendingCount.no} onayınızı bekliyor; stoğa henüz işlenmedi. Farkları görüp onaylamak için dokunun →</Alert>
+          <Alert tone="warn">Sayım #{pendingCount.no} onayınızı bekliyor ({pendingCount.stock_count_approvals.length} onay verildi). Fark raporunu görüp onaylamak için dokunun →</Alert>
         </Link>
       ) : null}
 
