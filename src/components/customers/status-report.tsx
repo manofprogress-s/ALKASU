@@ -1,4 +1,5 @@
 "use client";
+import { CustomerMessage } from "./customer-message";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -125,7 +126,9 @@ export function StatusList({ rows, isAdmin, dealer, businessId }: { rows: Status
                     <Phone className="h-4 w-4" /> {formatPhone(p)}
                   </a>
                 ))}
-                {wa ? (
+                {!dealer ? (
+                  <CustomerMessage target={{ id: r.id, name: r.name, phones: [r.phone, ...r.extra_phones], channel: r.channel }} />
+                ) : wa ? (
                   <a href={wa} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1 rounded-xl border border-border px-3 text-sm" aria-label="WhatsApp">
                     <MessageCircle className="h-4 w-4 text-ok" /> WhatsApp
                   </a>

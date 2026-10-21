@@ -9,11 +9,12 @@ import { searchKey } from "@/lib/catalog";
 import { Badge } from "@/components/ui/card";
 import { CHANNELS, PRICE_LISTS, type Channel, type PriceList } from "@/lib/roles";
 import { PhoneCall } from "lucide-react";
+import { CustomerMessage } from "@/components/customers/customer-message";
 
 export const metadata = { title: "Müşteriler" };
 
 const PAGE = 100;
-type Row = { id: string; code: string; name: string; phone: string | null; credit_limit: number; unlimited_credit: boolean; active: boolean; channel: Channel; price_list: PriceList; regions: string | null; dispenser_count: number; owner_dealer_id: string | null; area: string | null };
+type Row = { id: string; code: string; name: string; phone: string | null; extra_phones: string[] | null; marketing_consent: boolean; credit_limit: number; unlimited_credit: boolean; active: boolean; channel: Channel; price_list: PriceList; regions: string | null; dispenser_count: number; owner_dealer_id: string | null; area: string | null };
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string; borclu?: string; kanal?: string; s?: string; fatura?: string }> }) {
   const ctx = await requirePermission("customers");
@@ -27,7 +28,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   ]);
   const debt = (debtors ?? []) as { customer_id: string; balance: number }[];
   let query = supabase.from("customers")
-    .select("id, code, name, phone, credit_limit, unlimited_credit, active, channel, price_list, regions, dispenser_count, owner_dealer_id, area", { count: "exact" })
+    .select("id, code, name, phone, extra_phones, marketing_consent, credit_limit, unlimited_credit, active, channel, price_list, regions, dispenser_count, owner_dealer_id, area", { count: "exact" })
     .eq("business_id", ctx.businessId);
   if (sp.q?.trim()) {
     const key = searchKey(sp.q.trim()).replace(/["',()\\*%]/g, "");
@@ -40,12 +41,16 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const { data: cs, count } = await query.order("name").range(page * PAGE, page * PAGE + PAGE - 1);
   const list = (cs ?? []) as Row[];
   const ids = list.map((c) => c.id);
-  const [{ data: bal }, { data: cont }] = ids.length
+  const canMessage = ctx.role === "yonetici" || ctx.role === "satis" || ctx.role === "sevkiyat";
+  const [{ data: bal }, { data: cont }, { data: msgs }] = ids.length
     ? await Promise.all([
         supabase.from("customer_balances").select("customer_id, balance").in("customer_id", ids),
         supabase.from("container_balances").select("customer_id, qty").in("customer_id", ids),
+        canMessage ? supabase.from("customer_messages").select("customer_id, template, sent_at").in("customer_id", ids).order("sent_at", { ascending: false }) : Promise.resolve({ data: [] }),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
+  const lastMsg = new Map<string, { template: string; at: string }>();
+  for (const m of (msgs ?? []) as { customer_id: string; template: string; sent_at: string }[]) if (!lastMsg.has(m.customer_id)) lastMsg.set(m.customer_id, { template: m.template, at: m.sent_at });
   const b = new Map((bal ?? []).map((x: { customer_id: string; balance: number }): [string, number] => [x.customer_id, Number(x.balance)]));
   const k = new Map<string, number>();
   for (const c of (cont ?? []) as { customer_id: string | null; qty: number }[]) if (c.customer_id) k.set(c.customer_id, (k.get(c.customer_id) ?? 0) + c.qty);
@@ -97,6 +102,11 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           { key: "lim", label: "Limit", align: "right", render: (r) => (r.unlimited_credit ? "Limitsiz" : formatTRY(r.credit_limit)) },
           { key: "k", label: "Kap", align: "right", render: (r) => r.containers || "—" },
           { key: "sb", label: "Sebil", align: "right", hideOnMobile: true, render: (r) => r.dispenser_count || "—" },
+          ...(canMessage ? [{ key: "msg", label: "Mesaj", align: "center" as const, interactive: true, className: "w-24 py-1",
+            render: (r: (typeof rows)[number]) => (
+              <CustomerMessage compact target={{ id: r.id, name: r.name, phones: [r.phone, ...(r.extra_phones ?? [])], channel: r.channel,
+                consent: r.marketing_consent, lastMessage: lastMsg.get(r.id) ?? null }} />
+            ) }] : []),
         ]}
         empty="Müşteri yok" />
       {total > PAGE ? (
