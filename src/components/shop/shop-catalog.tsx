@@ -157,9 +157,12 @@ export function ShopCatalog({ items, qty, onStep, edit, staff }: {
   return (
     <div className={staff ? "space-y-3" : "space-y-4"}>
       {staff ? null : (
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4">
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
           <Droplet className="h-7 w-7 shrink-0 text-brand" />
-          <p className="text-lg font-semibold leading-snug">İhtiyacın olan suyu kolayca seç</p>
+          <p className="leading-snug">
+            <span className="block font-semibold">Siparişin kolay, suyun kapında, teslimatın takipte.</span>
+            <span className="block text-xs text-muted">ALKASU — Alay Ticaret’in 10 yıllık tecrübesiyle.</span>
+          </p>
         </div>
       )}
       {sections.map((s, si) => {
