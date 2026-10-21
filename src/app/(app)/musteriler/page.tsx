@@ -87,7 +87,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           { key: "ch", label: "Kanal", render: (r) => (
             <span className="flex flex-wrap gap-1">
               {r.channel !== "perakende" ? <Badge tone={r.channel === "bayi" ? "brand" : "neutral"}>{CHANNELS[r.channel]}</Badge> : <span className="text-muted">Perakende</span>}
-              {r.price_list !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[r.price_list]}</Badge> : null}
+              {r.price_list !== "perakende" && r.price_list !== "kurumsal" ? <Badge tone="ok">{PRICE_LISTS[r.price_list]}</Badge> : null}
               {r.owner_dealer_id ? <Badge tone="brand">{dealerNames.get(r.owner_dealer_id) ?? "Bayi"} müşterisi</Badge> : null}
             </span>
           ) },

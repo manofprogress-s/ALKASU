@@ -21,12 +21,22 @@ export interface PriceRow {
   unit: string;
   factor: number;
   perakende: number | null;
+  ev: number | null;
+  kurumsal: number | null;
   bayi: number | null;
   palet: number | null;
 }
 
-type Col = "perakende" | "bayi" | "palet";
-const COLS: Col[] = ["perakende", "bayi", "palet"];
+type Col = "perakende" | "ev" | "kurumsal" | "bayi" | "palet";
+const COLS: Col[] = ["perakende", "ev", "kurumsal", "bayi", "palet"];
+const HEAD: Record<Col, string> = { perakende: "Gel al ₺", ev: "Eve teslim ₺", kurumsal: "Kurumsal ₺", bayi: "Bayi ₺", palet: "Palet ₺" };
+/** Boş hücrede uygulanacak fiyat (F-14, F-15): eve teslim = gel al + 40, kurumsal = gel al × 1,5, bayi/palet = gel al */
+function fallback(r: PriceRow, c: Col): number | null {
+  if (c === "perakende" || r.perakende === null) return null;
+  if (c === "ev") return r.perakende + 40;
+  if (c === "kurumsal") return Math.round(r.perakende * 150) / 100;
+  return r.perakende;
+}
 const str = (n: number | null) => (n === null ? "" : String(n).replace(".", ","));
 
 interface Issue { row: number; field: string; message: string }
@@ -66,7 +76,7 @@ export function PriceGrid({ rows }: { rows: PriceRow[] }) {
     setError(null);
     const sb = supabaseBrowser();
     try {
-      // Dolu değerler tek işlemde (import_prices); silinen bayi/palet fiyatları tek tek
+      // Dolu değerler tek işlemde (import_prices); silinen liste fiyatları tek tek
       const byUnit = new Map<string, Record<string, string>>();
       for (const ch of changes) {
         if (ch.value === null) continue;
@@ -100,6 +110,8 @@ export function PriceGrid({ rows }: { rows: PriceRow[] }) {
         urun_adi: r.product,
         birim: r.unit,
         perakende_fiyati: r.perakende,
+        ev_fiyati: r.ev,
+        kurumsal_fiyati: r.kurumsal,
         bayi_fiyati: r.bayi,
         palet_fiyati: r.palet,
       })),
@@ -160,14 +172,12 @@ export function PriceGrid({ rows }: { rows: PriceRow[] }) {
         </Alert>
       ) : null}
       <Card className="overflow-x-auto p-0">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[860px] text-sm">
           <thead className="bg-surface-2 text-left text-muted">
             <tr>
               <th className="px-3 py-2">Ürün</th>
               <th className="px-3 py-2">Birim</th>
-              <th className="px-3 py-2 text-right">Perakende ₺</th>
-              <th className="px-3 py-2 text-right">Bayi ₺</th>
-              <th className="px-3 py-2 text-right">Palet ₺</th>
+              {COLS.map((c) => <th key={c} className="px-3 py-2 text-right">{HEAD[c]}</th>)}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -187,7 +197,7 @@ export function PriceGrid({ rows }: { rows: PriceRow[] }) {
                       <Input
                         inputMode="decimal"
                         className={`num h-9 w-28 text-right ${edits[k] !== undefined ? "border-brand" : ""} ${bad ? "border-danger" : ""}`}
-                        placeholder={c === "perakende" ? "—" : r.perakende !== null ? formatTRY(r.perakende) : "—"}
+                        placeholder={fallback(r, c) !== null ? formatTRY(fallback(r, c)!) : "—"}
                         value={val}
                         onChange={(e) => setEdits((x) => ({ ...x, [k]: e.target.value }))}
                       />

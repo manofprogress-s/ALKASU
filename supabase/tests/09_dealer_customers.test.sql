@@ -49,7 +49,7 @@ select public.save_order(test.biz(), jsonb_build_object('id', '99999999-0000-000
   'deliver_by', 'self', 'items', jsonb_build_array(test.item('SU-005', 'Koli', 2))));
 select test.eq((test.ord('99999999-0000-0000-0000-000000000001')).status, 'acik', 'Bayi kendi müşterisine kendisi teslim edecekse onaysız açılır');
 select test.eq((test.ord('99999999-0000-0000-0000-000000000001')).dealer_customer_id, test.cust('B001'), 'Teslim eden bayinin kendisi');
-select test.eq((select unit_price from public.order_items where order_id = '99999999-0000-0000-0000-000000000001'), 200.00::numeric, 'Bayi müşterisine perakende liste fiyatı yazılır');
+select test.eq((select unit_price from public.order_items where order_id = '99999999-0000-0000-0000-000000000001'), 240.00::numeric, 'Bayi müşterisinin siparişine eve teslim fiyatı yazılır (gel al + 40)');
 select public.save_order(test.biz(), jsonb_build_object('id', '99999999-0000-0000-0000-000000000001', 'customer_id', test.cust_by_name('Kartepe Ev 1'),
   'deliver_by', 'merkez', 'items', jsonb_build_array(test.item('SU-005', 'Koli', 3))));
 select test.eq((test.ord('99999999-0000-0000-0000-000000000001')).status, 'acik', 'Bayi kendi teslimatını düzenler; teslim eden ve durum değişmez');

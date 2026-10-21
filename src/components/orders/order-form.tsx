@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { formatTRY, fromKurus, parseAmount, todayISO, toKurus } from "@/lib/format";
-import { priceFor, searchKey } from "@/lib/catalog";
+import { orderList, priceFor, searchKey } from "@/lib/catalog";
 import { PRICE_LISTS, type PriceList } from "@/lib/roles";
 import type { Assignee, Dealer, OrderCustomer, OrderProduct } from "@/lib/orders";
 import Link from "next/link";
@@ -73,7 +73,7 @@ export function OrderForm({
   const [note, setNote] = useState(initial?.note ?? "");
   const [lines, setLines] = useState<Line[]>(() => {
     const startCustomer = fixedCustomer ?? customers.find((c) => c.id === initial?.customerId);
-    const startList: PriceList = startCustomer?.priceList ?? "perakende";
+    const startList: PriceList = orderList(startCustomer?.priceList);
     return (
       initial?.items.map((i) => {
         const u = products.find((p) => p.id === i.productId)?.units.find((x) => x.id === i.unitId);
@@ -90,7 +90,8 @@ export function OrderForm({
 
   const allCustomers = fixedCustomer ? [fixedCustomer] : customers;
   const customer = allCustomers.find((c) => c.id === customerId) ?? null;
-  const list: PriceList = customer?.priceList ?? "perakende";
+  // F-14: ev müşterisinin siparişi eve teslim fiyatıyla, kurumsal kurumsal listeyle
+  const list: PriceList = orderList(customer?.priceList);
   const special = customer?.specialPrices;
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
@@ -199,7 +200,7 @@ export function OrderForm({
                 <div className="font-semibold">
                   {ownPurchase ? `Kendi alımım (${customer.name})` : customer.name} <span className="text-sm font-normal text-muted">{customer.code}</span>
                 </div>
-                {customer.priceList !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[customer.priceList]} fiyatı</Badge> : null}
+                <Badge tone="ok">{PRICE_LISTS[list]} fiyatı</Badge>
               </div>
               {isNew || !dealerMode ? <Button variant="ghost" size="sm" onClick={() => setCustomerId(null)}>Değiştir</Button> : null}
             </div>

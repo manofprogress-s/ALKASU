@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { CHANNELS, PRICE_LISTS, type Channel, type PriceList } from "@/lib/roles";
+import { CHANNELS, CUSTOMER_PRICE_LISTS, PRICE_LISTS, type Channel, type PriceList } from "@/lib/roles";
 import { LocationField } from "@/components/geo/location-field";
 import { NoticeCheck, recordNotice } from "@/components/customers/privacy";
 import type { LatLng } from "@/lib/geo";
@@ -75,14 +75,21 @@ export function CustomerForm({ initial, canSetLimit, assignees = [], defaultChan
         <Field label="Kanal">
           <Select value={v.channel} onChange={(e) => {
             const ch = e.target.value as Channel;
-            setV((x) => ({ ...x, channel: ch, price_list: canSetLimit && ch === "bayi" && x.price_list === "perakende" ? "bayi" : x.price_list }));
+            // Kanal ↔ liste (veritabanı tetikleyicisiyle aynı): kurumsal kart kurumsal listeye
+            setV((x) => {
+              let pl = x.price_list;
+              if (ch === "kurumsal" && pl === "perakende") pl = "kurumsal";
+              if (ch !== "kurumsal" && pl === "kurumsal") pl = "perakende";
+              if (canSetLimit && ch === "bayi" && pl === "perakende") pl = "bayi";
+              return { ...x, channel: ch, price_list: pl };
+            });
           }}>
             {(Object.keys(CHANNELS) as Channel[]).map((k) => <option key={k} value={k}>{CHANNELS[k]}</option>)}
           </Select>
         </Field>
         <Field label="Fiyat listesi" hint={canSetLimit ? "Satış ve siparişte bu liste uygulanır" : "Yalnızca yönetici değiştirir"}>
           <Select value={v.price_list} disabled={!canSetLimit} onChange={(e) => set("price_list", e.target.value as PriceList)}>
-            {(Object.keys(PRICE_LISTS) as PriceList[]).map((k) => <option key={k} value={k}>{PRICE_LISTS[k]}</option>)}
+            {CUSTOMER_PRICE_LISTS.map((k) => <option key={k} value={k}>{PRICE_LISTS[k]}</option>)}
           </Select>
         </Field>
         {v.channel !== "perakende" ? (

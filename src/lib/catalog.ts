@@ -22,7 +22,18 @@ export function priceFor(u: CatalogUnit, list: PriceList | null | undefined, spe
 /** Müşterinin fiyat listesine göre birim fiyatı (veritabanındaki app.unit_list_price ile aynı kural). */
 export function unitPrice(u: CatalogUnit, list: PriceList | null | undefined): number | null {
   if (!list || list === "perakende") return u.price;
-  return u.listPrices?.[list] ?? u.price;
+  const own = u.listPrices?.[list];
+  if (own !== undefined) return own;
+  // Listede fiyat yoksa (F-14, F-15): eve teslim = gel al + 40, kurumsal = gel al × 1,5, diğerleri gel al
+  if (u.price === null) return null;
+  if (list === "ev") return Math.round((u.price + 40) * 100) / 100;
+  if (list === "kurumsal") return Math.round(u.price * 150) / 100;
+  return u.price;
+}
+
+/** Siparişte kullanılan liste (app.order_list): ev müşterisinin (gel al listesi) siparişi eve teslim fiyatıyla */
+export function orderList(list: PriceList | null | undefined): PriceList {
+  return !list || list === "perakende" ? "ev" : list;
 }
 export interface CatalogProduct extends ProductShopInfo {
   id: string;
@@ -96,7 +107,7 @@ export async function loadPosData(supabase: SupabaseClient, businessId: string):
     stockMap.set(s.product_id, { qty: s.qty, sold: Number(s.sold_qty) });
   }
   const listMap = new Map<string, CatalogUnit["listPrices"]>();
-  for (const r of (lp.data ?? []) as { unit_id: string; price_list: "bayi" | "palet"; price: string | number }[]) {
+  for (const r of (lp.data ?? []) as { unit_id: string; price_list: "bayi" | "palet" | "ev" | "kurumsal"; price: string | number }[]) {
     listMap.set(r.unit_id, { ...(listMap.get(r.unit_id) ?? {}), [r.price_list]: Number(r.price) });
   }
   const special = new Map<string, Record<string, number>>();

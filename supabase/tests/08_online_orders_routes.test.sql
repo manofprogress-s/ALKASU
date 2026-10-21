@@ -35,8 +35,8 @@ select public.set_list_price(test.unit('SU-005', 'Koli'), 'bayi', 150);
 select test.logout();
 set local role anon;
 select test.ok((select count(*) from public.public_catalog()) >= 3, 'Ziyaretçi herkese açık ürün listesini görür');
-select test.eq((select price from public.public_catalog() where unit_id = test.unit('SU-005', 'Koli')), 200.00::numeric,
-  'Ziyaretçiye perakende fiyat gösterilir');
+select test.eq((select price from public.public_catalog() where unit_id = test.unit('SU-005', 'Koli')), 240.00::numeric,
+  'Ziyaretçiye gel al değil eve teslim fiyatı gösterilir (gel al + 40)');
 select test.throws($$select count(*) from public.products$$, '%permission denied%', 'Ziyaretçi tabloları doğrudan okuyamaz');
 select test.throws($$select public.register_customer(gen_random_uuid(), 'Ad Soyad', '5321112233', 'Açık adres yeterince uzun')$$,
   '%permission denied%', 'Ziyaretçi kayıt fonksiyonunu doğrudan çağıramaz');
@@ -66,7 +66,7 @@ select test.eq((test.ord('88888888-0000-0000-0000-000000000001')).status, 'onay_
 select test.eq((test.ord('88888888-0000-0000-0000-000000000001')).assignee, null::uuid, 'Müşteri atama yapamaz');
 select test.eq((test.ord('88888888-0000-0000-0000-000000000001')).source, 'online', 'Kaynak: online');
 select test.ok((test.ord('88888888-0000-0000-0000-000000000001')).delivery_date >= app.local_date(now()), 'Geçmiş teslim tarihi bugüne çekilir');
-select test.eq((select unit_price from public.order_items where order_id = '88888888-0000-0000-0000-000000000001'), 200.00::numeric, 'Müşteri fiyat belirleyemez');
+select test.eq((select unit_price from public.order_items where order_id = '88888888-0000-0000-0000-000000000001'), 240.00::numeric, 'Müşteri fiyat belirleyemez; eve teslim fiyatı uygulanır');
 select test.eq((select count(*) from public.orders)::int, 1, 'Müşteri yalnızca kendi siparişini görür');
 select test.eq((select count(*) from public.customers)::int, 1, 'Müşteri yalnızca kendi kartını görür');
 select test.eq((select count(*) from public.stock_levels)::int, 0, 'Müşteri stok göremez');

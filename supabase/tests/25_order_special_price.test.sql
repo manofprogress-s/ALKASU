@@ -11,7 +11,7 @@ select test.eq((public.save_order(test.biz(), jsonb_build_object('id', 'eeeeeeee
 select test.logout();
 select test.eq((select unit_price from public.order_items where order_id = 'eeeeeeee-0000-0000-0000-000000000001' and line_no = 1), 150.50::numeric, 'Özel fiyat kaydedilir');
 select test.eq((select list_price from public.order_items where order_id = 'eeeeeeee-0000-0000-0000-000000000001' and line_no = 1),
-  (select price from public.product_units where id = test.unit('SU-005', 'Koli')), 'Liste fiyatı ayrıca saklanır');
+  (select price + 40 from public.product_units where id = test.unit('SU-005', 'Koli')), 'Liste (eve teslim) fiyatı ayrıca saklanır');
 select test.eq((select unit_price = list_price from public.order_items where order_id = 'eeeeeeee-0000-0000-0000-000000000001' and line_no = 2), true, 'Fiyat verilmeyen kalem liste fiyatından');
 select test.eq((select qty from public.order_items where order_id = 'eeeeeeee-0000-0000-0000-000000000001' and line_no = 1), 75, 'Büyük miktar (75) tek seferde girilir');
 select test.ok(exists (select 1 from audit.log where action = 'siparis_ozel_fiyat'), 'Özel fiyat denetim kaydına yazılır');

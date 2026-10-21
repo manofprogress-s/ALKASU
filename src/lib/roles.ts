@@ -50,7 +50,9 @@ export function can(role: Role | null | undefined, p: Permission): boolean {
   return !!role && (PERMISSIONS[p] as readonly Role[]).includes(role);
 }
 
-export const PRICE_LISTS = { perakende: "Perakende", bayi: "Bayi", palet: "Palet" } as const;
+export const PRICE_LISTS = { perakende: "Gel al", bayi: "Bayi", palet: "Palet", kurumsal: "Kurumsal", ev: "Eve teslim" } as const;
+/** Müşteri kartında seçilebilen listeler ("Eve teslim" kart listesi değil; ev müşterisinin siparişlerinde otomatik, F-14) */
+export const CUSTOMER_PRICE_LISTS = ["perakende", "kurumsal", "bayi", "palet"] as const;
 export type PriceList = keyof typeof PRICE_LISTS;
 
 export const CHANNELS = { perakende: "Ev müşterisi", kurumsal: "Kurumsal", bayi: "Bayi" } as const;

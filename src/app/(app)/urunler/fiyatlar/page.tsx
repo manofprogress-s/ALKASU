@@ -27,8 +27,8 @@ export default async function PriceListsPage() {
       .order("name"),
     supabase.from("product_list_prices").select("unit_id, price_list, price").eq("business_id", ctx.businessId),
   ]);
-  const lists = new Map<string, { bayi?: number; palet?: number }>();
-  for (const r of (lp ?? []) as { unit_id: string; price_list: "bayi" | "palet"; price: string | number }[]) {
+  const lists = new Map<string, { bayi?: number; palet?: number; ev?: number; kurumsal?: number }>();
+  for (const r of (lp ?? []) as { unit_id: string; price_list: "bayi" | "palet" | "ev" | "kurumsal"; price: string | number }[]) {
     lists.set(r.unit_id, { ...(lists.get(r.unit_id) ?? {}), [r.price_list]: Number(r.price) });
   }
   const rows: PriceRow[] = [];
@@ -45,6 +45,8 @@ export default async function PriceListsPage() {
         unit: u.name,
         factor: u.factor,
         perakende: u.price === null ? null : Number(u.price),
+        ev: l.ev ?? null,
+        kurumsal: l.kurumsal ?? null,
         bayi: l.bayi ?? null,
         palet: l.palet ?? null,
       });
@@ -54,7 +56,7 @@ export default async function PriceListsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Fiyat listeleri"
-        subtitle="Perakende, bayi ve palet fiyatları (KDV dahil, birim başına). Bayi/palet fiyatı boşsa perakende fiyat uygulanır."
+        subtitle="KDV dahil, birim başına. Gel al: dükkân fiyatı. Eve teslim: ev müşterisinin siparişleri (boşsa gel al + 40). Kurumsal: kurumsal kartlar (boşsa gel al × 1,5; firmaya özel fiyat önce gelir). Bayi/palet boşsa gel al."
       />
       <PriceGrid rows={rows} />
     </div>

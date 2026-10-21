@@ -58,7 +58,7 @@ export async function loadOrderProducts(supabase: SupabaseClient, businessId: st
   ]);
   if (prod.error) throw prod.error;
   const lists = new Map<string, CatalogUnit["listPrices"]>();
-  for (const r of (lp.data ?? []) as { unit_id: string; price_list: "bayi" | "palet"; price: string | number }[]) {
+  for (const r of (lp.data ?? []) as { unit_id: string; price_list: "bayi" | "palet" | "ev" | "kurumsal"; price: string | number }[]) {
     lists.set(r.unit_id, { ...(lists.get(r.unit_id) ?? {}), [r.price_list]: Number(r.price) });
   }
   return ((prod.data ?? []) as unknown as ProductRow[])

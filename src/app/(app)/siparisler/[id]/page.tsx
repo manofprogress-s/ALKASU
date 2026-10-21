@@ -40,7 +40,7 @@ interface OrderRow {
     qty: number;
     unit_price: number;
     list_price: number | null;
-    products: { name: string; deposit_amount: number | null; empty_product_id: string | null } | null;
+    products: { name: string; deposit_amount: number | null; deposit_ev: number | null; empty_product_id: string | null } | null;
     product_units: { name: string; factor: number } | null;
   }[];
 }
@@ -52,7 +52,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const { data } = await supabase
     .from("orders")
     .select(
-      "*, customers!orders_customer_id_fkey(name, code, phone, credit_limit, unlimited_credit, latitude, longitude, owner_dealer_id, channel), order_items(id, line_no, product_id, unit_id, qty, unit_price, list_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
+      "*, customers!orders_customer_id_fkey(name, code, phone, credit_limit, unlimited_credit, latitude, longitude, owner_dealer_id, channel), order_items(id, line_no, product_id, unit_id, qty, unit_price, list_price, products(name, deposit_amount, deposit_ev, empty_product_id), product_units(name, factor))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -95,7 +95,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     factor: i.product_units?.factor ?? 1,
     qty: i.qty,
     unitPrice: Number(i.unit_price),
-    deposit: i.products?.deposit_amount === null || i.products?.deposit_amount === undefined ? null : Number(i.products.deposit_amount),
+    // F-16: eve teslim siparişinde eve teslim depozitosu (sunucudaki complete_sale_core ile aynı)
+    deposit: i.products?.deposit_amount === null || i.products?.deposit_amount === undefined ? null
+      : Number(o.price_list === "ev" && i.products.deposit_ev !== null ? i.products.deposit_ev : i.products.deposit_amount),
     emptyProductId: i.products?.empty_product_id ?? null,
   }));
 

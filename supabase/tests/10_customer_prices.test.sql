@@ -25,8 +25,8 @@ select public.save_order(test.biz(), jsonb_build_object('id', 'aaaaaaaa-0000-000
     jsonb_build_object('product_id', test.pid('SU-005'), 'unit_id', test.unit('SU-005', 'Paket'), 'qty', 1))));
 select test.eq((select unit_price from public.order_items where order_id = 'aaaaaaaa-0000-0000-0000-000000000001' and line_no = 1), 175.00::numeric,
   'Siparişte firmaya özel fiyat uygulanır');
-select test.eq((select unit_price from public.order_items where order_id = 'aaaaaaaa-0000-0000-0000-000000000001' and line_no = 2), 55.00::numeric,
-  'Özel fiyatı olmayan birimde normal fiyat');
+select test.eq((select unit_price from public.order_items where order_id = 'aaaaaaaa-0000-0000-0000-000000000001' and line_no = 2), 82.50::numeric,
+  'Özel fiyatı olmayan birimde kurumsal liste (gel al × 1,5)');
 select public.save_order(test.biz(), jsonb_build_object('id', 'aaaaaaaa-0000-0000-0000-000000000002', 'customer_id', test.cust('K101'),
   'items', jsonb_build_array(jsonb_build_object('product_id', test.pid('SU-005'), 'unit_id', test.unit('SU-005', 'Koli'), 'qty', 1))));
 select test.eq((select unit_price from public.order_items where order_id = 'aaaaaaaa-0000-0000-0000-000000000002'), 180.00::numeric,

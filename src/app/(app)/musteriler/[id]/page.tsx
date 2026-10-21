@@ -79,7 +79,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
           <span className="flex flex-wrap items-center gap-2">
             {c.code}{c.phone ? ` · ${c.phone}` : ""}
             <Badge tone={c.channel === "bayi" ? "brand" : "neutral"}>{CHANNELS[c.channel as Channel]}</Badge>
-            {c.price_list !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[c.price_list as PriceList]} fiyatı</Badge> : null}
+            {c.price_list !== "perakende" && c.price_list !== "kurumsal" ? <Badge tone="ok">{PRICE_LISTS[c.price_list as PriceList]} fiyatı</Badge> : null}
             {c.regions ? <span className="text-xs">Bölge: {c.regions}</span> : null}
           </span>
         }
