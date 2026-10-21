@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { segmentOf, segmentTotals } from "./sales-segments";
 
-describe("satış grupları (S-26)", () => {
+describe("satış grupları (O-19)", () => {
   it("kanal → grup", () => {
     expect(segmentOf("kurumsal")).toBe("kurumsal");
     expect(segmentOf("bayi")).toBe("bayi");

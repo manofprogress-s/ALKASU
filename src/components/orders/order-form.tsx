@@ -59,8 +59,9 @@ export function OrderForm({
   const ctx = useAppContext();
   const router = useRouter();
   const toast = useToast();
-  const isAdmin = ctx.role === "yonetici";
   const isDealer = ctx.role === "bayi" || ctx.role === "musteri"; // kendi adına sipariş veren: atama yok
+  const canPrice = !isDealer; // O-20: personel özel fiyat verebilir (denetim kaydına yazılır)
+  const [priceOpen, setPriceOpen] = useState<Set<string>>(new Set());
   const [id] = useState(() => initial?.id ?? crypto.randomUUID());
   const [customerId, setCustomerId] = useState<string | null>(fixedCustomer?.id ?? initial?.customerId ?? dealerMode?.me.id ?? null);
   const [deliverBy, setDeliverBy] = useState<string>("self");
@@ -78,7 +79,7 @@ export function OrderForm({
         const u = products.find((p) => p.id === i.productId)?.units.find((x) => x.id === i.unitId);
         const lp = u ? priceFor(u, startList, startCustomer?.specialPrices) : null;
         // Yöneticinin daha önce elle verdiği fiyat korunur
-        const manual = ctx.role === "yonetici" && i.unitPrice !== null && i.unitPrice !== lp ? String(i.unitPrice).replace(".", ",") : "";
+        const manual = ctx.role !== "bayi" && ctx.role !== "musteri" && i.unitPrice !== null && i.unitPrice !== lp ? String(i.unitPrice).replace(".", ",") : "";
         return { key: crypto.randomUUID(), productId: i.productId, unitId: i.unitId, qty: i.qty, manualPrice: manual };
       }) ?? []
     );
@@ -136,9 +137,10 @@ export function OrderForm({
     const p = byId.get(l.productId);
     const u = p?.units.find((x) => x.id === l.unitId);
     const listPrice = u ? priceFor(u, list, special) : null;
-    const manual = isAdmin && l.manualPrice.trim() !== "" ? parseAmount(l.manualPrice) : null;
+    const manual = canPrice && l.manualPrice.trim() !== "" ? parseAmount(l.manualPrice) : null;
     const price = manual ?? listPrice;
-    return { ...l, product: p, unit: u, listPrice, price, totalK: price === null ? 0 : toKurus(price * l.qty) };
+    const badPrice = canPrice && l.manualPrice.trim() !== "" && manual === null;
+    return { ...l, product: p, unit: u, listPrice, price, badPrice, special: manual !== null && manual !== listPrice, totalK: price === null ? 0 : toKurus(price * l.qty) };
   });
   const totalK = priced.reduce((s, l) => s + l.totalK, 0);
   const containers = priced.filter((l) => l.product?.deposit !== null && l.product?.deposit !== undefined).reduce((s, l) => s + l.qty * (l.unit?.factor ?? 1), 0);
@@ -147,6 +149,7 @@ export function OrderForm({
   if (!customer) validation = "Müşteri seçin";
   else if (priced.length === 0) validation = "Siparişe ürün ekleyin";
   else if (priced.some((l) => l.qty <= 0 || !Number.isInteger(l.qty))) validation = "Miktarlar pozitif tam sayı olmalı";
+  else if (priced.some((l) => l.badPrice)) validation = "Özel fiyat geçersiz; örn. 72,50 yazın";
   else if (priced.some((l) => l.price === null)) validation = "Fiyatı tanımlı olmayan ürün var";
   else if (priced.some((l) => l.price !== null && l.price < 0)) validation = "Fiyat negatif olamaz";
 
@@ -168,7 +171,7 @@ export function OrderForm({
           product_id: l.productId,
           unit_id: l.unitId,
           qty: l.qty,
-          unit_price: isAdmin && l.manualPrice.trim() !== "" ? parseAmount(l.manualPrice) : null,
+          unit_price: canPrice && l.manualPrice.trim() !== "" ? parseAmount(l.manualPrice) : null,
         })),
       },
     });
@@ -260,7 +263,8 @@ export function OrderForm({
 
         <Card id="secilenler" className="scroll-mt-16 space-y-3">
           <h2 className="font-semibold">Seçilen ürünler{priced.length ? ` (${priced.length})` : ""}</h2>
-          {priced.length === 0 ? <div className="text-sm text-muted">Yukarıdan ürün seçin: kartlardaki + ile ekleyin.</div> : null}
+          {priced.length === 0 ? <div className="text-sm text-muted">Yukarıdan ürün seçin: kartlardaki + ile ekleyin; adede dokunup sayıyı yazabilir ya da +10 kullanabilirsiniz.</div>
+            : canPrice ? <div className="text-xs text-muted">Adedi kutuya yazabilirsiniz. Özel fiyat için ürünün yanındaki “Özel fiyat”a basın.</div> : null}
           {priced.map((l) => (
             <div key={l.key} className="rounded-xl border border-border p-2">
               <div className="flex items-start justify-between gap-2">
@@ -285,20 +289,36 @@ export function OrderForm({
                   />
                   <Button variant="secondary" size="icon" aria-label="Artır" onClick={() => update(l.key, { qty: l.qty + 1 })}><Plus className="h-4 w-4" /></Button>
                 </div>
-                {isAdmin ? (
-                  <Input
-                    inputMode="decimal"
-                    className="num h-10 w-28 text-right"
-                    placeholder={l.listPrice !== null ? String(l.listPrice).replace(".", ",") : "Fiyat"}
-                    value={l.manualPrice}
-                    onChange={(e) => update(l.key, { manualPrice: e.target.value })}
-                    aria-label="Birim fiyat"
-                  />
+                {canPrice && (l.manualPrice !== "" || priceOpen.has(l.key)) ? (
+                  <span className="flex flex-wrap items-center gap-1">
+                    <Input
+                      inputMode="decimal"
+                      autoFocus={priceOpen.has(l.key) && l.manualPrice === ""}
+                      className={`num h-10 w-28 text-right ${l.badPrice ? "border-danger" : ""}`}
+                      placeholder={l.listPrice !== null ? String(l.listPrice).replace(".", ",") : "Fiyat"}
+                      value={l.manualPrice}
+                      onChange={(e) => update(l.key, { manualPrice: e.target.value })}
+                      aria-label="Özel birim fiyat"
+                    />
+                    <span className="text-xs text-muted">₺ / {l.unit?.name}</span>
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      update(l.key, { manualPrice: "" });
+                      setPriceOpen((x) => { const n = new Set(x); n.delete(l.key); return n; });
+                    }}>Liste fiyatı</Button>
+                  </span>
+                ) : canPrice ? (
+                  <span className="flex items-center gap-2">
+                    <span className="num text-sm text-muted">{l.price !== null ? formatTRY(l.price) : "Fiyat yok"} / {l.unit?.name}</span>
+                    <Button variant="secondary" size="sm" onClick={() => setPriceOpen((x) => new Set(x).add(l.key))}>Özel fiyat</Button>
+                  </span>
                 ) : (
                   <span className="num text-sm text-muted">{l.price !== null ? formatTRY(l.price) : "Fiyat yok"} / {l.unit?.name}</span>
                 )}
                 <span className="num ml-auto font-semibold">{formatTRY(fromKurus(l.totalK))}</span>
               </div>
+              {l.special ? (
+                <div className="mt-1 text-xs text-warn">Özel fiyat · liste fiyatı {l.listPrice !== null ? formatTRY(l.listPrice) : "yok"}. Siparişte “Özel fiyat” olarak görünür.</div>
+              ) : null}
             </div>
           ))}
         </Card>

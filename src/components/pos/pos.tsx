@@ -112,14 +112,14 @@ export function Pos({ initial }: { initial: PosData }) {
   );
   const itemCount = cart.reduce((s, l) => s + l.qty, 0);
 
-  function addProduct(p: CatalogProduct, unitId?: string | null) {
+  function addProduct(p: CatalogProduct, unitId?: string | null, n = 1) {
     const priced = (u: (typeof p.units)[number]) => priceFor(u, priceList, customer?.specialPrices) !== null;
     const unit = p.units.find((u) => u.id === unitId && priced(u)) ?? p.units.find(priced);
     const price = unit ? priceFor(unit, priceList, customer?.specialPrices) : null;
     if (!unit || price === null) return toast(`${p.name} için satış fiyatı tanımlı değil`, "danger");
     setCart((c) => {
       const i = c.findIndex((l) => l.productId === p.id && l.unitId === unit.id);
-      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
+      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + n } : l));
       return [
         ...c,
         {
@@ -129,7 +129,7 @@ export function Pos({ initial }: { initial: PosData }) {
           unitId: unit.id,
           unitName: unit.name,
           factor: unit.factor,
-          qty: 1,
+          qty: n,
           unitPrice: price,
           lineDiscount: 0,
           depositAmount: p.deposit,
@@ -145,9 +145,9 @@ export function Pos({ initial }: { initial: PosData }) {
     const item = items.find((i) => i.unitId === unitId);
     const p = item ? byId.get(item.productId) : undefined;
     if (!p) return;
-    if (d > 0) return addProduct(p, unitId);
+    if (d > 0) return addProduct(p, unitId, d);   // +1, +10 veya elle yazılan adede tamamlama
     const line = [...cart].reverse().find((l) => l.unitId === unitId);
-    if (line) setQty(line.key, line.qty - 1);
+    if (line) setQty(line.key, line.qty + d);
   }
 
   function onSearchEnter() {

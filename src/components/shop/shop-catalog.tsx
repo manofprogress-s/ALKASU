@@ -28,7 +28,30 @@ export function ItemImage({ item, className }: { item: ShopItem; className?: str
   return <ProductArt kind={productKind(item)} color={brandColor(item.brand)} className={className} />;
 }
 
-export function Stepper({ n, onStep, size = "md", label }: { n: number; onStep: (d: number) => void; size?: "md" | "lg"; label: string }) {
+/** Personel ekranında adet elle yazılabilir: yazılan sayı ile mevcut adet arasındaki fark tek adımda uygulanır */
+function QtyInput({ n, onStep, label }: { n: number; onStep: (d: number) => void; label: string }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft === null) return;
+    const v = Number.parseInt(draft, 10);
+    setDraft(null);
+    if (Number.isFinite(v) && v >= 0 && v <= 10000 && v !== n) onStep(v - n);
+  };
+  return (
+    <input
+      inputMode="numeric"
+      aria-label={`${label} adedi`}
+      value={draft ?? String(n)}
+      onFocus={(e) => { setDraft(String(n)); e.currentTarget.select(); }}
+      onChange={(e) => setDraft(e.target.value.replace(/\D/g, "").slice(0, 5))}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+      className="num h-9 w-12 rounded-lg border border-transparent bg-transparent text-center text-base font-bold text-brand focus:border-brand focus:bg-surface focus:outline-none"
+    />
+  );
+}
+
+export function Stepper({ n, onStep, size = "md", label, typeable }: { n: number; onStep: (d: number) => void; size?: "md" | "lg"; label: string; typeable?: boolean }) {
   const b = size === "lg" ? "h-11 w-11" : "h-10 w-10";
   if (n === 0) {
     return (
@@ -44,7 +67,7 @@ export function Stepper({ n, onStep, size = "md", label }: { n: number; onStep: 
         className={`${b} inline-flex items-center justify-center rounded-full bg-surface text-brand shadow-sm active:scale-95`}>
         <Minus className="h-4 w-4" strokeWidth={2.6} />
       </button>
-      <span className="num w-8 text-center text-base font-bold text-brand" aria-live="polite">{n}</span>
+      {typeable ? <QtyInput n={n} onStep={onStep} label={label} /> : <span className="num w-8 text-center text-base font-bold text-brand" aria-live="polite">{n}</span>}
       <button type="button" aria-label={`${label} artır`} onClick={() => onStep(1)}
         className={`${b} inline-flex items-center justify-center rounded-full bg-brand text-white shadow-sm active:scale-95`}>
         <Plus className="h-4 w-4" strokeWidth={2.6} />
@@ -107,6 +130,13 @@ function ItemCard({ item, n, onStep, edit, plain, compact }: { item: ShopItem; n
         {plain ? null : edit ? (
           <span className="inline-flex h-10 items-center gap-1 rounded-full bg-surface-2 px-3 text-sm text-muted">
             <MoreHorizontal className="h-4 w-4" /> Düzenle
+          </span>
+        ) : compact ? (
+          // Personel (satış / sipariş): adede dokunup yazılabilir, +10 ile hızlı ekleme (kurumsal 15–75 damacana)
+          <span className="flex flex-col items-center gap-1.5">
+            <Stepper n={n} onStep={onStep} label={name} typeable />
+            <button type="button" onClick={() => onStep(10)} aria-label={`${name} 10 ekle`}
+              className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand active:scale-95">+10</button>
           </span>
         ) : <Stepper n={n} onStep={onStep} label={name} />}
       </div>

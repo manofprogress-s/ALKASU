@@ -39,6 +39,7 @@ interface OrderRow {
     unit_id: string;
     qty: number;
     unit_price: number;
+    list_price: number | null;
     products: { name: string; deposit_amount: number | null; empty_product_id: string | null } | null;
     product_units: { name: string; factor: number } | null;
   }[];
@@ -51,7 +52,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const { data } = await supabase
     .from("orders")
     .select(
-      "*, customers!orders_customer_id_fkey(name, code, phone, credit_limit, unlimited_credit, latitude, longitude, owner_dealer_id, channel), order_items(id, line_no, product_id, unit_id, qty, unit_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
+      "*, customers!orders_customer_id_fkey(name, code, phone, credit_limit, unlimited_credit, latitude, longitude, owner_dealer_id, channel), order_items(id, line_no, product_id, unit_id, qty, unit_price, list_price, products(name, deposit_amount, empty_product_id), product_units(name, factor))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -148,7 +149,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 <tr key={i.id}>
                   <td className="py-1.5">{i.products?.name}</td>
                   <td className="num py-1.5 text-right">{i.qty} {i.product_units?.name}</td>
-                  <td className="num py-1.5 text-right">{formatTRY(i.unit_price)}</td>
+                  <td className="num py-1.5 text-right">
+                    {formatTRY(i.unit_price)}
+                    {isStaff && i.list_price !== null && Number(i.list_price) !== Number(i.unit_price) ? (
+                      <span className="block text-xs text-warn">Özel fiyat · liste {formatTRY(i.list_price)}</span>
+                    ) : null}
+                  </td>
                   <td className="num py-1.5 text-right">{formatTRY(Number(i.qty) * Number(i.unit_price))}</td>
                 </tr>
               ))}

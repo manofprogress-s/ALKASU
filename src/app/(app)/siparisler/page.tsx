@@ -36,7 +36,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const isStaff = !isDealer && !isCustomer;
   // Bayi: "teslimat" = kendisine atanan ev müşterisi siparişleri, "alim" = bizden kendi siparişleri
   const tur = isDealer ? (sp.tur === "alim" ? "alim" : sp.tur === "musterilerim" ? "musterilerim" : "teslimat") : null;
-  // Varsayılan: bayi kendi açık teslimatlarını, personel ve müşteri tüm siparişleri görür (S-27)
+  // Varsayılan: bayi kendi açık teslimatlarını, personel ve müşteri tüm siparişleri görür (O-18)
   const defaultDurum = isDealer ? "acik" : "tumu";
   const durum = (sp.durum ?? defaultDurum) as OrderStatus | "tumu";
   const routeSorted = (sp.atanan === "ben" || tur === "teslimat") && durum === "acik";

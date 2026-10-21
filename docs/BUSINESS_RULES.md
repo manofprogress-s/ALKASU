@@ -201,9 +201,10 @@
 - **O-05** Teslimatta veresiye limiti aşılırsa teslimat reddedilmez (mal teslim edilmiştir); satış "limit aşımı" olarak işaretlenir ve yöneticinin ana sayfasında uyarı görünür.
 - **O-06** Teslim edilmeyen sipariş iptal edilir; iptal nedeni zorunludur. Kapanmış (teslim edilmiş/iptal) sipariş değiştirilemez. Aynı teslimatın tekrar gönderilmesi ikinci satış oluşturmaz.
 - **O-07** Sipariş durumları: Açık → Teslim edildi / İptal.
-- **O-08** (21.10) Sipariş sorumlusu sipariş bazında başka çalışana devredilebilir (kurumsal ve ev müşterisi farkı yoktur; bayideki sipariş de çalışana alınabilir). Yalnızca o siparişin sorumlusu değişir; müşteri kartı, varsayılan sorumlu ve müşterinin kurumsal/ev niteliği değişmez. Devir kayıt altına alınır; güncel sorumlu sipariş başlığında görünür.
-- **O-09** (21.10) Sipariş listesi personel için varsayılan olarak **tüm** siparişleri gösterir; Açık / Teslim edildi / İptal (teslim edilmedi) / Onay bekliyor ile süzülür. Bayi varsayılanı kendi açık teslimatlarıdır.
-- **O-10** (21.10) Satışlar ekranı kurumsal, perakende (ev müşterisi + müşterisiz) ve varsa bayi satışlarını ayrı toplar ve genel toplamı gösterir (iptaller hariç, her fiş bir kez). Yönetici tüm satışları, diğer personel yalnızca kendi kaydettiği satışları (teslim ettiği siparişler dahil) görür; "Bugün sattığım" bu listeye götürür.
+- **O-17** (21.10) Sipariş sorumlusu sipariş bazında başka çalışana devredilebilir (kurumsal ve ev müşterisi farkı yoktur; bayideki sipariş de çalışana alınabilir). Yalnızca o siparişin sorumlusu değişir; müşteri kartı, varsayılan sorumlu ve müşterinin kurumsal/ev niteliği değişmez. Devir kayıt altına alınır; güncel sorumlu sipariş başlığında görünür.
+- **O-18** (21.10) Sipariş listesi personel için varsayılan olarak **tüm** siparişleri gösterir; Açık / Teslim edildi / İptal (teslim edilmedi) / Onay bekliyor ile süzülür. Bayi varsayılanı kendi açık teslimatlarıdır.
+- **O-19** (21.10) Satışlar ekranı kurumsal, perakende (ev müşterisi + müşterisiz) ve varsa bayi satışlarını ayrı toplar ve genel toplamı gösterir (iptaller hariç, her fiş bir kez). Yönetici tüm satışları, diğer personel yalnızca kendi kaydettiği satışları (teslim ettiği siparişler dahil) görür; "Bugün sattığım" bu listeye götürür.
+- **O-20** (21.10) Siparişte **özel fiyat**: personel (yönetici, satış, sevkiyat) sipariş kalemine elle birim fiyat girebilir ("Özel fiyat" düğmesi). Liste fiyatı ayrıca saklanır; siparişte "Özel fiyat · liste …" olarak görünür, denetim kaydına yazılır ve teslimatta satışa aynen geçer. Bayi ve müşteri fiyat değiştiremez. Personel ekranlarında (satış ve sipariş) ürün kartındaki adet yazılabilir ve +10 düğmesi vardır.
 
 ## 18. Yeni roller
 

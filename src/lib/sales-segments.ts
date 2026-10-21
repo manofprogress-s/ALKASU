@@ -1,4 +1,4 @@
-// Satış listesinde kurumsal / perakende / bayi ayrımı (S-26). Saf fonksiyonlar, birim testli.
+// Satış listesinde kurumsal / perakende / bayi ayrımı (O-19). Saf fonksiyonlar, birim testli.
 export type Segment = "kurumsal" | "perakende" | "bayi";
 export const SEGMENTS: { key: Segment; label: string; hint: string }[] = [
   { key: "kurumsal", label: "Kurumsal", hint: "Kurumsal müşteri kartına yapılan satışlar" },
