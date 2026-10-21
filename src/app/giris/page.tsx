@@ -87,7 +87,7 @@ function LoginForm({ mode }: { mode: Mode }) {
 /** Yeni müşteri için büyük, öne çıkan hızlı sipariş kartı (W-01) */
 function QuickOrder() {
   return (
-    <Link href="/siparis-ver" className="group relative block overflow-hidden rounded-3xl bg-gradient-to-br from-brand to-brand-strong p-5 text-white shadow-lg shadow-brand/25 active:scale-[0.99]">
+    <Link href="/siparis-ver" className="group relative block overflow-hidden rounded-3xl bg-brand p-5 text-white active:scale-[0.99]">
       <ProductArt kind="damacana" color="#ffffff" className="pointer-events-none absolute -right-3 -bottom-4 h-40 w-32 opacity-90" />
       <span className="relative block max-w-[70%]">
         <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">

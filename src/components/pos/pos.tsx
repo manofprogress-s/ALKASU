@@ -286,14 +286,14 @@ export function Pos({ initial }: { initial: PosData }) {
         })}
 
         {totals.deposits.map((d) => (
-          <div key={d.productId} className="rounded-xl border border-brand/40 bg-brand-soft p-3">
+          <div key={d.productId} className="rounded-xl border border-border bg-surface-2 p-3">
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm font-medium">{d.productName}: boş kap</div>
               <div className="flex gap-1">
                 <button type="button" onClick={() => setEmpties((e) => ({ ...e, [d.productId]: 0 }))}
-                  className={`rounded-full px-2.5 py-1 text-xs ${d.emptyReturned === 0 ? "bg-brand text-white" : "bg-surface text-brand"}`}>Boş yok</button>
+                  className={`rounded-full border px-2.5 py-1 text-xs ${d.emptyReturned === 0 ? "border-brand bg-brand text-white" : "border-border bg-surface text-text"}`}>Boş yok</button>
                 <button type="button" onClick={() => setEmpties((e) => ({ ...e, [d.productId]: d.sold }))}
-                  className={`rounded-full px-2.5 py-1 text-xs ${d.emptyReturned === d.sold ? "bg-brand text-white" : "bg-surface text-brand"}`}>Hepsi değişim</button>
+                  className={`rounded-full border px-2.5 py-1 text-xs ${d.emptyReturned === d.sold ? "border-brand bg-brand text-white" : "border-border bg-surface text-text"}`}>Hepsi değişim</button>
               </div>
             </div>
             <div className="mt-2 flex items-center justify-between gap-2">
@@ -358,7 +358,7 @@ export function Pos({ initial }: { initial: PosData }) {
     <div className="-mx-3 -mt-3 md:-mx-6 md:grid md:h-[calc(100dvh-3rem)] md:grid-cols-[1fr_380px]">
       {/* Ürünler */}
       <section className="flex min-h-0 flex-col">
-        <div className="sticky top-12 z-20 bg-bg p-3 md:top-0">
+        <div className="sticky top-12 z-20 border-b border-border bg-surface p-3 md:top-0">
           <div className="relative">
             <Search className="pointer-events-none absolute top-3 left-3 h-5 w-5 text-muted" />
             <Input
@@ -451,7 +451,7 @@ function PriceEditor({ value, onChange, unit }: { value: number; onChange: (v: n
   const [text, setText] = useState(String(value).replace(".", ","));
   if (!edit)
     return (
-      <button className="num text-xs text-brand underline decoration-dotted" onClick={() => { setText(String(value).replace(".", ",")); setEdit(true); }}>
+      <button className="num text-xs text-muted underline decoration-dotted hover:text-brand" onClick={() => { setText(String(value).replace(".", ",")); setEdit(true); }}>
         {formatTRY(value)} / {unit}
       </button>
     );

@@ -125,8 +125,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </div>
       ) : null}
       {ctx.role === "depo" || ctx.role === "sevkiyat" ? (
-        <Link href="/mal-kabul/yeni" className="flex items-center justify-center gap-3 rounded-2xl bg-brand p-5 text-lg font-semibold text-white">
-          <Truck className="h-6 w-6" /> Mal kabul
+        <Link href="/mal-kabul/yeni" className="flex items-center justify-center gap-3 rounded-2xl border border-border bg-surface p-5 text-lg font-semibold text-text hover:border-brand">
+          <Truck className="h-6 w-6 text-brand" /> Mal kabul
         </Link>
       ) : null}
 

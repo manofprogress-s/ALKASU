@@ -46,7 +46,7 @@ function QtyInput({ n, onStep, label }: { n: number; onStep: (d: number) => void
       onChange={(e) => setDraft(e.target.value.replace(/\D/g, "").slice(0, 5))}
       onBlur={commit}
       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
-      className="num h-9 w-12 rounded-lg border border-transparent bg-transparent text-center text-base font-bold text-brand focus:border-brand focus:bg-surface focus:outline-none"
+      className="num h-9 w-12 rounded-lg border border-transparent bg-transparent text-center text-base font-semibold text-text focus:border-brand focus:bg-surface focus:outline-none"
     />
   );
 }
@@ -56,20 +56,20 @@ export function Stepper({ n, onStep, size = "md", label, typeable }: { n: number
   if (n === 0) {
     return (
       <button type="button" aria-label={`${label} ekle`} onClick={() => onStep(1)}
-        className={`${b} inline-flex items-center justify-center rounded-full bg-brand text-white shadow-md shadow-brand/30 transition active:scale-95`}>
+        className={`${b} inline-flex items-center justify-center rounded-full bg-brand text-white transition hover:bg-brand/90 active:scale-95`}>
         <Plus className="h-5 w-5" strokeWidth={2.6} />
       </button>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full bg-brand-soft p-0.5">
+    <span className="inline-flex items-center rounded-full border border-border bg-surface p-0.5">
       <button type="button" aria-label={`${label} azalt`} onClick={() => onStep(-1)}
-        className={`${b} inline-flex items-center justify-center rounded-full bg-surface text-brand shadow-sm active:scale-95`}>
+        className={`${b} inline-flex items-center justify-center rounded-full bg-surface-2 text-text active:scale-95`}>
         <Minus className="h-4 w-4" strokeWidth={2.6} />
       </button>
-      {typeable ? <QtyInput n={n} onStep={onStep} label={label} /> : <span className="num w-8 text-center text-base font-bold text-brand" aria-live="polite">{n}</span>}
+      {typeable ? <QtyInput n={n} onStep={onStep} label={label} /> : <span className="num w-8 text-center text-base font-semibold text-text" aria-live="polite">{n}</span>}
       <button type="button" aria-label={`${label} artır`} onClick={() => onStep(1)}
-        className={`${b} inline-flex items-center justify-center rounded-full bg-brand text-white shadow-sm active:scale-95`}>
+        className={`${b} inline-flex items-center justify-center rounded-full bg-brand text-white hover:bg-brand/90 active:scale-95`}>
         <Plus className="h-4 w-4" strokeWidth={2.6} />
       </button>
     </span>
@@ -118,13 +118,13 @@ function ItemCard({ item, n, onStep, edit, plain, compact }: { item: ShopItem; n
     <div
       {...(edit ? lp.handlers : {})}
       onClick={edit ? () => { if (!lp.fired.current) edit.onPress(item, "tap"); } : undefined}
-      className={`flex h-full select-none flex-col items-center rounded-2xl border bg-surface p-2.5 pb-3 text-center shadow-sm transition [-webkit-touch-callout:none] ${
-        selected ? "border-warn ring-4 ring-warn/40" : n ? "border-brand ring-2 ring-brand/25" : "border-border"} ${edit ? "cursor-pointer active:scale-[0.98]" : ""}`}
+      className={`flex h-full select-none flex-col items-center rounded-xl border bg-surface p-3 text-center transition [-webkit-touch-callout:none] ${
+        selected ? "border-warn ring-4 ring-warn/40" : n ? "border-brand" : "border-border hover:border-gray-300"} ${edit ? "cursor-pointer active:scale-[0.98]" : ""}`}
     >
       <ItemImage item={item} className={`pointer-events-none w-full ${compact ? "h-20" : "h-28"}`} />
       <div className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-[15px] font-semibold leading-tight">{name}</div>
       <div className="mt-0.5 text-xs text-muted">{unitLabel(item)}</div>
-      <div className={`num mt-0.5 font-semibold text-brand ${item.note ? "" : "mb-2"}`}>{formatTRY(item.price)}</div>
+      <div className={`num mt-0.5 font-semibold text-text ${item.note ? "" : "mb-2"}`}>{formatTRY(item.price)}</div>
       {item.note ? <div className={`num mb-2 text-[11px] ${item.noteDanger ? "font-medium text-danger" : "text-muted"}`}>{item.note}</div> : null}
       <div className="mt-auto">
         {plain ? null : edit ? (
@@ -136,7 +136,7 @@ function ItemCard({ item, n, onStep, edit, plain, compact }: { item: ShopItem; n
           <span className="flex flex-col items-center gap-1.5">
             <Stepper n={n} onStep={onStep} label={name} typeable />
             <button type="button" onClick={() => onStep(10)} aria-label={`${name} 10 ekle`}
-              className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand active:scale-95">+10</button>
+              className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted hover:border-brand hover:text-brand active:scale-95">+10</button>
           </span>
         ) : <Stepper n={n} onStep={onStep} label={name} />}
       </div>
@@ -157,32 +157,32 @@ export function ShopCatalog({ items, qty, onStep, edit, staff }: {
   return (
     <div className={staff ? "space-y-3" : "space-y-4"}>
       {staff ? null : (
-        <div className="flex items-center gap-3 rounded-3xl bg-gradient-to-r from-brand-soft to-surface p-4 shadow-sm">
-          <Droplet className="h-8 w-8 shrink-0 fill-brand/20 text-brand" />
-          <p className="text-lg font-bold leading-snug">İhtiyacın olan suyu <span className="text-brand">kolayca seç</span></p>
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4">
+          <Droplet className="h-7 w-7 shrink-0 text-brand" />
+          <p className="text-lg font-semibold leading-snug">İhtiyacın olan suyu kolayca seç</p>
         </div>
       )}
       {sections.map((s, si) => {
         const expanded = open[s.key] ?? false;
         return (
-          <section key={s.key} className="rounded-3xl bg-brand-soft/60 p-3" aria-labelledby={`h-${s.key}`}>
+          <section key={s.key} className={staff ? "border-t border-border pt-3 first:border-0 first:pt-0" : "rounded-2xl border border-border bg-surface p-3"} aria-labelledby={`h-${s.key}`}>
             <div className="mb-2 flex items-center justify-between px-1">
-              <h2 id={`h-${s.key}`} className={`${staff ? "text-lg" : "text-xl"} font-bold tracking-tight`}>{s.title}</h2>
+              <h2 id={`h-${s.key}`} className={`${staff ? "text-base" : "text-lg"} font-semibold text-text`}>{s.title}</h2>
               {edit?.onMoveSection ? (
                 <span className="flex gap-1.5">
                   <button type="button" aria-label={`${s.title} bölümünü yukarı taşı`} disabled={si === 0} onClick={() => edit.onMoveSection!(s.key, -1)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface text-brand shadow-sm disabled:opacity-30">
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-muted disabled:opacity-30">
                     <ArrowUp className="h-5 w-5" />
                   </button>
                   <button type="button" aria-label={`${s.title} bölümünü aşağı taşı`} disabled={si === sections.length - 1} onClick={() => edit.onMoveSection!(s.key, 1)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface text-brand shadow-sm disabled:opacity-30">
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-muted disabled:opacity-30">
                     <ArrowDown className="h-5 w-5" />
                   </button>
                 </span>
               ) : s.items.length > 2 ? (
                 <button type="button" onClick={() => setOpen((o) => ({ ...o, [s.key]: !expanded }))}
                   aria-expanded={expanded} aria-label={expanded ? "Daralt" : "Tümünü göster"}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface text-brand shadow-sm">
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-muted hover:text-text">
                   <ChevronRight className={`h-5 w-5 transition ${expanded ? "rotate-90" : ""}`} />
                 </button>
               ) : null}
@@ -243,7 +243,7 @@ export function CartBar({ count, totalK, onConfirm, label = "Sepeti onayla", inA
           <div className="font-bold">{count} ürün seçildi</div>
           <div className="num text-sm text-muted">{formatTRY(fromKurus(totalK))}</div>
         </div>
-        <button type="button" onClick={onConfirm} className="h-12 rounded-xl bg-brand px-6 text-base font-semibold text-white shadow-md shadow-brand/30 active:scale-[0.98]">
+        <button type="button" onClick={onConfirm} className="h-12 rounded-xl bg-brand px-6 text-base font-semibold text-white hover:bg-brand/90 active:scale-[0.98]">
           {label}
         </button>
       </div>

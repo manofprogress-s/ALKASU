@@ -71,7 +71,7 @@ export function AppShell({ role, name, title, business, children }: { role: Role
       <aside className="no-print sticky top-0 hidden h-dvh w-60 shrink-0 flex-col justify-between border-r border-border bg-surface p-3 md:flex">
         <div>
           <div className="mb-4 px-3 pt-1">
-            <div className="text-lg font-bold tracking-tight text-brand">ALKASU</div>
+            <div className="text-lg font-bold tracking-tight text-text">ALKASU</div>
             <div className="truncate text-xs text-muted">{business}</div>
           </div>
           {navList}
@@ -81,8 +81,8 @@ export function AppShell({ role, name, title, business, children }: { role: Role
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobil üst çubuk */}
-        <header className="no-print sticky top-0 z-30 flex h-12 items-center justify-between border-b border-border bg-surface/95 px-3 backdrop-blur md:hidden">
-          <span className="font-bold text-brand">ALKASU</span>
+        <header className="no-print sticky top-0 z-30 flex h-12 items-center justify-between border-b border-border bg-surface px-3 md:hidden">
+          <span className="font-bold text-text">ALKASU</span>
           <OfflineBadge />
         </header>
         <div className="no-print hidden justify-end px-6 pt-3 md:flex">

@@ -3,42 +3,25 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --bg: #f5f7fa;
+  /* Sade, açık tasarım dili (D-096): zemin beyaz/beyaza yakın, metin koyu gri, ayırıcı açık gri.
+     Yalnızca iki mavi: ana mavi (buton, seçili menü, küçük vurgu) ve çok açık mavi (hafif vurgu).
+     Uygulama her zaman açık temada çalışır (cihaz koyu modda olsa da). */
+  --bg: #fafbfc;
   --surface: #ffffff;
-  --surface-2: #eef2f6;
-  --border: #dde3ea;
-  --text: #0f1b2a;
-  --muted: #5b6b7e;
+  --surface-2: #f3f4f6;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --muted: #5b6472;
   --brand: #0a6fb8;
-  --brand-strong: #075a96;
-  --brand-soft: #e3f0fa;
+  --brand-strong: #0a6fb8;
+  --brand-soft: #eaf4fc;
   --ok: #1a7f4b;
-  --ok-soft: #e3f5ea;
-  --warn: #a35a00;
-  --warn-soft: #fff1dc;
+  --ok-soft: #e7f6ee;
+  --warn: #9a5500;
+  --warn-soft: #fff4e2;
   --danger: #c0262d;
-  --danger-soft: #fde8e8;
+  --danger-soft: #fdecec;
   color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --bg: #0c131b;
-    --surface: #131d28;
-    --surface-2: #1a2735;
-    --border: #273646;
-    --text: #e8eef4;
-    --muted: #93a4b7;
-    --brand: #4aa8ea;
-    --brand-strong: #7cc0f0;
-    --brand-soft: #14304a;
-    --ok: #4cc488;
-    --ok-soft: #123324;
-    --warn: #f0a849;
-    --warn-soft: #3a2a12;
-    --danger: #f0676c;
-    --danger-soft: #3d1618;
-    color-scheme: dark;
-  }
 }
 
 @theme inline {
