@@ -147,6 +147,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         {tabs.filter((t) => !t.admin || isAdmin).map((t) => (
           <Link key={t.t} href={q(t.t)} className={`rounded-full px-3 py-1.5 text-sm ${tab === t.t ? "bg-brand text-white" : "bg-surface-2"}`}>{t.label}</Link>
         ))}
+        {isAdmin ? <Link href="/raporlar/gelir-gider" className="shrink-0 rounded-full bg-surface-2 px-3 py-1.5 text-sm">Gelir-gider</Link> : null}
       </div>
       {tab === "gunluk" || tab === "urun" || tab === "marka" ? <DateFilter from={from} to={to} /> : null}
       {body}

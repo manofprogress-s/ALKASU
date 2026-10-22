@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Send } from "lucide-react";
+import { CheckCircle2, RefreshCw, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
@@ -20,6 +20,8 @@ export function InvoiceActions({ invoiceId, status, errors }: { invoiceId: strin
   const [busy, setBusy] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
+  const [docNo, setDocNo] = useState("");
 
   async function act(action: string, note?: string) {
     setBusy(action);
@@ -27,10 +29,11 @@ export function InvoiceActions({ invoiceId, status, errors }: { invoiceId: strin
     setBusy(null);
     if (error) return toast(errorMessage(error), "danger");
     toast(
-      action === "hazirla" ? "Gönderime hazır" : action === "yenile" ? "Bilgiler güncellendi" : action === "taslaga" ? "Taslağa alındı" : "Fatura kaydı iptal edildi",
+      action === "elle_kesildi" ? "Fatura kesildi olarak işlendi" : action === "hazirla" ? "Gönderime hazır" : action === "yenile" ? "Bilgiler güncellendi" : action === "taslaga" ? "Taslağa alındı" : "Fatura kaydı iptal edildi",
       "ok",
     );
     setCancelOpen(false);
+    setManualOpen(false);
     router.refresh();
   }
 
@@ -54,12 +57,22 @@ export function InvoiceActions({ invoiceId, status, errors }: { invoiceId: strin
             </Button>
           </>
         ) : null}
+        <Button variant="secondary" onClick={() => setManualOpen(true)}>
+          <CheckCircle2 className="h-4 w-4 text-ok" /> İşbaşı’nda kestim
+        </Button>
         <Button variant="ghost" className="text-danger" onClick={() => setCancelOpen(true)}>Kaydı iptal et</Button>
       </div>
       {status === "taslak" && errors > 0 ? <p className="text-sm text-muted">Gönderime hazırlamak için önce kırmızı eksikleri tamamlayın, sonra “yenile”ye basın.</p> : null}
       {status === "hazir" ? (
         <Alert tone="neutral">Logo İşbaşı bağlantısı kurulunca bu düğme açılacak. Gönderim yalnızca sizin onayınızla ve önce test ortamında yapılacak.</Alert>
       ) : null}
+      <Dialog open={manualOpen} onClose={() => setManualOpen(false)} title="Fatura İşbaşı’nda kesildi"
+        footer={<Button variant="ok" className="w-full" loading={busy === "elle_kesildi"} disabled={docNo.trim().length < 3} onClick={() => void act("elle_kesildi", docNo)}>Kesildi olarak işle</Button>}>
+        <div className="space-y-2">
+          <p className="text-sm text-muted">Faturayı Logo İşbaşı ekranından kendiniz kestiyseniz numarasını yazın. Satış “faturası kesildi” olur ve gelir grafiğinde yeşile döner. ALKASU hiçbir yere gönderim yapmaz.</p>
+          <Field label="İşbaşı fatura numarası"><Input value={docNo} onChange={(e) => setDocNo(e.target.value)} placeholder="Örn. ALK2026000000123" /></Field>
+        </div>
+      </Dialog>
       <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} title="Fatura kaydını iptal et"
         footer={<Button variant="danger" className="w-full" loading={busy === "iptal"} disabled={reason.trim().length < 3} onClick={() => void act("iptal", reason)}>İptal et</Button>}>
         <div className="space-y-2">

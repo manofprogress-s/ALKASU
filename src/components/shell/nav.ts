@@ -23,6 +23,7 @@ export const NAV: NavItem[] = [
   { href: "/urunler", label: "Ürünler", icon: "tag", perm: "catalog" },
   { href: "/faturalar", label: "Faturalar", icon: "account", perm: "invoices" },
   { href: "/kasa", label: "Kasa", icon: "wallet", perm: "cash" },
+  { href: "/giderler", label: "Giderler", icon: "expense", perm: "expenses" },
   { href: "/raporlar", label: "Raporlar", icon: "chart", perm: "reports" },
   { href: "/ayarlar", label: "Ayarlar", icon: "settings", perm: "users" },
 ];

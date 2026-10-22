@@ -21,19 +21,22 @@ select public.add_expense(test.biz(), jsonb_build_object('id', gen_random_uuid()
   'category_id', (select id from public.expense_categories where business_id = test.biz() and name = 'Kira'),
   'amount', 5000, 'method', 'banka'));
 select public.add_cash_movement(test.biz(), '{"type":"cikis","amount":30,"note":"Bankaya yatırıldı"}');
-select test.eq((select count(*) from public.expense_categories where business_id = test.biz())::int, 9, 'Varsayılan gider kategorileri oluşur (K-10)');
+select test.eq((select count(*) from public.expense_categories where business_id = test.biz())::int, 10, 'Varsayılan gider kategorileri oluşur (K-10)');
 
 -- K-03: beklenen nakit = 0 + 400 + 100 − 50 − 30 = 420
 select test.eq((public.cash_session_summary(test.biz())->>'expected_cash')::numeric, 420.00::numeric, 'Beklenen nakit (K-03), banka gideri hariç');
 select test.eq((public.cash_session_summary(test.biz())->>'pos_expected')::numeric, 200.00::numeric, 'Beklenen POS toplamı');
 select test.eq((public.cash_session_summary(test.biz())->>'credit_sales')::numeric, 200.00::numeric, 'Günün veresiye satışı');
 
+select test.logout();
+create function test.kira_id() returns uuid language sql security definer as $f$ select id from public.expense_categories where business_id = test.biz() and code = 'kira' $f$;
+grant execute on function test.kira_id() to authenticated;
 select test.login(test.u_satis());
 select test.throws($$select public.cash_session_summary(test.biz())$$, '%yetkiniz yok%', 'Satış personeli kasa özetini göremez');
 select test.throws($$select public.close_cash_session(test.biz(), jsonb_build_object('session_id', test.open_session(), 'counted_cash', 420, 'carry_over', 100))$$,
                    '%yetkiniz yok%', 'Kasayı yalnızca yönetici kapatır (K-06)');
-select test.throws($$select public.add_expense(test.biz(), jsonb_build_object('id', gen_random_uuid(), 'category_id', (select id from public.expense_categories limit 1), 'amount', 1, 'method', 'kasa'))$$,
-                   '%yetkiniz yok%', 'Gideri yalnızca yönetici girer (K-09)');
+select test.throws($$select public.add_expense(test.biz(), jsonb_build_object('id', gen_random_uuid(), 'category_id', test.kira_id(), 'amount', 1, 'method', 'kasa'))$$,
+                   '%yalnızca yönetici%', 'Kira gibi kısıtlı giderleri yalnızca yönetici girer (K-11)');
 select test.login(test.u_admin());
 
 -- K-04: tolerans
