@@ -15,6 +15,8 @@ select test.eq(app.import_historical_invoices(test.biz(), test.hist())->>'insert
 select test.eq(app.import_historical_invoices(test.biz(), test.hist())->>'updated', '6', 'Tekrar yükleme çift kayıt oluşturmaz');
 select test.eq((select count(*)::int from public.historical_invoices), 6, 'Toplam 6 kayıt');
 select test.eq((select total from public.historical_invoices where doc_no = 'K2'), -100.00::numeric, 'İade faturası eksi');
+select test.ok(app.is_return_doc('Satınalma İade Faturası') and app.is_return_doc('SATIŞ İADE FATURASI') and app.is_return_doc('iade')
+               and not app.is_return_doc('Satınalma Faturası') and not app.is_return_doc(null), 'İade türü yerel ayardan bağımsız tanınır');
 
 select test.login(test.u_admin());
 -- Sınır yokken geçmiş rapora girmez
