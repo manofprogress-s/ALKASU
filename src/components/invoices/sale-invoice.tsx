@@ -81,6 +81,12 @@ export function SaleInvoice({ saleId, saleActive, invoice }: {
             <Button loading={saving} onClick={() => void createDraft()}>Taslak olarak kaydet</Button>
           </div>
         }>
+        {preview?.customer.billing_mode === "aylik" ? (
+          <p className="mb-3 rounded-lg bg-brand-soft px-3 py-2 text-sm text-brand">
+            Bu müşteri <b>aylık toplu</b> faturalanır. Ayrı fatura yalnızca gerekiyorsa (ör. eşik üstü teslimat) açın; diğerleri için{" "}
+            <Link href="/faturalar?d=aylik" className="font-medium underline">Faturalar → Aylık toplu</Link>.
+          </p>
+        ) : null}
         {preview ? <InvoiceView customer={preview.customer} lines={preview.lines} totals={preview.totals} issues={preview.issues} docTypeHint={preview.doc_type_hint} /> : null}
       </Dialog>
     </>

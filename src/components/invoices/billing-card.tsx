@@ -10,12 +10,14 @@ import { useAppContext } from "@/components/shell/context";
 import { useToast } from "@/components/ui/toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
-import { taxIdKind, TAX_KIND_LABEL } from "@/lib/invoice";
+import { BILLING_MODE, taxIdKind, TAX_KIND_LABEL, type BillingMode } from "@/lib/invoice";
+import { cn } from "@/lib/cn";
 
 export interface BillingValues {
   legal_title: string | null; tax_no: string | null; tax_office: string | null; email: string | null;
   city: string | null; district: string | null; address: string | null; channel: string;
   logo_code?: string | null;
+  billing_mode?: BillingMode;
 }
 
 /** Müşteri kartında fatura bilgileri (F-20). Personel girer; doğrulama anında gösterilir. */
@@ -45,6 +47,14 @@ export function BillingCard({ customerId, v, canEdit, highlight }: { customerId:
     const { error } = await supabaseBrowser().rpc("logo_firm_unlink", { p_business: ctx.businessId, p_customer: customerId });
     if (error) return toast(errorMessage(error), "danger");
     toast("İşbaşı bağlantısı kaldırıldı", "ok");
+    router.refresh();
+  }
+
+  async function setMode(mode: BillingMode) {
+    if (mode === v.billing_mode) return;
+    const { error } = await supabaseBrowser().rpc("set_customer_billing_mode", { p_business: ctx.businessId, p_customer: customerId, p_mode: mode });
+    if (error) return toast(errorMessage(error), "danger");
+    toast(`Fatura yöntemi: ${BILLING_MODE[mode].label}`, "ok");
     router.refresh();
   }
 
@@ -79,6 +89,22 @@ export function BillingCard({ customerId, v, canEdit, highlight }: { customerId:
       {missing.length ? (
         <p className="flex items-center gap-1.5 text-sm text-warn"><TriangleAlert className="h-4 w-4 shrink-0" /> Fatura için eksik: {missing.join(", ")}</p>
       ) : <p className="flex items-center gap-1.5 text-sm text-ok"><CheckCircle2 className="h-4 w-4" /> Fatura için bilgiler tamam</p>}
+      {v.billing_mode ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted">Fatura yöntemi:</span>
+          {ctx.role === "yonetici" ? (
+            <span className="inline-flex rounded-xl border border-border p-0.5">
+              {(Object.keys(BILLING_MODE) as BillingMode[]).map((m) => (
+                <button key={m} type="button" onClick={() => void setMode(m)} title={BILLING_MODE[m].hint}
+                  className={cn("rounded-lg px-2.5 py-1 text-sm", v.billing_mode === m ? "bg-brand text-white" : "text-muted hover:bg-surface-2")}>
+                  {BILLING_MODE[m].label}
+                </button>
+              ))}
+            </span>
+          ) : <span className="font-medium">{BILLING_MODE[v.billing_mode].label}</span>}
+          <span className="text-xs text-muted">{BILLING_MODE[v.billing_mode].hint}</span>
+        </div>
+      ) : null}
       {v.logo_code ? (
         <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
           <span>İşbaşı cari kodu: <span className="num text-text">{v.logo_code.replace(/^0+/, "")}</span></span>

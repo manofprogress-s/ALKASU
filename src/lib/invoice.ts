@@ -14,8 +14,21 @@ export const INVOICE_STATUS: Record<InvoiceStatus, { label: string; tone: "neutr
 
 export const INVOICE_EVENT: Record<string, string> = {
   taslak: "Taslak oluşturuldu", yenile: "Bilgiler güncellendi", hazirla: "Gönderime hazırlandı",
-  taslaga: "Taslağa geri alındı", iptal: "İptal edildi",
+  taslaga: "Taslağa geri alındı", iptal: "İptal edildi", elle_kesildi: "İşbaşı’nda kesildi olarak işlendi",
 };
+
+/** Fatura yöntemi (F-30): müşteri kartında seçilir */
+export type BillingMode = "teslimat" | "aylik";
+export const BILLING_MODE: Record<BillingMode, { label: string; hint: string }> = {
+  teslimat: { label: "Sevkiyat başına", hint: "Her teslimat ayrı faturalanır" },
+  aylik: { label: "Aylık toplu", hint: "Ay içindeki teslimatlar tek faturada birleşir" },
+};
+
+/** Faturadaki teslimat (izlenebilirlik, F-33) */
+export interface InvoiceSaleRef {
+  id: string; no: number; sold_at: string; status: string; order_id: string | null; order_no: number | null;
+  qty: number; gross: number; invoiced_by: string | null;
+}
 
 export interface InvoiceIssue { level: "error" | "warning"; field: string; message: string }
 
@@ -27,7 +40,7 @@ export interface InvoiceLine {
 export interface InvoiceCustomer {
   kind: "vkn" | "tckn" | "yok" | "nihai"; id?: string; code?: string; name: string; legal_title?: string; tax_no?: string | null;
   tax_office?: string | null; address?: string | null; district?: string | null; city?: string | null; email?: string | null;
-  phone?: string | null; channel?: string;
+  phone?: string | null; channel?: string; billing_mode?: "teslimat" | "aylik";
 }
 
 export interface InvoiceTotals {
@@ -38,6 +51,7 @@ export interface InvoicePreview {
   sale: { id: string; no: number; sold_at: string; status: string; grand_total: number };
   customer: InvoiceCustomer; lines: InvoiceLine[]; totals: InvoiceTotals; issues: InvoiceIssue[];
   invoice_id: string | null; doc_type_hint: string;
+  sales?: InvoiceSaleRef[]; period_start?: string; period_end?: string;
 }
 
 /** VKN (10 hane, GİB algoritması) / TCKN (11 hane) — veritabanındaki app.tax_id_kind ile aynı */

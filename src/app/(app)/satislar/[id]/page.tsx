@@ -45,8 +45,9 @@ export default async function SaleDetail({ params, searchParams }: { params: Pro
   // Fatura kaydı (F-21): yalnızca yönetici
   let invoice: { id: string; no: number; status: InvoiceStatus } | null = null;
   if (can(ctx.role, "invoices")) {
-    const { data: inv } = await supabase.from("invoices").select("id, no, status").eq("sale_id", sale.id).neq("status", "iptal").maybeSingle();
-    invoice = (inv as typeof invoice) ?? null;
+    // F-31: satış tek başına veya aylık toplu faturada olabilir
+    const { data: link } = await supabase.from("invoice_sales").select("invoices(id, no, status)").eq("sale_id", sale.id).eq("active", true).maybeSingle();
+    invoice = ((link as { invoices: typeof invoice } | null)?.invoices as typeof invoice) ?? null;
   }
   let request: { id: string; reason: string; items: unknown } | null = null;
   if (sp.talep) {
