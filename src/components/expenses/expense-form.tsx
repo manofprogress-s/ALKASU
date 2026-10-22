@@ -22,15 +22,27 @@ export function ExpenseForm({ categories, isAdmin, label = "Gider ekle" }: { cat
   const [date, setDate] = useState(() => todayISO());
   const [payee, setPayee] = useState("");
   const [desc, setDesc] = useState("");
+  const [monthly, setMonthly] = useState(false);
+  const [day, setDay] = useState("");
   const selected = categories.find((c) => c.id === cat);
   const amt = parseAmount(amount);
   const today = todayISO();
   const isSalary = selected?.code === "maas";
 
-  function reset() { setCat(""); setAmount(""); setPayee(""); setDesc(""); setDate(todayISO()); setMethod("banka"); }
+  function reset() { setCat(""); setAmount(""); setPayee(""); setDesc(""); setDate(todayISO()); setMethod("banka"); setMonthly(false); setDay(""); }
+  const dayN = Number.parseInt(day || date.slice(8, 10), 10);
 
   async function save() {
     if (!selected || !amt) return;
+    if (monthly) {
+      // K-15: her ay düzenli — şablon kaydedilir, vadesi gelen aylar gidere işlenir
+      const ok = await call("upsert_recurring_expense", {
+        p_business: ctx.businessId,
+        p: { category_id: selected.id, amount: amt, payee, description: desc, day_of_month: dayN, start_month: `${date.slice(0, 7)}-01` },
+      }, { success: `${selected.name}: her ayın ${dayN}. günü otomatik gidere işlenecek` });
+      if (ok) { reset(); setOpen(false); }
+      return;
+    }
     const ok = await call("add_expense", {
       p_business: ctx.businessId,
       p: { id: crypto.randomUUID(), category_id: selected.id, amount: amt, method, expense_date: date, payee, description: desc },
@@ -42,8 +54,8 @@ export function ExpenseForm({ categories, isAdmin, label = "Gider ekle" }: { cat
     <>
       <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> {label}</Button>
       <Dialog open={open} onClose={() => setOpen(false)} title="Gider ekle"
-        footer={<Button className="w-full" loading={busy} disabled={!selected || !amt || !date} onClick={() => void save()}>
-          {amt ? `${formatTRY(amt)} kaydet` : "Kaydet"}</Button>}>
+        footer={<Button className="w-full" loading={busy} disabled={!selected || !amt || !date || (monthly && !(dayN >= 1 && dayN <= 31))} onClick={() => void save()}>
+          {monthly ? (amt ? `Her ay ${formatTRY(amt)} olarak kaydet` : "Düzenli gider olarak kaydet") : amt ? `${formatTRY(amt)} kaydet` : "Kaydet"}</Button>}>
         <div className="space-y-3">
           <div>
             <div className="mb-1 text-sm font-medium">Ne için?</div>
@@ -64,6 +76,25 @@ export function ExpenseForm({ categories, isAdmin, label = "Gider ekle" }: { cat
               <Input value={payee} onChange={(e) => setPayee(e.target.value)} maxLength={120} placeholder={isSalary ? "Örn. Hüseyin Topaloğlu" : "Örn. ev sahibi"} />
             </Field>
           ) : null}
+          {isAdmin ? (
+            <label className="flex items-start gap-2 rounded-xl border border-border p-2.5 text-sm">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--brand)]" checked={monthly} onChange={(e) => setMonthly(e.target.checked)} />
+              <span>
+                <span className="font-medium">Her ay düzenli</span>
+                <span className="block text-xs text-muted">Maaş, kira gibi. Her ay seçilen günde kendiliğinden gidere işlenir; tek tek girmeniz gerekmez.</span>
+              </span>
+            </label>
+          ) : null}
+          {monthly ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="İlk ay (başlangıç tarihi)">
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </Field>
+              <Field label="Her ayın kaçında?" hint="31 seçilirse kısa aylarda ayın son günü">
+                <Input inputMode="numeric" value={day || String(Number(date.slice(8, 10)) || "")} onChange={(e) => setDay(e.target.value.replace(/\D/g, "").slice(0, 2))} />
+              </Field>
+            </div>
+          ) : (
           <div className="grid grid-cols-2 gap-2">
             <Field label="Tarih">
               <Input type="date" value={date} max={today} min={isAdmin ? undefined : addDaysISO(today, -31)} onChange={(e) => setDate(e.target.value)} />
@@ -75,7 +106,9 @@ export function ExpenseForm({ categories, isAdmin, label = "Gider ekle" }: { cat
               </Select>
             </Field>
           </div>
-          {method === "kasa" ? <p className="text-xs text-muted">Kasadan nakit ödenen gider, günün kasasından düşülür.</p> : null}
+          )}
+          {monthly ? <p className="text-xs text-muted">Düzenli giderler banka/havale ödemesi olarak işlenir, kasayı etkilemez. Bu ayın günü geçtiyse bu ayki kayıt hemen oluşur.</p> : null}
+          {!monthly && method === "kasa" ? <p className="text-xs text-muted">Kasadan nakit ödenen gider, günün kasasından düşülür.</p> : null}
           <Field label="Açıklama (isteğe bağlı)">
             <Input value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={300}
               placeholder={selected?.code === "yakit" ? "Örn. 34 ABC 123 mazot" : selected?.code === "arac" ? "Örn. lastik değişimi" : "Örn. fatura / fiş bilgisi"} />

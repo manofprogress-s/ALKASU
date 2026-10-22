@@ -24,6 +24,7 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
   if (ay < addMonths(son, -11)) son = minM(addMonths(ay, 11), thisMonth);
   const first = addMonths(son, -11);
   const supabase = await supabaseServer();
+  await supabase.rpc("post_due_recurring", { p_business: ctx.businessId });   // K-16: düzenli giderler zamanı gelince
   const mb = monthBounds(ay);
   const [{ data: md, error: e1 }, { data: wd, error: e2 }] = await Promise.all([
     supabase.rpc("profit_report", { p_business: ctx.businessId, p_from: `${first}-01`, p_to: monthBounds(son).to, p_grain: "ay" }),

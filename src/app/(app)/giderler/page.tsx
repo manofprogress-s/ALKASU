@@ -5,6 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Badge, Card, PageHeader, Stat } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
 import { ExpenseCancel, ExpenseForm, type ExpenseCategory } from "@/components/expenses/expense-form";
+import { RecurringList, type Recurring } from "@/components/expenses/recurring-list";
 import { addDaysISO, formatDate, formatTRY, todayISO } from "@/lib/format";
 import { addMonths, monthBounds, monthLabel, normalizePeriod, parseMonth } from "@/lib/profit";
 
@@ -12,7 +13,7 @@ export const metadata = { title: "Giderler" };
 
 type Row = {
   id: string; expense_date: string; amount: number; method: string; description: string | null; payee: string | null; status: string;
-  created_by: string | null; created_at: string; cancel_reason: string | null; category_id: string;
+  created_by: string | null; created_at: string; cancel_reason: string | null; category_id: string; recurring_id: string | null;
 };
 
 export default async function ExpensesPage({ searchParams }: { searchParams: Promise<{ ay?: string; kategori?: string }> }) {
@@ -23,17 +24,21 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const ym = parseMonth(sp.ay, today);
   const { from, to } = isAdmin ? monthBounds(ym) : { from: addDaysISO(today, -60), to: today };
   const supabase = await supabaseServer();
+  // K-16: vadesi gelen düzenli giderler sayfa açılınca işlenir (zamanlayıcı gerekmez)
+  if (isAdmin) await supabase.rpc("post_due_recurring", { p_business: ctx.businessId });
 
   let q = supabase.from("expenses")
-    .select("id, expense_date, amount, method, description, payee, status, created_by, created_at, cancel_reason, category_id")
+    .select("id, expense_date, amount, method, description, payee, status, created_by, created_at, cancel_reason, category_id, recurring_id")
     .eq("business_id", ctx.businessId).gte("expense_date", from).lte("expense_date", to)
     .order("expense_date", { ascending: false }).order("created_at", { ascending: false }).limit(500);
   if (isAdmin && sp.kategori) q = q.eq("category_id", sp.kategori);
-  const [{ data: cats }, { data: ex, error }, { data: members }, rep] = await Promise.all([
+  const [{ data: cats }, { data: ex, error }, { data: members }, rep, { data: recs }] = await Promise.all([
     supabase.from("expense_categories").select("id, name, code, restricted").eq("business_id", ctx.businessId).eq("active", true).order("sort"),
     q,
     isAdmin ? supabase.from("memberships").select("user_id, display_name").eq("business_id", ctx.businessId) : Promise.resolve({ data: [] }),
     isAdmin ? supabase.rpc("profit_report", { p_business: ctx.businessId, p_from: from, p_to: to, p_grain: "ay" }) : Promise.resolve({ data: null }),
+    isAdmin ? supabase.from("recurring_expenses").select("id, category_id, amount, payee, description, day_of_month, start_month, active")
+      .eq("business_id", ctx.businessId).order("active", { ascending: false }).order("day_of_month") : Promise.resolve({ data: [] }),
   ]);
   const categories = (cats ?? []) as ExpenseCategory[];
   const catName = new Map(categories.map((c) => [c.id, c.name]));
@@ -47,6 +52,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
     { key: "c", label: "Kalem", render: (r: Row) => (
       <span className="flex flex-wrap items-center gap-1">
         {catName.get(r.category_id) ?? "Gider"}
+        {r.recurring_id ? <Badge tone="brand">Düzenli</Badge> : null}
         {r.status === "iptal" ? <Badge tone="danger">İptal</Badge> : null}
       </span>
     ) },
@@ -119,6 +125,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       ) : null}
       <DataTable rows={rows} rowKey={(r) => r.id} mobileTitle={(r) => catName.get(r.category_id) ?? "Gider"} columns={columns}
         empty={`${monthLabel(ym)} için gider girilmemiş`} />
+      <RecurringList items={(recs ?? []) as Recurring[]} catName={Object.fromEntries(catName)} />
       <p className="text-xs text-muted">Mal kabulde girilen alış faturaları ayrıca “Mal alımı” olarak gidere sayılır; buraya tekrar girmeyin. Tutarlar KDV dahildir.</p>
     </div>
   );
