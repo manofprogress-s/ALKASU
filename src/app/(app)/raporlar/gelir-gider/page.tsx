@@ -6,8 +6,8 @@ import { Alert, Card, PageHeader, Stat } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
 import { ExportButton } from "@/components/reports/export-button";
 import { ProfitChart, type ProfitBar } from "@/components/reports/profit-chart";
-import { formatTRY, todayISO } from "@/lib/format";
-import { addMonths, chartBars, monthBounds, monthLabel, normalizePeriod, parseMonth, sumPeriods, weekLabel, type ProfitPeriod } from "@/lib/profit";
+import { formatDate, formatTRY, todayISO } from "@/lib/format";
+import { addMonths, chartBars, monthBounds, monthLabel, marginPct, normalizePeriod, parseMonth, sumPeriods, weekLabel, type ProfitPeriod } from "@/lib/profit";
 
 export const metadata = { title: "Gelir-gider" };
 
@@ -30,10 +30,12 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
     supabase.rpc("profit_report", { p_business: ctx.businessId, p_from: `${first}-01`, p_to: monthBounds(son).to, p_grain: "ay" }),
     supabase.rpc("profit_report", { p_business: ctx.businessId, p_from: mb.from, p_to: mb.to, p_grain: "hafta" }),
   ]);
-  type Raw = { periods?: Record<string, unknown>[]; pending_purchases?: number } | null;
+  type Raw = { periods?: Record<string, unknown>[]; pending_purchases?: number; history_until?: string | null } | null;
   const months = ((md as Raw)?.periods ?? []).map(normalizePeriod);
   const weeks = ((wd as Raw)?.periods ?? []).map(normalizePeriod);
   const pending = Number((wd as Raw)?.pending_purchases ?? 0);
+  const historyUntil = (md as Raw)?.history_until ?? null;
+  const pct = (g: number, i: number) => { const m = marginPct(g, i); return m === null ? "—" : `%${m.toLocaleString("tr-TR")}`; };
   const cur = sumPeriods(weeks);
   const year = sumPeriods(months);
   const href = (m: string, s = son) => `/raporlar/gelir-gider?ay=${m}&son=${s}`;
@@ -52,8 +54,15 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
     ) },
     { key: "m", label: "Mal alımı", align: "right" as const, render: (p: ProfitPeriod) => formatTRY(p.purchases) },
     { key: "b", label: "Brüt kâr", align: "right" as const, render: (p: ProfitPeriod) => <span className={p.gross_profit < 0 ? "text-danger" : ""}>{formatTRY(p.gross_profit)}</span> },
+    { key: "bm", label: "Brüt marj", align: "right" as const, render: (p: ProfitPeriod) => (
+      <span className="tabular-nums">
+        {pct(p.gross_profit, p.income)}
+        {p.income > 0 && p.purchases === 0 ? <span className="block text-[10px] text-warn">alış kaydı yok</span> : null}
+      </span>
+    ) },
     { key: "g", label: "Giderler", align: "right" as const, render: (p: ProfitPeriod) => formatTRY(p.expenses) },
     { key: "n", label: "Net kâr", align: "right" as const, render: (p: ProfitPeriod) => <span className={`font-semibold ${p.net_profit < 0 ? "text-danger" : "text-ok"}`}>{formatTRY(p.net_profit)}</span> },
+    { key: "nm", label: "Net marj", align: "right" as const, hideOnMobile: true, render: (p: ProfitPeriod) => <span className="tabular-nums">{pct(p.net_profit, p.income)}</span> },
   ];
   const exportRows = (ps: ProfitPeriod[], kind: "ay" | "hafta") => ps.map((p) => ({
     Dönem: kind === "ay" ? monthLabel(p.start.slice(0, 7)) : `${p.start} – ${p.end}`,
@@ -85,8 +94,8 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
         <Stat label="Gelir" value={formatTRY(cur.income)}
           hint={<><span className="text-ok">Faturalı {formatTRY(cur.income_invoiced)}</span> · <span className="text-warn">bekleyen {formatTRY(cur.income_uninvoiced)}</span></>} />
         <Stat label="Gider" value={formatTRY(cur.total_cost)} hint={`Mal alımı ${formatTRY(cur.purchases)} · diğer ${formatTRY(cur.expenses)}`} />
-        <Stat label="Brüt kâr" value={formatTRY(cur.gross_profit)} tone={cur.gross_profit < 0 ? "danger" : undefined} hint="Gelir − mal alımı" />
-        <Stat label="Net kâr" value={formatTRY(cur.net_profit)} tone={cur.net_profit < 0 ? "danger" : "ok"} hint="Brüt kâr − giderler" />
+        <Stat label="Brüt kâr" value={formatTRY(cur.gross_profit)} tone={cur.gross_profit < 0 ? "danger" : undefined} hint={`Marj ${pct(cur.gross_profit, cur.income)} · gelir − mal alımı`} />
+        <Stat label="Net kâr" value={formatTRY(cur.net_profit)} tone={cur.net_profit < 0 ? "danger" : "ok"} hint={`Marj ${pct(cur.net_profit, cur.income)} · brüt − giderler`} />
       </div>
       {pending ? <Alert tone="warn">Bu ay onay bekleyen {pending} mal kabul var; fiyatı onaylanınca mal alımına eklenir.</Alert> : null}
 
@@ -119,7 +128,10 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
             <li><span className="font-medium text-ok">Yeşil</span>: faturası kesilmiş, <span className="font-medium text-warn">turuncu</span>: fatura bekleyen satış.</li>
             <li><b className="text-text">Mal alımı</b>: mal kabulde onaylanan alış fiyatı × miktar (belge tarihinde).</li>
             <li><b className="text-text">Brüt kâr</b> = gelir − mal alımı · <b className="text-text">Net kâr</b> = brüt kâr − giderler.</li>
-            <li>Tutarlar KDV dahildir. Stok yapılan ayda mal alımı yüksek, kâr düşük görünür; satılan malın maliyetine göre bu ayın brüt kârı: <b className="text-text">{formatTRY(cur.income - cur.cogs)}</b>.</li>
+            <li>Tutarlar KDV dahildir. Stok yapılan ayda mal alımı yüksek, kâr düşük görünür{cur.history_income === 0 ? <>; satılan malın maliyetine göre bu ayın brüt kârı: <b className="text-text">{formatTRY(cur.income - cur.cogs)}</b></> : null}.</li>
+            {historyUntil ? (
+              <li><b className="text-text">Geçmiş dönem</b>: {formatDate(historyUntil)} tarihine kadar Logo İşbaşı satış ve alış faturaları (iptaller hariç, iadeler düşülmüş) kullanılır; faturasız satışlar bu dönemde görünmez.</li>
+            ) : null}
           </ul>
         </Card>
       </div>
@@ -140,8 +152,8 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat label="12 ay gelir" value={formatTRY(year.income)} />
           <Stat label="12 ay gider" value={formatTRY(year.total_cost)} />
-          <Stat label="12 ay brüt kâr" value={formatTRY(year.gross_profit)} />
-          <Stat label="12 ay net kâr" value={formatTRY(year.net_profit)} tone={year.net_profit < 0 ? "danger" : "ok"} />
+          <Stat label="12 ay brüt kâr" value={formatTRY(year.gross_profit)} hint={`Marj ${pct(year.gross_profit, year.income)}`} />
+          <Stat label="12 ay net kâr" value={formatTRY(year.net_profit)} tone={year.net_profit < 0 ? "danger" : "ok"} hint={`Marj ${pct(year.net_profit, year.income)}`} />
         </div>
       </Card>
 

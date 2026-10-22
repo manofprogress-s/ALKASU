@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMonths, chartBars, monthBounds, monthLabel, niceMax, normalizePeriod, parseMonth, shortTRY, sumPeriods, weekLabel } from "./profit";
+import { addMonths, marginPct, chartBars, monthBounds, monthLabel, niceMax, normalizePeriod, parseMonth, shortTRY, sumPeriods, weekLabel } from "./profit";
 
 const base = normalizePeriod({
   start: "2026-10-01", end: "2026-10-31", sales_count: "3", income_invoiced: "1000", income_uninvoiced: "500.50", returns: "0.50", income: "1500",
@@ -34,6 +34,12 @@ describe("profit", () => {
   it("grafik çubukları: iade faturasızdan düşer, gider kırmızı", () => {
     expect(chartBars(base)).toEqual({ green: 1000, orange: 500, red: 1000 });
     expect(chartBars({ ...base, income_uninvoiced: 100, returns: 300 })).toEqual({ green: 800, orange: 0, red: 1000 });
+  });
+  it("kâr marjı", () => {
+    expect(marginPct(800, 1500)).toBe(53.3);
+    expect(marginPct(-200, 1000)).toBe(-20);
+    expect(marginPct(100, 0)).toBeNull();
+    expect(sumPeriods([{ ...base, history_income: 10 }, base]).history_income).toBe(10);
   });
   it("eksen ve kısa tutar", () => {
     expect(niceMax(0)).toBe(1);

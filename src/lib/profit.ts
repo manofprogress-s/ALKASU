@@ -16,6 +16,8 @@ export interface ProfitPeriod {
   gross_profit: number;      // gelir − mal alımı
   net_profit: number;        // brüt − gider
   cogs: number;              // satılan malın maliyeti (bilgi)
+  history_income: number;    // GG-04: Logo geçmiş satış faturaları (gelire dahil)
+  history_purchases: number; // GG-04: Logo geçmiş alış faturaları (mal alımına dahil)
 }
 
 export interface ProfitReport { periods: ProfitPeriod[]; pending_purchases: number }
@@ -71,15 +73,16 @@ export function normalizePeriod(p: Record<string, unknown>): ProfitPeriod {
     income_invoiced: num(p.income_invoiced), income_uninvoiced: num(p.income_uninvoiced), returns: num(p.returns), income: num(p.income),
     purchases: num(p.purchases), purchase_count: num(p.purchase_count), expenses: num(p.expenses), expense_categories: cats,
     total_cost: num(p.total_cost), gross_profit: num(p.gross_profit), net_profit: num(p.net_profit), cogs: num(p.cogs),
+    history_income: num(p.history_income), history_purchases: num(p.history_purchases),
   };
 }
 
 export function sumPeriods(ps: ProfitPeriod[]): Omit<ProfitPeriod, "start" | "end"> {
   const t = { sales_count: 0, income_invoiced: 0, income_uninvoiced: 0, returns: 0, income: 0, purchases: 0, purchase_count: 0, expenses: 0,
-    expense_categories: {} as Record<string, number>, total_cost: 0, gross_profit: 0, net_profit: 0, cogs: 0 };
+    expense_categories: {} as Record<string, number>, total_cost: 0, gross_profit: 0, net_profit: 0, cogs: 0, history_income: 0, history_purchases: 0 };
   for (const p of ps) {
     for (const k of ["sales_count", "income_invoiced", "income_uninvoiced", "returns", "income", "purchases", "purchase_count", "expenses",
-      "total_cost", "gross_profit", "net_profit", "cogs"] as const) t[k] = Math.round((t[k] + p[k]) * 100) / 100;
+      "total_cost", "gross_profit", "net_profit", "cogs", "history_income", "history_purchases"] as const) t[k] = Math.round((t[k] + p[k]) * 100) / 100;
     for (const [c, v] of Object.entries(p.expense_categories)) t.expense_categories[c] = Math.round(((t.expense_categories[c] ?? 0) + v) * 100) / 100;
   }
   return t;
@@ -94,6 +97,11 @@ export function chartBars(p: ProfitPeriod): { green: number; orange: number; red
   let green = p.income_invoiced;
   if (orange < 0) { green = Math.max(0, green + orange); orange = 0; }
   return { green, orange, red: p.total_cost };
+}
+
+/** Brüt kâr marjı % (gelir yoksa null) */
+export function marginPct(gross: number, income: number): number | null {
+  return income > 0 ? Math.round((gross / income) * 1000) / 10 : null;
 }
 
 /** Eksen için "yuvarlak" üst sınır: 1, 2, 2.5, 5 × 10^n */
