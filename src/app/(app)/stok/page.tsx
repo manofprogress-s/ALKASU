@@ -8,6 +8,7 @@ import { can } from "@/lib/roles";
 import { SearchBox } from "@/components/ui/search-box";
 import { searchKey } from "@/lib/catalog";
 import { ExportButton } from "@/components/reports/export-button";
+import { Chip } from "@/components/ui/chips";
 
 export const metadata = { title: "Stok" };
 
@@ -32,7 +33,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
   const isAdmin = ctx.role === "yonetici";
   const value = all.reduce((s, r) => s + Number(r.stock_value ?? 0), 0);
   const tab = (href: string, label: string, active: boolean) => (
-    <Link href={href} className={`rounded-full px-3 py-1.5 text-sm ${active ? "bg-brand text-white" : "bg-surface-2"}`}>{label}</Link>
+    <Chip href={href} active={active}>{label}</Chip>
   );
 
   return (

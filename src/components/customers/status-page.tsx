@@ -5,6 +5,7 @@ import { SearchBox } from "@/components/ui/search-box";
 import { BUCKETS, type Bucket, type StatusRow, type StatusSummary } from "@/lib/customer-status";
 import { errorMessage } from "@/lib/errors";
 import { AreaSelect, StatusList } from "./status-report";
+import { Chip, ChipBar, ChipCount } from "@/components/ui/chips";
 
 const PAGE = 50;
 
@@ -70,14 +71,13 @@ export async function CustomerStatusPage({ businessId, base, sp, isAdmin, dealer
         </Card>
       ) : null}
 
-      <nav className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none]" aria-label="Bölümler">
+      <ChipBar label="Bölümler">
         {BUCKETS.map((x) => (
-          <Link key={x.key} href={href({ b: x.key, s: undefined })}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${bucket === x.key ? "bg-brand text-white" : "bg-surface-2"}`}>
-            {x.label} <span className="num opacity-75">{count(x.key)}</span>
-          </Link>
+          <Chip key={x.key} href={href({ b: x.key, s: undefined })} active={bucket === x.key}>
+            {x.label}<ChipCount n={count(x.key)} />
+          </Chip>
         ))}
-      </nav>
+      </ChipBar>
       <p className="text-sm text-muted">{BUCKETS.find((x) => x.key === bucket)?.hint}</p>
       <div className="grid gap-2 sm:grid-cols-[1fr_220px]">
         <SearchBox placeholder="Ad, kod veya telefon" />

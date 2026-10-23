@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Card, PageHeader, Stat } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
+import { Chip, ChipBar } from "@/components/ui/chips";
+import { MonthArrow, MonthNav } from "@/components/ui/month-nav";
 import { ExportButton } from "@/components/reports/export-button";
 import { ProfitChart, type ProfitBar } from "@/components/reports/profit-chart";
 import { formatDate, formatTRY, todayISO } from "@/lib/format";
@@ -71,25 +72,19 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
     ...Object.fromEntries(Object.entries(p.expense_categories).map(([k, v]) => [`Gider: ${k}`, v])),
   }));
 
-  const navBtn = "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface";
   return (
     <div className="space-y-4">
       <PageHeader title="Gelir-gider" subtitle="Aylık ve haftalık gelir, gider, brüt ve net kâr"
         actions={<Link href={`/giderler?ay=${ay}`} className="inline-flex h-11 items-center rounded-xl border border-border bg-surface px-4">Giderler</Link>} />
-      <div className="no-print -mx-3 flex gap-2 overflow-x-auto px-3">
-        <Link href="/raporlar" className="shrink-0 rounded-full bg-surface-2 px-3 py-1.5 text-sm">Satış raporları</Link>
-        <span className="shrink-0 rounded-full bg-brand px-3 py-1.5 text-sm text-white">Gelir-gider</span>
-      </div>
+      <ChipBar>
+        <Chip href="/raporlar">Satış raporları</Chip>
+        <Chip href="/raporlar/gelir-gider" active>Gelir-gider</Chip>
+      </ChipBar>
       {e1 || e2 ? <Alert>{(e1 ?? e2)?.message}</Alert> : null}
 
-      <div className="flex items-center gap-2">
-        <Link href={href(addMonths(ay, -1))} className={navBtn} aria-label="Önceki ay"><ChevronLeft className="h-4 w-4" /></Link>
-        <span className="min-w-28 text-center text-lg font-semibold">{monthLabel(ay)}</span>
-        {ay < thisMonth ? (
-          <Link href={href(addMonths(ay, 1))} className={navBtn} aria-label="Sonraki ay"><ChevronRight className="h-4 w-4" /></Link>
-        ) : null}
+      <MonthNav month={ay} href={(m) => href(m)} max={thisMonth} large>
         {ay !== thisMonth ? <Link href="/raporlar/gelir-gider" className="text-sm text-brand">Bu ay</Link> : null}
-      </div>
+      </MonthNav>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Gelir" value={formatTRY(cur.income)}
           hint={<><span className="text-ok">Faturalı {formatTRY(cur.income_invoiced)}</span> · <span className="text-warn">bekleyen {formatTRY(cur.income_uninvoiced)}</span></>} />
@@ -139,10 +134,10 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
       <Card>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Link href={href(addMonths(ay, -12), addMonths(son, -12))} className={navBtn} aria-label="Önceki 12 ay"><ChevronLeft className="h-4 w-4" /></Link>
+            <MonthArrow href={href(addMonths(ay, -12), addMonths(son, -12))} dir="prev" label="Önceki 12 ay" />
             <h2 className="font-semibold">{monthLabel(first)} – {monthLabel(son)}</h2>
             {son < thisMonth ? (
-              <Link href={href(minM(addMonths(ay, 12), thisMonth), minM(addMonths(son, 12), thisMonth))} className={navBtn} aria-label="Sonraki 12 ay"><ChevronRight className="h-4 w-4" /></Link>
+              <MonthArrow href={href(minM(addMonths(ay, 12), thisMonth), minM(addMonths(son, 12), thisMonth))} dir="next" label="Sonraki 12 ay" />
             ) : null}
           </div>
           <ExportButton filename={`gelir_gider_aylik_${son}`} rows={exportRows(months, "ay")} />

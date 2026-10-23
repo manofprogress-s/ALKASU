@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -7,6 +6,7 @@ import { DataTable } from "@/components/ui/table";
 import { DateFilter } from "@/components/ui/date-filter";
 import { ExportButton } from "@/components/reports/export-button";
 import { formatDate, formatNumber, formatTRY, todayISO } from "@/lib/format";
+import { Chip, ChipBar } from "@/components/ui/chips";
 
 export const metadata = { title: "Raporlar" };
 
@@ -143,12 +143,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   return (
     <div>
       <PageHeader title="Raporlar" />
-      <div className="no-print mb-4 flex flex-wrap gap-2">
-        {tabs.filter((t) => !t.admin || isAdmin).map((t) => (
-          <Link key={t.t} href={q(t.t)} className={`rounded-full px-3 py-1.5 text-sm ${tab === t.t ? "bg-brand text-white" : "bg-surface-2"}`}>{t.label}</Link>
-        ))}
-        {isAdmin ? <Link href="/raporlar/gelir-gider" className="shrink-0 rounded-full bg-surface-2 px-3 py-1.5 text-sm">Gelir-gider</Link> : null}
-      </div>
+      <ChipBar wrap className="mb-4">
+        {tabs.filter((t) => !t.admin || isAdmin).map((t) => <Chip key={t.t} href={q(t.t)} active={tab === t.t}>{t.label}</Chip>)}
+        {isAdmin ? <Chip href="/raporlar/gelir-gider">Gelir-gider</Chip> : null}
+      </ChipBar>
       {tab === "gunluk" || tab === "urun" || tab === "marka" ? <DateFilter from={from} to={to} /> : null}
       {body}
     </div>

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/card";
 import { CHANNELS, PRICE_LISTS, type Channel, type PriceList } from "@/lib/roles";
 import { PhoneCall } from "lucide-react";
 import { CustomerMessage } from "@/components/customers/customer-message";
+import { Chip, ChipBar } from "@/components/ui/chips";
 
 export const metadata = { title: "Müşteriler" };
 
@@ -76,14 +77,14 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             <Link href={`/musteriler/yeni${sp.kanal ? `?kanal=${sp.kanal}` : ""}`} className="inline-flex h-11 items-center rounded-xl bg-brand px-4 font-medium text-white">Yeni müşteri</Link>
           </span>
         } />
-      <div className="no-print -mx-3 mb-3 flex gap-2 overflow-x-auto px-3 [scrollbar-width:none]">
-        <Link href="/musteriler" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${!sp.borclu && !sp.kanal && !sp.fatura ? "bg-brand text-white" : "bg-surface-2"}`}>Tümü</Link>
-        <Link href="/musteriler?borclu=1" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${sp.borclu ? "bg-brand text-white" : "bg-surface-2"}`}>Borçlular</Link>
-        <Link href="/musteriler?kanal=perakende" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${sp.kanal === "perakende" ? "bg-brand text-white" : "bg-surface-2"}`}>Ev müşterileri</Link>
-        <Link href="/musteriler?kanal=bayi" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${sp.kanal === "bayi" ? "bg-brand text-white" : "bg-surface-2"}`}>Bayiler</Link>
-        <Link href="/musteriler?kanal=kurumsal" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${sp.kanal === "kurumsal" ? "bg-brand text-white" : "bg-surface-2"}`}>Kurumsal</Link>
-        <Link href="/musteriler?fatura=eksik" className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${sp.fatura ? "bg-warn text-white" : "bg-surface-2"}`}>Vergi no eksik</Link>
-      </div>
+      <ChipBar className="mb-3">
+        <Chip href="/musteriler" active={!sp.borclu && !sp.kanal && !sp.fatura}>Tümü</Chip>
+        <Chip href="/musteriler?borclu=1" active={!!sp.borclu}>Borçlular</Chip>
+        <Chip href="/musteriler?kanal=perakende" active={sp.kanal === "perakende"}>Ev müşterileri</Chip>
+        <Chip href="/musteriler?kanal=bayi" active={sp.kanal === "bayi"}>Bayiler</Chip>
+        <Chip href="/musteriler?kanal=kurumsal" active={sp.kanal === "kurumsal"}>Kurumsal</Chip>
+        <Chip href="/musteriler?fatura=eksik" active={!!sp.fatura} tone="warn">Vergi no eksik</Chip>
+      </ChipBar>
       <SearchBox placeholder="Ad, kod veya telefon" />
       <DataTable rows={rows} rowKey={(r) => r.id} onRowClick={(r) => `/musteriler/${r.id}`} mobileTitle={(r) => r.name}
         columns={[

@@ -5,8 +5,8 @@ import { Badge, Card, PageHeader, Stat } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
 import { addDaysISO, formatDateTime, formatTRY, todayISO } from "@/lib/format";
 import { DateFilter } from "@/components/ui/date-filter";
-import { cn } from "@/lib/cn";
 import { SEGMENTS, segmentOf, segmentTotals, type Segment } from "@/lib/sales-segments";
+import { Chip, ChipBar } from "@/components/ui/chips";
 
 export const metadata = { title: "Satışlar" };
 
@@ -68,13 +68,11 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
         {totals.bayi.count ? <Stat label="Bayi" value={formatTRY(totals.bayi.total)} hint={`${totals.bayi.count} fiş`} /> : null}
         <Stat label="Genel toplam" value={formatTRY(totals.all.total)} hint={`${totals.all.count} fiş · iptaller hariç`} tone="ok" />
       </div>
-      <nav className="no-print mb-3 flex flex-wrap gap-2" aria-label="Satış türü">
+      <ChipBar wrap label="Satış türü" className="mb-3">
         {[null, ...SEGMENTS.map((x) => x.key)].filter((k) => k !== "bayi" || totals.bayi.count || seg === "bayi").map((k) => (
-          <Link key={k ?? "tumu"} href={tab(k)} className={cn("rounded-full px-3 py-1.5 text-sm", seg === k ? "bg-brand text-white" : "bg-surface-2")}>
-            {k ? SEGMENTS.find((x) => x.key === k)!.label : "Tümü"}
-          </Link>
+          <Chip key={k ?? "tumu"} href={tab(k)} active={seg === k}>{k ? SEGMENTS.find((x) => x.key === k)!.label : "Tümü"}</Chip>
         ))}
-      </nav>
+      </ChipBar>
       {(requests ?? []).length > 0 ? (
         <div className="mb-4 rounded-2xl border border-warn/40 bg-warn-soft p-3 text-sm">
           <div className="mb-1 font-semibold text-warn">Bekleyen iade talepleri</div>

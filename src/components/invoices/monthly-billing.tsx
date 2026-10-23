@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, FileStack } from "lucide-react";
+import { FileStack } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, Badge, Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
@@ -12,7 +12,8 @@ import { useToast } from "@/components/ui/toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatNumber, formatTRY } from "@/lib/format";
-import { addMonths, monthLabel } from "@/lib/profit";
+import { monthLabel } from "@/lib/profit";
+import { MonthNav } from "@/components/ui/month-nav";
 import { TAX_KIND_LABEL, type InvoicePreview } from "@/lib/invoice";
 import { cn } from "@/lib/cn";
 import { InvoiceView } from "./invoice-view";
@@ -28,22 +29,18 @@ export interface MonthlyData { month: string; split_qty: number | null; customer
 /** Aylık toplu fatura (F-32): müşteri bazında ayın faturalanmamış teslimatları → kontrol ekranı → taslak. Hiçbir şey gönderilmez. */
 export function MonthlyBilling({ data, month, thisMonth }: { data: MonthlyData; month: string; thisMonth: string }) {
   const href = (m: string) => `/faturalar?d=aylik&ay=${m}`;
-  const nav = "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface";
   const total = data.customers.reduce((s, c) => s + Number(c.total), 0);
   const others = data.pending_months.map((m) => m.slice(0, 7)).filter((m) => m !== month);
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Link href={href(addMonths(month, -1))} className={nav} aria-label="Önceki ay"><ChevronLeft className="h-4 w-4" /></Link>
-        <span className="min-w-28 text-center font-semibold">{monthLabel(month)}</span>
-        {month < thisMonth ? <Link href={href(addMonths(month, 1))} className={nav} aria-label="Sonraki ay"><ChevronRight className="h-4 w-4" /></Link> : null}
+      <MonthNav month={month} href={href} max={thisMonth}>
         {others.length ? (
           <span className="flex flex-wrap items-center gap-1 text-sm">
             <span className="text-muted">Bekleyen diğer aylar:</span>
             {others.map((m) => <Link key={m} href={href(m)} className="rounded-full bg-warn-soft px-2 py-0.5 text-warn">{monthLabel(m, true)}</Link>)}
           </span>
         ) : null}
-      </div>
+      </MonthNav>
       <SplitSetting value={data.split_qty} />
       {data.aylik_customers === 0 ? (
         <Alert tone="neutral">Henüz “Aylık toplu” faturalanan müşteri yok. Müşteri kartında <b>Fatura bilgileri → Fatura yöntemi</b>’nden seçebilirsiniz.</Alert>

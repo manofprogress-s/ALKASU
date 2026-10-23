@@ -6,7 +6,7 @@ import { DataTable } from "@/components/ui/table";
 import { formatDate, formatTRY, todayISO } from "@/lib/format";
 import { loadAssignees, loadDealers, ORDER_STATUS, type OrderStatus, type Assignee, type Dealer } from "@/lib/orders";
 import { can } from "@/lib/roles";
-import { cn } from "@/lib/cn";
+import { chipClass } from "@/components/ui/chips";
 
 export const metadata = { title: "Siparişler" };
 
@@ -25,7 +25,7 @@ interface Row {
 
 type Params = { durum?: string; atanan?: string; gun?: string; tur?: string };
 
-const chip = (on: boolean) => cn("rounded-full px-3 py-1.5 text-sm", on ? "bg-brand text-white" : "bg-surface-2");
+const chip = (on: boolean) => chipClass(on);
 const statusTone = (s: OrderStatus) => (s === "acik" ? "brand" : s === "teslim_edildi" ? "ok" : s === "onay_bekliyor" ? "warn" : "neutral");
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<Params> }) {

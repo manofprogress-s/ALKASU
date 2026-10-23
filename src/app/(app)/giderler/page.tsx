@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Badge, Card, PageHeader, Stat } from "@/components/ui/card";
@@ -7,7 +6,9 @@ import { DataTable } from "@/components/ui/table";
 import { ExpenseCancel, ExpenseForm, type ExpenseCategory } from "@/components/expenses/expense-form";
 import { RecurringList, type Recurring } from "@/components/expenses/recurring-list";
 import { addDaysISO, formatDate, formatTRY, todayISO } from "@/lib/format";
-import { addMonths, monthBounds, monthLabel, normalizePeriod, parseMonth } from "@/lib/profit";
+import { monthBounds, monthLabel, normalizePeriod, parseMonth } from "@/lib/profit";
+import { Chip, ChipBar } from "@/components/ui/chips";
+import { MonthNav } from "@/components/ui/month-nav";
 
 export const metadata = { title: "Giderler" };
 
@@ -94,13 +95,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
             <ExpenseForm categories={categories} isAdmin />
           </span>
         } />
-      <div className="flex items-center gap-2">
-        <Link href={href(addMonths(ym, -1))} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface" aria-label="Önceki ay"><ChevronLeft className="h-4 w-4" /></Link>
-        <span className="min-w-28 text-center font-medium">{monthLabel(ym)}</span>
-        {ym < today.slice(0, 7) ? (
-          <Link href={href(addMonths(ym, 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface" aria-label="Sonraki ay"><ChevronRight className="h-4 w-4" /></Link>
-        ) : null}
-      </div>
+      <MonthNav month={ym} href={href} max={today.slice(0, 7)} />
       {error ? <Alert>{error.message}</Alert> : null}
       {p ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -113,14 +108,14 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       {p && Object.keys(p.expense_categories).length ? (
         <Card>
           <div className="mb-2 text-sm font-semibold">Kalemlere göre</div>
-          <div className="flex flex-wrap gap-2">
-            <Link href={href(ym)} className={`rounded-full px-3 py-1.5 text-sm ${!sp.kategori ? "bg-brand text-white" : "bg-surface-2"}`}>Tümü · {formatTRY(p.expenses)}</Link>
+          <ChipBar wrap>
+            <Chip href={href(ym)} active={!sp.kategori}>Tümü · {formatTRY(p.expenses)}</Chip>
             {categories.filter((c) => p.expense_categories[c.name]).map((c) => (
-              <Link key={c.id} href={`${href(ym)}&kategori=${c.id}`} className={`rounded-full px-3 py-1.5 text-sm ${sp.kategori === c.id ? "bg-brand text-white" : "bg-surface-2"}`}>
+              <Chip key={c.id} href={`${href(ym)}&kategori=${c.id}`} active={sp.kategori === c.id}>
                 {c.name} · {formatTRY(p.expense_categories[c.name])}
-              </Link>
+              </Chip>
             ))}
-          </div>
+          </ChipBar>
         </Card>
       ) : null}
       <DataTable rows={rows} rowKey={(r) => r.id} mobileTitle={(r) => catName.get(r.category_id) ?? "Gider"} columns={columns}

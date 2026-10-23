@@ -11,6 +11,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { readWorkbook } from "@/lib/excel/read";
 import {
+import { ChipBar, ChipCount, chipClass } from "@/components/ui/chips";
   MATCH_STATUS, logoFirmsFromSheet, parseLogoPaste, plannedFills, taxConflict,
   type LogoFirm, type MatchResult, type MatchStatus,
 } from "@/lib/logo-firms";
@@ -169,14 +170,13 @@ export function LogoFirms() {
         </Alert>
       ) : null}
 
-      <nav className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none]">
+      <ChipBar>
         {ORDER.map((k) => (
-          <button key={k} type="button" onClick={() => setOpen(k)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${open === k ? "bg-brand text-white" : "bg-surface-2"}`}>
-            {MATCH_STATUS[k].label} <span className="num opacity-75">{groups[k].length}</span>
+          <button key={k} type="button" onClick={() => setOpen(k)} className={chipClass(open === k)}>
+            {MATCH_STATUS[k].label}<ChipCount n={groups[k].length} />
           </button>
         ))}
-      </nav>
+      </ChipBar>
       {open ? <p className="text-sm text-muted">{MATCH_STATUS[open].hint}</p> : null}
 
       <ul className="space-y-2">

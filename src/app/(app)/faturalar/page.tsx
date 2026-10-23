@@ -9,6 +9,7 @@ import { monthLabel, parseMonth } from "@/lib/profit";
 import { MonthlyBilling, type MonthlyData } from "@/components/invoices/monthly-billing";
 import { errorMessage } from "@/lib/errors";
 import { BILLING_MODE, INVOICE_STATUS, TAX_KIND_LABEL, type BillingMode, type InvoiceStatus } from "@/lib/invoice";
+import { Chip, ChipBar, ChipCount } from "@/components/ui/chips";
 
 export const metadata = { title: "Faturalar" };
 
@@ -72,14 +73,13 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
           <span>Logo İşbaşı bağlantısı <b>henüz kurulmadı</b>. Bu ekran faturayı hazırlar ve kontrol eder; hiçbir veri dışarı gönderilmez, resmî fatura kesilmez.</span>
         </span>
       </Alert>
-      <nav className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none]">
+      <ChipBar>
         {TABS.map((t) => (
-          <Link key={t.key} href={href({ d: t.key, s: undefined })}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${tab === t.key ? "bg-brand text-white" : "bg-surface-2"}`}>
-            {t.label}{t.key !== "bekleyen" && t.key !== "aylik" ? <span className="num opacity-75"> {n(t.key)}</span> : null}
-          </Link>
+          <Chip key={t.key} href={href({ d: t.key, s: undefined })} active={tab === t.key}>
+            {t.label}{t.key !== "bekleyen" && t.key !== "aylik" ? <ChipCount n={n(t.key)} /> : null}
+          </Chip>
         ))}
-      </nav>
+      </ChipBar>
       {err ? <Alert>{errorMessage(err)}</Alert> : null}
 
       {tab === "aylik" ? (
