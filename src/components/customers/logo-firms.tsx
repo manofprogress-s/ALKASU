@@ -10,8 +10,8 @@ import { useToast } from "@/components/ui/toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { readWorkbook } from "@/lib/excel/read";
-import {
 import { ChipBar, ChipCount, chipClass } from "@/components/ui/chips";
+import {
   MATCH_STATUS, logoFirmsFromSheet, parseLogoPaste, plannedFills, taxConflict,
   type LogoFirm, type MatchResult, type MatchStatus,
 } from "@/lib/logo-firms";
