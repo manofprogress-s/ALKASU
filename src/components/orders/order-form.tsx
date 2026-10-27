@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { CartBar, ShopCatalog, ShopGrid, type Qty } from "@/components/shop/shop-catalog";
 import { staffItems } from "@/lib/staff-catalog";
+import { rankCustomers, rowToOrderCustomer, type CustomerSearchRow } from "@/lib/customer-search";
 
 export interface OrderFormValue {
   id: string;
@@ -66,6 +67,11 @@ export function OrderForm({
   const [customerId, setCustomerId] = useState<string | null>(fixedCustomer?.id ?? initial?.customerId ?? dealerMode?.me.id ?? null);
   const [deliverBy, setDeliverBy] = useState<string>("self");
   const [custQuery, setCustQuery] = useState("");
+  // M-28: personelin müşteri araması sunucuda (tüm liste tarayıcıya yüklenmez)
+  const [found, setFound] = useState<{ q: string; list: (OrderCustomer & { matchRank: number })[]; total: number; busy: boolean }>({ q: "", list: [], total: 0, busy: false });
+  const [picked, setPicked] = useState<OrderCustomer | null>(null);
+  const searchSeq = useRef(0);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [deliveryDate, setDeliveryDate] = useState(initial?.deliveryDate ?? todayISO());
   const [assignee, setAssignee] = useState<string | null>(initial?.assignee ?? null);
   const [assigneeTouched, setAssigneeTouched] = useState(!isNew);
@@ -88,18 +94,37 @@ export function OrderForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const allCustomers = fixedCustomer ? [fixedCustomer] : customers;
+  const allCustomers = fixedCustomer ? [fixedCustomer] : picked ? [picked, ...customers] : customers;
   const customer = allCustomers.find((c) => c.id === customerId) ?? null;
+  const serverSearch = !dealerMode && !fixedCustomer;
   // F-14: ev müşterisinin siparişi eve teslim fiyatıyla, kurumsal kurumsal listeyle
   const list: PriceList = orderList(customer?.priceList);
   const special = customer?.specialPrices;
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
   const custMatches = useMemo(() => {
-    const k = searchKey(custQuery.trim());
-    if (!k) return dealerMode ? customers.slice(0, 20) : [];
-    return customers.filter((c) => searchKey(`${c.name} ${c.code}`).includes(k)).slice(0, 8);
-  }, [customers, custQuery, dealerMode]);
+    if (serverSearch) return found.q === custQuery.trim() ? found.list : [];
+    if (!custQuery.trim()) return dealerMode ? customers.slice(0, 20) : [];
+    return rankCustomers(customers, custQuery, 10);
+  }, [serverSearch, found, customers, custQuery, dealerMode]);
+
+  /** Yazarken 250 ms bekleyip sunucuda arar; geç gelen eski yanıt yenisini ezmez */
+  function onCustQuery(v: string) {
+    setCustQuery(v);
+    if (!serverSearch) return;
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const q = v.trim();
+    if (q.length < 2) { setFound({ q, list: [], total: 0, busy: false }); return; }
+    setFound((f) => ({ ...f, busy: true }));
+    searchTimer.current = setTimeout(async () => {
+      const seq = ++searchSeq.current;
+      const { data, error } = await supabaseBrowser().rpc("search_order_customers", { p_business: ctx.businessId, p_q: q, p_limit: 10 });
+      if (seq !== searchSeq.current) return;
+      if (error) { toast(errorMessage(error), "danger"); setFound({ q, list: [], total: 0, busy: false }); return; }
+      const rows = (data ?? []) as CustomerSearchRow[];
+      setFound({ q, list: rows.map(rowToOrderCustomer), total: Number(rows[0]?.total ?? 0), busy: false });
+    }, 250);
+  }
   const ownPurchase = !!dealerMode && customerId === dealerMode.me.id;
   const needsApproval = !!dealerMode && isNew && (ownPurchase || deliverBy !== "self");
   /** Mağaza görünümü (W-13): her fiyatlı birim bir kart, fiyat seçili müşteriye göre */
@@ -115,6 +140,7 @@ export function OrderForm({
   }, [lines]);
 
   function pickCustomer(c: OrderCustomer) {
+    setPicked(c);
     setCustomerId(c.id);
     setCustQuery("");
     if (!address.trim() || address === (customer?.address ?? "")) setAddress(c.address ?? "");
@@ -205,17 +231,29 @@ export function OrderForm({
               {isNew || !dealerMode ? <Button variant="ghost" size="sm" onClick={() => setCustomerId(null)}>Değiştir</Button> : null}
             </div>
           ) : (
-            <Field label="Müşteri" hint="Ad veya koddan arayın">
-              <Input autoFocus value={custQuery} onChange={(e) => setCustQuery(e.target.value)} placeholder="Örn. Çelik Halat" />
+            <Field label="Müşteri" hint="Ad, kısaltma, kod veya telefonla arayın">
+              <Input autoFocus value={custQuery} onChange={(e) => onCustQuery(e.target.value)} placeholder="Örn. Çelik Halat, TJK, 0532…" autoComplete="off" />
               {custMatches.length ? (
                 <div className="mt-1 divide-y divide-border rounded-xl border border-border">
                   {custMatches.map((c) => (
-                    <button key={c.id} type="button" className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-surface-2" onClick={() => pickCustomer(c)}>
-                      <span>{c.name} <span className="text-xs text-muted">{c.code}</span></span>
-                      {c.priceList !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[c.priceList]}</Badge> : null}
+                    <button key={c.id} type="button" className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-surface-2" onClick={() => pickCustomer(c)}>
+                      <span className="min-w-0">
+                        <span className={"matchRank" in c && c.matchRank === 0 ? "font-semibold" : undefined}>{c.name}</span>{" "}
+                        <span className="text-xs text-muted">{c.code}</span>
+                        {c.address ? <span className="block truncate text-xs text-muted">{c.address}</span> : null}
+                      </span>
+                      <span className="flex shrink-0 gap-1">
+                        {"matchRank" in c && c.matchRank === 0 ? <Badge tone="brand">Tam eşleşme</Badge> : null}
+                        {c.priceList !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[c.priceList]}</Badge> : null}
+                      </span>
                     </button>
                   ))}
+                  {serverSearch && found.total > found.list.length ? (
+                    <div className="px-3 py-1.5 text-xs text-muted">{found.total} eşleşmeden ilk {found.list.length} gösteriliyor; aramayı daraltın.</div>
+                  ) : null}
                 </div>
+              ) : serverSearch && (found.busy || found.q !== custQuery.trim()) && custQuery.trim().length >= 2 ? (
+                <div className="mt-1 text-sm text-muted">Aranıyor…</div>
               ) : custQuery.trim().length >= 2 ? (
                 <div className="mt-1 text-sm text-muted">
                   Bulunamadı. {dealerMode ? <Link href="/musterilerim" className="text-brand">Müşterilerim bölümünden yeni müşteri ekleyin.</Link> : "Yeni müşteriyi Müşteriler bölümünden ekleyin."}

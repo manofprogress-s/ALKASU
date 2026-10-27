@@ -19,7 +19,8 @@ export default async function NewOrderPage({ searchParams }: { searchParams: Pro
   const isCustomer = ctx.role === "musteri";
   const [products, customers, assignees, dealers, catalog] = await Promise.all([
     loadOrderProducts(supabase, ctx.businessId),
-    loadOrderCustomers(supabase, ctx.businessId), // RLS: bayi kendisi + kendi müşterileri, müşteri yalnızca kendisi
+    // Personel: tüm liste yüklenmez, arama sunucuda (M-28); yalnızca bağlantıyla gelen müşteri. Bayi/müşteri: RLS ile kendi listesi.
+    loadOrderCustomers(supabase, ctx.businessId, isDealer || isCustomer ? undefined : sp.musteri && /^[0-9a-f-]{36}$/i.test(sp.musteri) ? [sp.musteri] : []),
     isDealer || isCustomer ? Promise.resolve([] as Assignee[]) : loadAssignees(supabase, ctx.businessId),
     isDealer ? loadDealerNames(supabase, ctx.businessId) : Promise.resolve([] as Dealer[]),
     isCustomer ? supabase.rpc("public_catalog").then((r) => toShopItems((r.data ?? []) as CatalogRow[])) : Promise.resolve([] as ShopItem[]),

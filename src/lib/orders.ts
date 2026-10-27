@@ -84,16 +84,21 @@ export async function loadOrderProducts(supabase: SupabaseClient, businessId: st
     .filter((p) => p.units.some((u) => u.price !== null || Object.keys(u.listPrices).length > 0));
 }
 
-export async function loadOrderCustomers(supabase: SupabaseClient, businessId: string): Promise<OrderCustomer[]> {
-  const [{ data, error }, cp] = await Promise.all([
-    supabase
-      .from("customers")
-      .select("id, code, name, address, price_list, default_assignee, owner_dealer_id")
-      .eq("business_id", businessId)
-      .eq("active", true)
-      .order("name"),
-    supabase.from("customer_prices").select("customer_id, unit_id, price").eq("business_id", businessId),
-  ]);
+/**
+ * Sipariş formu müşterileri. `ids` verilirse yalnızca o müşteriler yüklenir (personel: arama sunucuda, M-28);
+ * verilmezse görebildiği tüm müşteriler (bayi/müşteri: RLS ile zaten küçük liste). API tek sorguda en fazla 1.000 satır döndürür.
+ */
+export async function loadOrderCustomers(supabase: SupabaseClient, businessId: string, ids?: string[]): Promise<OrderCustomer[]> {
+  if (ids && ids.length === 0) return [];
+  let cq = supabase
+    .from("customers")
+    .select("id, code, name, address, price_list, default_assignee, owner_dealer_id")
+    .eq("business_id", businessId)
+    .eq("active", true)
+    .order("name");
+  let pq = supabase.from("customer_prices").select("customer_id, unit_id, price").eq("business_id", businessId);
+  if (ids) { cq = cq.in("id", ids); pq = pq.in("customer_id", ids); }
+  const [{ data, error }, cp] = await Promise.all([cq, pq]);
   if (error) throw error;
   const special = new Map<string, Record<string, number>>();
   for (const r of (cp.data ?? []) as { customer_id: string; unit_id: string; price: string | number }[]) {

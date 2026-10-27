@@ -24,7 +24,7 @@ export default async function EditOrderPage({ params }: { params: Promise<{ id: 
   }
   const [products, customers, assignees, dealers] = await Promise.all([
     loadOrderProducts(supabase, ctx.businessId),
-    loadOrderCustomers(supabase, ctx.businessId),
+    loadOrderCustomers(supabase, ctx.businessId, isSelf ? undefined : [o.customer_id]),   // personel: yalnızca siparişin müşterisi (M-28)
     isSelf ? Promise.resolve([] as Assignee[]) : loadAssignees(supabase, ctx.businessId),
     ctx.role === "bayi" ? loadDealerNames(supabase, ctx.businessId) : Promise.resolve([] as Dealer[]),
   ]);
