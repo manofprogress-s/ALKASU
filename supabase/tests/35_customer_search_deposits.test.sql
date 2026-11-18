@@ -20,9 +20,10 @@ select public.upsert_customer(test.biz(), '{"code":"A900","name":"Mehmet Kaya","
 select test.logout();
 -- Bayi kullanıcıları (D-084): İbrahim → Sağlam Ticaret, Hüseyin Yıldız → Yıldız Ticaret
 insert into auth.users(id, email) values ('00000000-0000-0000-0000-0000000000b1', 'ibrahim@test'), ('00000000-0000-0000-0000-0000000000b2', 'huseyin@test');
-insert into public.memberships(business_id, user_id, role, display_name, customer_id) values
-  (test.biz(), '00000000-0000-0000-0000-0000000000b1', 'bayi', 'İbrahim', test.cust('B001')),
-  (test.biz(), '00000000-0000-0000-0000-0000000000b2', 'bayi', 'Hüseyin Yıldız', test.cust('B002'));
+-- Canlıdaki gibi: görünen ad soyad, kullanıcı adı ad
+insert into public.memberships(business_id, user_id, role, display_name, customer_id, username) values
+  (test.biz(), '00000000-0000-0000-0000-0000000000b1', 'bayi', 'SAĞLAM', test.cust('B001'), 'ibrahim'),
+  (test.biz(), '00000000-0000-0000-0000-0000000000b2', 'bayi', 'Yıldız', test.cust('B002'), 'huseyin');
 insert into public.customers(business_id, code, name) select test.biz(), 'X' || g, 'AAA Dolgu ' || lpad(g::text, 4, '0') from generate_series(1, 1050) g;
 
 select test.login(test.u_satis());
