@@ -17,7 +17,7 @@ import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { CartBar, ShopCatalog, ShopGrid, type Qty } from "@/components/shop/shop-catalog";
 import { staffItems } from "@/lib/staff-catalog";
-import { dealerHintOf, rankCustomers, rowToOrderCustomer, type CustomerSearchRow, type OrderCustomerHit } from "@/lib/customer-search";
+import { rankCustomers, rowToOrderCustomer, type CustomerSearchRow, type DealerHint, type OrderCustomerHit } from "@/lib/customer-search";
 
 export interface OrderFormValue {
   id: string;
@@ -100,6 +100,7 @@ export function OrderForm({
   // F-14: ev müşterisinin siparişi eve teslim fiyatıyla, kurumsal kurumsal listeyle
   const list: PriceList = orderList(customer?.priceList);
   const special = customer?.specialPrices;
+  const customerHint = (customer as { dealerHint?: DealerHint | null } | null)?.dealerHint ?? null;   // M-29: bayi kartı olabilir
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
   const custMatches = useMemo(() => {
@@ -227,9 +228,9 @@ export function OrderForm({
                   {ownPurchase ? `Kendi alımım (${customer.name})` : customer.name} <span className="text-sm font-normal text-muted">{customer.code}</span>
                 </div>
                 <Badge tone="ok">{PRICE_LISTS[list]} fiyatı</Badge>
-                {dealerHintOf(customer) ? (
+                {customerHint ? (
                   <div className="mt-2"><Alert tone="warn">
-                    Bu kişinin bayi kartı olabilir: <b>{dealerHintOf(customer)?.name}</b> ({dealerHintOf(customer)?.code}). Bayi siparişiyse “Değiştir”e basıp bayi kartını seçin; yoksa ev müşterisi fiyatı uygulanır.
+                    Bu kişinin bayi kartı olabilir: <b>{customerHint.name}</b> ({customerHint.code}). Bayi siparişiyse “Değiştir”e basıp bayi kartını seçin; yoksa ev müşterisi fiyatı uygulanır.
                   </Alert></div>
                 ) : null}
               </div>
@@ -246,8 +247,8 @@ export function OrderForm({
                         <span className={"matchRank" in c && c.matchRank === 0 ? "font-semibold" : undefined}>{c.name}</span>{" "}
                         <span className="text-xs text-muted">{c.code}</span>
                         {c.address ? <span className="block truncate text-xs text-muted">{c.address}</span> : null}
-                        {dealerHintOf(c) ? (
-                          <span className="block text-xs text-warn">⚠ Bayi kartı olabilir: {dealerHintOf(c)?.name} ({dealerHintOf(c)?.code})</span>
+                        {(c as { dealerHint?: DealerHint | null }).dealerHint ? (
+                          <span className="block text-xs text-warn">⚠ Bayi kartı olabilir: {(c as OrderCustomerHit).dealerHint?.name} ({(c as OrderCustomerHit).dealerHint?.code})</span>
                         ) : null}
                       </span>
                       <span className="flex shrink-0 gap-1">
