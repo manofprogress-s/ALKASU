@@ -71,6 +71,11 @@ export function rowToOrderCustomer(r: CustomerSearchRow): OrderCustomerHit {
   };
 }
 
+/** Arama sonucundaki bayi ipucu (yerel listedeki müşteride yoktur) */
+export function dealerHintOf(c: object): DealerHint | null {
+  return "dealerHint" in c ? ((c as { dealerHint?: DealerHint | null }).dealerHint ?? null) : null;
+}
+
 export function rowToPosCustomer(r: CustomerSearchRow): PosCustomer {
   return {
     id: r.id, code: r.code, name: r.name, phone: r.phone, creditLimit: Number(r.credit_limit), unlimited: r.unlimited_credit,
