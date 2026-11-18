@@ -1,8 +1,9 @@
-// Müşteri araması (M-28). Asıl arama sunucuda: public.search_order_customers (aynı kurallar).
+// Müşteri araması (M-28, M-29). Asıl arama sunucuda: public.search_customers (aynı kurallar; bayi kartları üstte).
 // Buradaki eşdeğer kurallar yalnızca bayinin kendi küçük müşteri listesinde (tarayıcıda) kullanılır.
 import { searchKey } from "./catalog";
 import type { PriceList } from "./roles";
 import type { OrderCustomer } from "./orders";
+import type { PosCustomer } from "./catalog";
 
 /** Türkçe duyarlı norm: küçük harf, şapkasız, ı/İ → i, harf-rakam dışı → tek boşluk (app.search_norm ile aynı) */
 export function searchNorm(s: string | null | undefined): string {
@@ -42,16 +43,55 @@ export function rankCustomers<T extends { name: string; code: string }>(list: T[
     .map((x) => x.c);
 }
 
+export interface DealerHint { id: string; code: string; name: string }
+
+/** public.search_customers satırı */
 export interface CustomerSearchRow {
-  id: string; code: string; name: string; address: string | null; price_list: PriceList | null; default_assignee: string | null;
-  owner_dealer_id: string | null; special_prices: Record<string, number | string> | null; match_rank: number; total: number;
+  id: string; code: string; name: string; address: string | null; phone: string | null; channel: string;
+  price_list: PriceList | null; default_assignee: string | null; owner_dealer_id: string | null;
+  credit_limit: number | string; unlimited_credit: boolean; balance: number | string;
+  special_prices: Record<string, number | string> | null; deposits: Record<string, number | string> | null;
+  containers: { product_id: string; qty: number; amount: number | string }[] | null;
+  dealer_hint: DealerHint | null; match_rank: number; total: number;
 }
 
-export function rowToOrderCustomer(r: CustomerSearchRow): OrderCustomer & { matchRank: number } {
-  const sp: Record<string, number> = {};
-  for (const [k, v] of Object.entries(r.special_prices ?? {})) sp[k] = Number(v);
+const nums = (o: Record<string, number | string> | null | undefined): Record<string, number> => {
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(o ?? {})) out[k] = Number(v);
+  return out;
+};
+
+export type OrderCustomerHit = OrderCustomer & { matchRank: number; channel: string; dealerHint: DealerHint | null };
+
+export function rowToOrderCustomer(r: CustomerSearchRow): OrderCustomerHit {
   return {
     id: r.id, code: r.code, name: r.name, address: r.address, priceList: r.price_list ?? "perakende",
-    defaultAssignee: r.default_assignee, ownerDealerId: r.owner_dealer_id, specialPrices: sp, matchRank: r.match_rank,
+    defaultAssignee: r.default_assignee, ownerDealerId: r.owner_dealer_id, specialPrices: nums(r.special_prices),
+    matchRank: r.match_rank, channel: r.channel, dealerHint: r.dealer_hint,
   };
+}
+
+export function rowToPosCustomer(r: CustomerSearchRow): PosCustomer {
+  return {
+    id: r.id, code: r.code, name: r.name, phone: r.phone, creditLimit: Number(r.credit_limit), unlimited: r.unlimited_credit,
+    balance: Number(r.balance), priceList: r.price_list ?? "perakende", specialPrices: nums(r.special_prices),
+    deposits: nums(r.deposits), channel: r.channel, dealerHint: r.dealer_hint,
+  };
+}
+
+/** Seçilen müşterinin kap bakiyeleri (satış ekranının depozito hesabı için) */
+export function rowContainers(r: CustomerSearchRow): { customerId: string; productId: string; qty: number; amount: number }[] {
+  return (r.containers ?? []).map((c) => ({ customerId: r.id, productId: c.product_id, qty: Number(c.qty), amount: Number(c.amount) }));
+}
+
+/** Çevrimdışı yedek: son seçilen müşterilerde arama (bayi kartları üstte) */
+export function rankLocal<T extends { name: string; code: string; phone?: string | null; channel?: string }>(list: T[], query: string, limit = 10): T[] {
+  const d = query.replace(/\D/g, "").replace(/^(90|0)/, "");
+  const ranked = list
+    .map((c) => ({ c, r: matchRank(c.name, c.code, query) ?? (d.length >= 4 && (c.phone ?? "").replace(/\D/g, "").includes(d) ? 3 : null) }))
+    .filter((x): x is { c: T; r: number } => x.r !== null);
+  return ranked
+    .sort((a, b) => Number(b.c.channel === "bayi") - Number(a.c.channel === "bayi") || a.r - b.r || a.c.name.localeCompare(b.c.name, "tr"))
+    .slice(0, limit)
+    .map((x) => x.c);
 }

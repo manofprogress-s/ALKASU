@@ -59,6 +59,11 @@ export interface PosCustomer {
   priceList: PriceList;
   /** Firmaya özel fiyatlar: birim → fiyat */
   specialPrices?: Record<string, number>;
+  /** Müşteriye özel depozito (F-37): ürün → kap başına tutar */
+  deposits?: Record<string, number>;
+  channel?: string;
+  /** Benzer ev kartı için bayi ipucu (M-29) */
+  dealerHint?: { id: string; code: string; name: string } | null;
 }
 export interface PosData {
   products: CatalogProduct[];
@@ -83,7 +88,9 @@ interface ProductRow {
 
 /** Satış ekranı verisi. Hem sunucuda hem istemcide (yenileme) kullanılır. */
 export async function loadPosData(supabase: SupabaseClient, businessId: string): Promise<PosData> {
-  const [prod, stock, cust, bal, cont, lp, cp, layout] = await Promise.all([
+  // Müşteriler tek sorguda yüklenmez (1.000 satır sınırı, M-29): satış ekranı sunucuda arar (search_customers).
+  // Burada yalnızca müşterisiz (dükkân) kap bakiyesi gelir; müşterinin bakiyesi, kabı ve özel fiyatı seçilince aramayla gelir.
+  const [prod, stock, cont, lp, layout] = await Promise.all([
     supabase
       .from("products")
       .select(
@@ -94,11 +101,8 @@ export async function loadPosData(supabase: SupabaseClient, businessId: string):
       .eq("is_container", false)
       .order("name"),
     supabase.rpc("report_stock", { p_business: businessId, p_days: 30 }),
-    supabase.from("customers").select("id, code, name, phone, credit_limit, unlimited_credit, price_list").eq("business_id", businessId).eq("active", true).order("name"),
-    supabase.from("customer_balances").select("customer_id, balance").eq("business_id", businessId),
-    supabase.from("container_balances").select("customer_id, product_id, qty, amount").eq("business_id", businessId),
+    supabase.from("container_balances").select("customer_id, product_id, qty, amount").eq("business_id", businessId).is("customer_id", null),
     supabase.from("product_list_prices").select("unit_id, price_list, price").eq("business_id", businessId),
-    supabase.from("customer_prices").select("customer_id, unit_id, price").eq("business_id", businessId),
     loadUnitLayout(supabase, businessId),
   ]);
   if (prod.error) throw prod.error;
@@ -110,12 +114,6 @@ export async function loadPosData(supabase: SupabaseClient, businessId: string):
   for (const r of (lp.data ?? []) as { unit_id: string; price_list: "bayi" | "palet" | "ev" | "kurumsal"; price: string | number }[]) {
     listMap.set(r.unit_id, { ...(listMap.get(r.unit_id) ?? {}), [r.price_list]: Number(r.price) });
   }
-  const special = new Map<string, Record<string, number>>();
-  for (const r of (cp.data ?? []) as { customer_id: string; unit_id: string; price: string | number }[]) {
-    special.set(r.customer_id, { ...(special.get(r.customer_id) ?? {}), [r.unit_id]: Number(r.price) });
-  }
-  const balMap = new Map<string, number>();
-  for (const b of (bal.data ?? []) as { customer_id: string; balance: string | number }[]) balMap.set(b.customer_id, Number(b.balance));
 
   const products = ((prod.data ?? []) as unknown as ProductRow[])
     .map((p) => {
@@ -142,19 +140,7 @@ export async function loadPosData(supabase: SupabaseClient, businessId: string):
 
   return {
     products,
-    customers: ((cust.data ?? []) as { id: string; code: string; name: string; phone: string | null; credit_limit: string | number; unlimited_credit: boolean; price_list: PriceList | null }[]).map(
-      (c) => ({
-        id: c.id,
-        code: c.code,
-        name: c.name,
-        phone: c.phone,
-        creditLimit: Number(c.credit_limit),
-        unlimited: c.unlimited_credit,
-        balance: balMap.get(c.id) ?? 0,
-        priceList: c.price_list ?? "perakende",
-        specialPrices: special.get(c.id) ?? {},
-      }),
-    ),
+    customers: [],
     containers: ((cont.data ?? []) as { customer_id: string | null; product_id: string; qty: number; amount: string | number }[]).map((c) => ({
       customerId: c.customer_id,
       productId: c.product_id,

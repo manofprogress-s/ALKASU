@@ -11,9 +11,11 @@ import type { OrderProduct } from "@/lib/orders";
 import type { PriceList } from "@/lib/roles";
 
 /** Firmaya özel fiyatlar (F-13): yönetici düzenler, satış personeli görür */
-export function CustomerPrices({ customerId, prices, products, priceList, canEdit }: {
+export function CustomerPrices({ customerId, prices, deposits, products, priceList, canEdit }: {
   customerId: string;
   prices: Record<string, number>;
+  /** Müşteriye özel depozito (F-37): ürün → kap başına tutar */
+  deposits: Record<string, number>;
   products: OrderProduct[];
   priceList: PriceList;
   canEdit: boolean;
@@ -86,6 +88,57 @@ export function CustomerPrices({ customerId, prices, products, priceList, canEdi
           }}>Kaydet</Button>
         </div>
       ) : null}
+      <CustomerDeposits customerId={customerId} deposits={deposits} products={products} canEdit={canEdit} />
     </Card>
+  );
+}
+
+/** Müşteriye özel depozito (F-37): ör. bayiye tüp depozitosu. Boşsa ürün kartındaki depozito uygulanır. */
+function CustomerDeposits({ customerId, deposits, products, canEdit }: {
+  customerId: string; deposits: Record<string, number>; products: OrderProduct[]; canEdit: boolean;
+}) {
+  const { call, busy } = useRpc();
+  const [productId, setProductId] = useState("");
+  const [amount, setAmount] = useState("");
+  const withDeposit = products.filter((p) => p.deposit !== null);
+  const rows = withDeposit.filter((p) => deposits[p.id] !== undefined);
+  const parsed = parseAmount(amount);
+  if (!rows.length && !canEdit) return null;
+  return (
+    <div className="space-y-2 border-t border-border pt-3">
+      <h3 className="text-sm font-semibold">Özel depozito</h3>
+      {rows.length === 0 ? <p className="text-sm text-muted">Yok; ürün kartındaki depozito uygulanır.</p> : (
+        <ul className="divide-y divide-border text-sm">
+          {rows.map((p) => (
+            <li key={p.id} className="flex items-center justify-between gap-2 py-1.5">
+              <span>{p.name}</span>
+              <span className="flex items-center gap-3">
+                <span className="num font-semibold">{formatTRY(deposits[p.id]!)}</span>
+                <span className="num text-xs text-muted">normal {formatTRY(p.deposit ?? 0)}</span>
+                {canEdit ? (
+                  <Button size="sm" variant="ghost" aria-label="Kaldır" disabled={busy}
+                    onClick={() => void call("set_customer_deposit", { p_customer: customerId, p_product: p.id, p_amount: null }, { success: "Özel depozito kaldırıldı" })}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {canEdit ? (
+        <div className="flex flex-wrap items-end gap-2 rounded-xl bg-surface-2 p-3">
+          <Select className="h-10 min-w-0 flex-1 basis-48" value={productId} onChange={(e) => setProductId(e.target.value)} aria-label="Depozitolu ürün">
+            <option value="">Depozitolu ürün seçin…</option>
+            {withDeposit.map((p) => <option key={p.id} value={p.id}>{p.name} (normal {formatTRY(p.deposit ?? 0)})</option>)}
+          </Select>
+          <Input className="num h-10 w-28 text-right" inputMode="decimal" placeholder="₺" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Özel depozito" />
+          <Button disabled={!productId || parsed === null || parsed <= 0} loading={busy} onClick={async () => {
+            const ok = await call("set_customer_deposit", { p_customer: customerId, p_product: productId, p_amount: parsed }, { success: "Özel depozito kaydedildi" });
+            if (ok) { setAmount(""); setProductId(""); }
+          }}>Kaydet</Button>
+        </div>
+      ) : null}
+    </div>
   );
 }

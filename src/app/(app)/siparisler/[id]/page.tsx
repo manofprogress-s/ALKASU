@@ -65,7 +65,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const isMine = o.customer_id === ctx.customerId || (isDealer && !!ctx.customerId && o.customers?.owner_dealer_id === ctx.customerId);
   const isMyDelivery = isDealer && !!ctx.customerId && o.dealer_customer_id === ctx.customerId;
   const open = o.status === "acik" || o.status === "onay_bekliyor";
-  const [assignees, dealers, bal, cont, routing] = await Promise.all([
+  const [assignees, dealers, bal, cont, routing, custDep] = await Promise.all([
     isStaff ? loadAssignees(supabase, ctx.businessId) : Promise.resolve([] as Assignee[]),
     isStaff ? loadDealers(supabase, ctx.businessId) : Promise.resolve([] as Dealer[]),
     supabase.from("customer_balances").select("balance").eq("customer_id", o.customer_id).maybeSingle(),
@@ -74,7 +74,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     ctx.role === "yonetici"
       ? supabase.from("order_routing_log").select("id, from_dealer, to_dealer, special, note, created_by, created_at").eq("order_id", o.id).order("created_at")
       : Promise.resolve({ data: [] }),
+    supabase.from("customer_deposits").select("product_id, amount").eq("customer_id", o.customer_id),
   ]);
+  const ownDeposit = new Map(((custDep.data ?? []) as { product_id: string; amount: number | string }[]).map((d): [string, number] => [d.product_id, Number(d.amount)]));
   const routes = (routing.data ?? []) as { id: number; from_dealer: string | null; to_dealer: string | null; special: boolean; note: string | null; created_by: string | null; created_at: string }[];
   const names = new Map(assignees.map((a) => [a.user_id, a.display_name]));
   const items = [...o.order_items].sort((a, b) => a.line_no - b.line_no);
@@ -95,9 +97,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     factor: i.product_units?.factor ?? 1,
     qty: i.qty,
     unitPrice: Number(i.unit_price),
-    // F-16: eve teslim siparişinde eve teslim depozitosu (sunucudaki complete_sale_core ile aynı)
+    // F-37 > F-16: müşteriye özel depozito, yoksa eve teslim siparişinde eve teslim depozitosu (sunucudaki app.deposit_for ile aynı)
     deposit: i.products?.deposit_amount === null || i.products?.deposit_amount === undefined ? null
-      : Number(o.price_list === "ev" && i.products.deposit_ev !== null ? i.products.deposit_ev : i.products.deposit_amount),
+      : ownDeposit.get(i.product_id) ?? Number(o.price_list === "ev" && i.products.deposit_ev !== null ? i.products.deposit_ev : i.products.deposit_amount),
     emptyProductId: i.products?.empty_product_id ?? null,
   }));
 

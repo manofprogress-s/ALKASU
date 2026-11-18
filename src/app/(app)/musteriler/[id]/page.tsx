@@ -36,7 +36,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
     );
   }
   // Tek dalga: tüm okumalar paralel (hız adımı 4)
-  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }, { data: cprices }, products, { data: pev }, assignees, { data: calls }, opening] = await Promise.all([
+  const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }, { data: cprices }, products, { data: pev }, assignees, { data: calls }, opening, { data: cdeps }] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).maybeSingle(),
     supabase.rpc("customer_summary", { p_customer: id }),
     supabase.rpc("customer_statement", { p_customer: id }),
@@ -48,6 +48,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
     loadAssigneeOptions(),
     supabase.from("customer_calls").select("called_at, outcome, note, next_call_on, user_id").eq("customer_id", id).order("called_at", { ascending: false }).limit(10),
     ctx.role === "yonetici" && id !== "yeni" ? supabase.rpc("opening_balance", { p_customer: id }).then((r) => Number(r.data ?? 0)) : Promise.resolve(0),
+    supabase.from("customer_deposits").select("product_id, amount").eq("customer_id", id),
   ]);
   if (!c) notFound();
   // Bayiye ait kart / bayi kartı: bayinin listesi ve öneriler (G-13..G-15)
@@ -112,10 +113,11 @@ export default async function CustomerPage({ params, searchParams }: { params: P
         calls={(calls ?? []) as CallRow[]}
         names={Object.fromEntries(assignees.map((a) => [a.user_id, a.display_name]))}
       />
-      {c.channel !== "perakende" || (cprices ?? []).length ? (
+      {c.channel !== "perakende" || (cprices ?? []).length || (cdeps ?? []).length ? (
         <CustomerPrices
           customerId={c.id}
           prices={Object.fromEntries(((cprices ?? []) as { unit_id: string; price: number }[]).map((r) => [r.unit_id, Number(r.price)]))}
+          deposits={Object.fromEntries(((cdeps ?? []) as { product_id: string; amount: number }[]).map((r) => [r.product_id, Number(r.amount)]))}
           products={products}
           priceList={c.price_list}
           canEdit={ctx.role === "yonetici"}

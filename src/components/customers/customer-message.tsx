@@ -56,7 +56,8 @@ export function CustomerMessage({ target, compact }: { target: MessageTarget; co
         <MessageCircle className="h-4 w-4" />
         {last ? <span className="text-muted">{formatDate(last.at).slice(0, 5)}</span> : <span>Mesaj</span>}
       </button>
-      <Dialog open={open} onClose={() => setOpen(false)} title={`${target.name} · mesaj`}>
+      {/* Pencere yalnızca açılınca oluşturulur: listede her satır için şablon metni sayfaya gömülmez (M-29 hız) */}
+      {open ? <Dialog open onClose={() => setOpen(false)} title={`${target.name} · mesaj`}>
         <div className="space-y-3 text-sm">
           <div className="grid gap-2">
             {(Object.keys(TEMPLATES) as MessageTemplate[]).map((k) => (
@@ -91,7 +92,7 @@ export function CustomerMessage({ target, compact }: { target: MessageTarget; co
           </div>
           <p className="text-xs text-muted">Mesaj telefonunuzdaki uygulamada hazır açılır; göndermek için oradan “Gönder”e basın.</p>
         </div>
-      </Dialog>
+      </Dialog> : null}
     </>
   );
 }

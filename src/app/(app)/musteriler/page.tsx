@@ -22,24 +22,29 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const supabase = await supabaseServer();
   const page = Math.max(0, Number.parseInt(sp.s ?? "0", 10) || 0);
-  // Binlerce müşteri için sunucuda arama + sayfalama (M-22)
-  const [{ data: debtors }, { data: dealers }] = await Promise.all([
-    supabase.from("customer_balances").select("customer_id, balance").eq("business_id", ctx.businessId).gt("balance", 0),
+  // Binlerce müşteri için sunucuda arama + sayfalama (M-22). Alacak toplamı ve borçlu listesi tek sorguda (M-29: 1.000 satır sınırı yok)
+  const key = sp.q?.trim() ? searchKey(sp.q.trim()).replace(/["',()\\*%]/g, "") : "";
+  const [{ data: summary }, { data: dealers }, debtPage] = await Promise.all([
+    ctx.role === "yonetici" ? supabase.rpc("customer_debt_summary", { p_business: ctx.businessId }).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("customers").select("id, name").eq("business_id", ctx.businessId).eq("channel", "bayi"),
+    sp.borclu
+      ? supabase.rpc("debtor_page", { p_business: ctx.businessId, p_key: key, p_channel: sp.kanal ?? null, p_offset: page * PAGE, p_limit: PAGE })
+      : Promise.resolve(null),
   ]);
-  const debt = (debtors ?? []) as { customer_id: string; balance: number }[];
+  const debtRows = (debtPage?.data ?? []) as { id: string; total: number }[];
   let query = supabase.from("customers")
     .select("id, code, name, phone, extra_phones, marketing_consent, credit_limit, unlimited_credit, active, channel, price_list, regions, dispenser_count, owner_dealer_id, area", { count: "exact" })
     .eq("business_id", ctx.businessId);
-  if (sp.q?.trim()) {
-    const key = searchKey(sp.q.trim()).replace(/["',()\\*%]/g, "");
+  if (sp.q?.trim() && !sp.borclu) {
     const d = sp.q.replace(/\D/g, "").replace(/^(90|0)/, "");
     query = d.length >= 4 ? query.or(`search_key.like."*${key}*",phone.like.*${d}*`) : query.like("search_key", `%${key}%`);
   }
   if (sp.kanal) query = query.eq("channel", sp.kanal);
   if (sp.fatura) query = query.eq("channel", "kurumsal").is("tax_no", null); // F-20: faturası kesilecek ama vergi no'su yok
-  if (sp.borclu) query = query.in("id", debt.length ? debt.map((x) => x.customer_id) : ["00000000-0000-0000-0000-000000000000"]);
-  const { data: cs, count } = await query.order("name").range(page * PAGE, page * PAGE + PAGE - 1);
+  // Borçlular: sayfa sunucuda seçilir (debtor_page), burada yalnızca o sayfanın kartları okunur
+  if (sp.borclu) query = query.in("id", debtRows.length ? debtRows.map((x) => x.id) : ["00000000-0000-0000-0000-000000000000"]);
+  const { data: cs, count: plainCount } = await (sp.borclu ? query.order("name") : query.order("name").range(page * PAGE, page * PAGE + PAGE - 1));
+  const count = sp.borclu ? Number(debtRows[0]?.total ?? 0) : plainCount;
   const list = (cs ?? []) as Row[];
   const ids = list.map((c) => c.id);
   const canMessage = ctx.role === "yonetici" || ctx.role === "satis" || ctx.role === "sevkiyat";
@@ -57,7 +62,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   for (const c of (cont ?? []) as { customer_id: string | null; qty: number }[]) if (c.customer_id) k.set(c.customer_id, (k.get(c.customer_id) ?? 0) + c.qty);
   const rows = list.map((c) => ({ ...c, balance: b.get(c.id) ?? 0, containers: k.get(c.id) ?? 0 }));
   const dealerNames = new Map(((dealers ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
-  const totalDebt = debt.reduce((s, r) => s + Number(r.balance), 0);
+  const totalDebt = Number((summary as { total: number } | null)?.total ?? 0);
   const total = count ?? rows.length;
   const pageHref = (n: number) => {
     const p = new URLSearchParams();

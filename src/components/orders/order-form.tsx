@@ -17,7 +17,7 @@ import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { CartBar, ShopCatalog, ShopGrid, type Qty } from "@/components/shop/shop-catalog";
 import { staffItems } from "@/lib/staff-catalog";
-import { rankCustomers, rowToOrderCustomer, type CustomerSearchRow } from "@/lib/customer-search";
+import { rankCustomers, rowToOrderCustomer, type CustomerSearchRow, type OrderCustomerHit } from "@/lib/customer-search";
 
 export interface OrderFormValue {
   id: string;
@@ -68,8 +68,8 @@ export function OrderForm({
   const [deliverBy, setDeliverBy] = useState<string>("self");
   const [custQuery, setCustQuery] = useState("");
   // M-28: personelin müşteri araması sunucuda (tüm liste tarayıcıya yüklenmez)
-  const [found, setFound] = useState<{ q: string; list: (OrderCustomer & { matchRank: number })[]; total: number; busy: boolean }>({ q: "", list: [], total: 0, busy: false });
-  const [picked, setPicked] = useState<OrderCustomer | null>(null);
+  const [found, setFound] = useState<{ q: string; list: OrderCustomerHit[]; total: number; busy: boolean }>({ q: "", list: [], total: 0, busy: false });
+  const [picked, setPicked] = useState<OrderCustomer | OrderCustomerHit | null>(null);
   const searchSeq = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [deliveryDate, setDeliveryDate] = useState(initial?.deliveryDate ?? todayISO());
@@ -118,7 +118,7 @@ export function OrderForm({
     setFound((f) => ({ ...f, busy: true }));
     searchTimer.current = setTimeout(async () => {
       const seq = ++searchSeq.current;
-      const { data, error } = await supabaseBrowser().rpc("search_order_customers", { p_business: ctx.businessId, p_q: q, p_limit: 10 });
+      const { data, error } = await supabaseBrowser().rpc("search_customers", { p_business: ctx.businessId, p_q: q, p_limit: 10 });
       if (seq !== searchSeq.current) return;
       if (error) { toast(errorMessage(error), "danger"); setFound({ q, list: [], total: 0, busy: false }); return; }
       const rows = (data ?? []) as CustomerSearchRow[];
@@ -227,6 +227,11 @@ export function OrderForm({
                   {ownPurchase ? `Kendi alımım (${customer.name})` : customer.name} <span className="text-sm font-normal text-muted">{customer.code}</span>
                 </div>
                 <Badge tone="ok">{PRICE_LISTS[list]} fiyatı</Badge>
+                {"dealerHint" in customer && customer.dealerHint ? (
+                  <div className="mt-2"><Alert tone="warn">
+                    Bu kişinin bayi kartı olabilir: <b>{customer.dealerHint.name}</b> ({customer.dealerHint.code}). Bayi siparişiyse “Değiştir”e basıp bayi kartını seçin; yoksa ev müşterisi fiyatı uygulanır.
+                  </Alert></div>
+                ) : null}
               </div>
               {isNew || !dealerMode ? <Button variant="ghost" size="sm" onClick={() => setCustomerId(null)}>Değiştir</Button> : null}
             </div>
@@ -241,10 +246,14 @@ export function OrderForm({
                         <span className={"matchRank" in c && c.matchRank === 0 ? "font-semibold" : undefined}>{c.name}</span>{" "}
                         <span className="text-xs text-muted">{c.code}</span>
                         {c.address ? <span className="block truncate text-xs text-muted">{c.address}</span> : null}
+                        {"dealerHint" in c && c.dealerHint ? (
+                          <span className="block text-xs text-warn">⚠ Bayi kartı olabilir: {c.dealerHint.name} ({c.dealerHint.code})</span>
+                        ) : null}
                       </span>
                       <span className="flex shrink-0 gap-1">
-                        {"matchRank" in c && c.matchRank === 0 ? <Badge tone="brand">Tam eşleşme</Badge> : null}
-                        {c.priceList !== "perakende" ? <Badge tone="ok">{PRICE_LISTS[c.priceList]}</Badge> : null}
+                        {"channel" in c && c.channel === "bayi" ? <Badge tone="brand">BAYİ</Badge> : null}
+                        {"matchRank" in c && c.matchRank === 0 ? <Badge tone="neutral">Tam eşleşme</Badge> : null}
+                        {c.priceList !== "perakende" && !("channel" in c && c.channel === "bayi") ? <Badge tone="ok">{PRICE_LISTS[c.priceList]}</Badge> : null}
                       </span>
                     </button>
                   ))}

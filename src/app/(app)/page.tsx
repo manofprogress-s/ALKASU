@@ -66,9 +66,15 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       ) : null}
 
       {can(ctx.role, "sell") ? (
-        <Link href="/satis" className="flex items-center justify-center gap-3 rounded-2xl bg-brand p-5 text-lg font-semibold text-white shadow-sm active:scale-[0.99]">
-          <ShoppingCart className="h-6 w-6" /> Yeni satış
-        </Link>
+        // Dükkân satışı ve sipariş ayrı düğmeler: bayi/müşteri siparişi "Yeni sipariş"ten girilir (M-29)
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/satis" className="flex items-center justify-center gap-2 rounded-2xl bg-brand p-5 text-lg font-semibold text-white shadow-sm active:scale-[0.99]">
+            <ShoppingCart className="h-6 w-6" /> Yeni satış
+          </Link>
+          <Link href="/siparisler/yeni" className="flex items-center justify-center gap-2 rounded-2xl border-2 border-brand bg-surface p-5 text-lg font-semibold text-brand shadow-sm active:scale-[0.99]">
+            <ClipboardList className="h-6 w-6" /> Yeni sipariş
+          </Link>
+        </div>
       ) : null}
       {ctx.role === "bayi" ? (
         <>

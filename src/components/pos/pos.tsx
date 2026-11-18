@@ -14,11 +14,17 @@ import { loadCache, saveCache } from "@/lib/offline/queue";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { CartBar, ShopCatalog, ShopGrid, type Qty } from "@/components/shop/shop-catalog";
 import { staffItems } from "@/lib/staff-catalog";
-import { CustomerPicker } from "./customer-picker";
+import { CustomerPicker, type PickedContainers } from "./customer-picker";
 import { PaymentDialog, type SaleResult } from "./payment-dialog";
 import { ReceiptDialog } from "./receipt-dialog";
 
 const CACHE_KEY = (b: string) => `pos:${b}`;
+const RECENT = 60; // çevrimdışı arama için saklanan son seçilen müşteri sayısı
+
+/** F-37: müşteriye özel depozito, yoksa ürün kartındaki */
+function depositOf(p: CatalogProduct, c: PosCustomer | null): number | null {
+  return p.deposit === null ? null : c?.deposits?.[p.id] ?? p.deposit;
+}
 
 export function Pos({ initial }: { initial: PosData }) {
   const ctx = useAppContext();
@@ -36,20 +42,32 @@ export function Pos({ initial }: { initial: PosData }) {
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Çevrimdışı açılış için katalog önbelleği
+  // Sunucudan gelen katalog + önbellekteki "son seçilen müşteriler" birleştirilir; katalog boşsa (çevrimdışı) önbellek kullanılır
   useEffect(() => {
-    void saveCache(CACHE_KEY(ctx.businessId), initial);
+    void loadCache<PosData>(CACHE_KEY(ctx.businessId)).then((c) => {
+      if (initial.products.length === 0) {
+        if (c) setData(c.value);
+        return;
+      }
+      const recent = (c?.value.customers ?? []).slice(-RECENT);
+      const ids = new Set(recent.map((x) => x.id));
+      const next = c
+        ? { ...initial, customers: recent, containers: [...initial.containers, ...(c.value.containers ?? []).filter((x) => x.customerId && ids.has(x.customerId))] }
+        : initial;
+      if (c) setData(next);
+      void saveCache(CACHE_KEY(ctx.businessId), next);
+    });
   }, [initial, ctx.businessId]);
-  useEffect(() => {
-    if (initial.products.length === 0) {
-      void loadCache<PosData>(CACHE_KEY(ctx.businessId)).then((c) => c && setData(c.value));
-    }
-  }, [initial.products.length, ctx.businessId]);
 
   const refresh = useCallback(async () => {
     try {
       const fresh = await loadPosData(supabaseBrowser(), ctx.businessId);
-      setData(fresh);
-      void saveCache(CACHE_KEY(ctx.businessId), fresh);
+      // Son seçilen müşteriler ve kap bakiyeleri korunur (çevrimdışı satış için); güncel hâli seçilince aramayla gelir
+      setData((d) => {
+        const next = { ...fresh, customers: d.customers, containers: [...fresh.containers, ...d.containers.filter((c) => c.customerId)] };
+        void saveCache(CACHE_KEY(ctx.businessId), next);
+        return next;
+      });
     } catch {
       /* çevrimdışı: önbellekteki veriyle devam */
     }
@@ -93,17 +111,33 @@ export function Pos({ initial }: { initial: PosData }) {
     for (const l of cart) m[l.unitId] = (m[l.unitId] ?? 0) + l.qty;
     return m;
   }, [cart]);
-  /** F-10: müşteri değişince sepet o müşterinin fiyat listesine göre yeniden fiyatlanır. */
+  /** F-10: müşteri değişince sepet o müşterinin fiyat listesine ve özel depozitosuna (F-37) göre yeniden hesaplanır. */
   function chooseCustomer(c: PosCustomer | null) {
     setCustomer(c);
     const list = c?.priceList ?? "perakende";
     setCart((cur) =>
       cur.map((l) => {
-        const u = byId.get(l.productId)?.units.find((x) => x.id === l.unitId);
+        const p = byId.get(l.productId);
+        const u = p?.units.find((x) => x.id === l.unitId);
         const pr = u ? priceFor(u, list, c?.specialPrices) : null;
-        return pr === null ? l : { ...l, unitPrice: pr };
+        const dep = p ? depositOf(p, c) : l.depositAmount;
+        return pr === null ? { ...l, depositAmount: dep } : { ...l, unitPrice: pr, depositAmount: dep };
       }),
     );
+  }
+
+  /** Aramayla seçilen müşteri: güncel kap bakiyesi alınır, "son seçilenler"e eklenir (çevrimdışı yedek) */
+  function pickFromSearch(c: PosCustomer, containers: PickedContainers | null) {
+    setData((d) => {
+      const next = {
+        ...d,
+        customers: [...d.customers.filter((x) => x.id !== c.id), c].slice(-RECENT),
+        containers: containers ? [...d.containers.filter((x) => x.customerId !== c.id), ...containers] : d.containers,
+      };
+      void saveCache(CACHE_KEY(ctx.businessId), next);
+      return next;
+    });
+    chooseCustomer(c);
   }
 
   const totals = useMemo(
@@ -132,7 +166,7 @@ export function Pos({ initial }: { initial: PosData }) {
           qty: n,
           unitPrice: price,
           lineDiscount: 0,
-          depositAmount: p.deposit,
+          depositAmount: depositOf(p, customer),
           emptyProductId: p.emptyProductId,
         },
       ];
@@ -418,14 +452,13 @@ export function Pos({ initial }: { initial: PosData }) {
       <CustomerPicker
         open={pickCustomer}
         onClose={() => setPickCustomer(false)}
-        customers={data.customers}
-        onPick={(c) => {
-          chooseCustomer(c);
+        recent={data.customers}
+        onPick={(c, containers) => {
+          pickFromSearch(c, containers);
           setPickCustomer(false);
         }}
         onCreated={(c) => {
-          setData((d) => ({ ...d, customers: [...d.customers, c] }));
-          chooseCustomer(c);
+          pickFromSearch(c, []);
           setPickCustomer(false);
         }}
       />
