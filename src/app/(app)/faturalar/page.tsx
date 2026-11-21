@@ -35,7 +35,8 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   const ay = parseMonth(sp.ay, todayISO()) > thisMonth ? thisMonth : parseMonth(sp.ay, todayISO());
 
   const [{ data: counts }, uninv, inv, monthly] = await Promise.all([
-    supabase.from("invoices").select("status").eq("business_id", ctx.businessId),
+    // Sekme sayıları tek sorguda (tüm faturaları okumadan; 1.000 satır sınırı yok, D-108)
+    supabase.rpc("invoice_status_counts", { p_business: ctx.businessId }),
     tab === "bekleyen"
       ? supabase.rpc("uninvoiced_sales", { p_business: ctx.businessId, p_only_customer: !sp.tum, p_limit: PAGE, p_offset: page * PAGE })
       : Promise.resolve({ data: null, error: null }),
@@ -50,7 +51,9 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
     tab === "aylik" ? supabase.rpc("monthly_billing", { p_business: ctx.businessId, p_month: `${ay}-01` }) : Promise.resolve({ data: null, error: null }),
   ]);
   const err = uninv.error ?? inv.error ?? monthly.error;
-  const n = (k: string) => (counts ?? []).filter((r: { status: string }) => (k === "logo" ? ["gonderiliyor", "gonderildi", "resmilesti"].includes(r.status) : r.status === k)).length;
+  const n = (k: string) => ((counts ?? []) as { status: string; n: number }[])
+    .filter((r) => (k === "logo" ? ["gonderiliyor", "gonderildi", "resmilesti"].includes(r.status) : r.status === k))
+    .reduce((sum, r) => sum + Number(r.n), 0);
   type U = { id: string; no: number; sold_at: string; customer_name: string | null; channel: string | null; tax_kind: "vkn" | "tckn" | null; grand_total: number;
     billing_mode: BillingMode | null; order_no: number | null; qty: number; total_count: number };
   type I = { id: string; no: number; status: InvoiceStatus; kind: "teslimat" | "aylik"; period_start: string | null; customer: { name: string; legal_title?: string }; totals: { gross: number };

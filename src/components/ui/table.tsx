@@ -39,11 +39,17 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, empty, mobileT
           <tbody className="divide-y divide-border">
             {rows.map((r) => {
               const href = onRowClick?.(r);
+              // Satır başına tek bağlantı (D-108): ilk hücredeki bağlantı tüm satırı kaplar; düğmeli hücreler üstte kalır.
+              // Önceden her hücre ayrı bağlantıydı (100 satır × 10 sütun = 1.000 bağlantı, sayfa ~900 KB).
+              const linkCol = href ? columns.find((c) => !c.interactive)?.key : undefined;
               return (
-                <tr key={rowKey(r)} className={cn(href && "cursor-pointer hover:bg-surface-2")}>
+                <tr key={rowKey(r)} className={cn(href && "relative cursor-pointer hover:bg-surface-2")}>
                   {columns.map((c) => (
-                    <td key={c.key} className={cn("px-3 py-2", c.align === "right" && "num text-right", c.align === "center" && "text-center", c.className)}>
-                      {href && !c.interactive ? <Link href={href} className="block">{c.render(r)}</Link> : c.render(r)}
+                    <td key={c.key} className={cn("px-3 py-2", c.align === "right" && "num text-right", c.align === "center" && "text-center",
+                      href && c.interactive && "relative z-10", c.className)}>
+                      {href && c.key === linkCol ? (
+                        <Link href={href} className="block after:absolute after:inset-0 after:content-['']">{c.render(r)}</Link>
+                      ) : c.render(r)}
                     </td>
                   ))}
                 </tr>
