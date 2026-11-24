@@ -215,8 +215,9 @@ export function OrderForm({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-      <div className="space-y-4">
+    // minmax(0,1fr) + min-w-0: sol sütun içerikteki yatay kaydırmalı listelerin genişliğine büyüyüp sayfayı taşırmasın
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="min-w-0 space-y-4">
         <Card className="space-y-3">
           {fixedCustomer ? (
             <div>
@@ -310,7 +311,7 @@ export function OrderForm({
               </button>
             ) : null}
           </div>
-          {prodQuery.trim() ? <ShopGrid items={foundItems} qty={qty} onStep={onStep} /> : <ShopCatalog items={items} qty={qty} onStep={onStep} staff />}
+          {prodQuery.trim() ? <ShopGrid items={foundItems} qty={qty} onStep={onStep} dense /> : <ShopCatalog items={items} qty={qty} onStep={onStep} staff dense />}
         </section>
 
         <Card id="secilenler" className="scroll-mt-16 space-y-3">

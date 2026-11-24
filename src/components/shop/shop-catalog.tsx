@@ -51,8 +51,8 @@ function QtyInput({ n, onStep, label }: { n: number; onStep: (d: number) => void
   );
 }
 
-export function Stepper({ n, onStep, size = "md", label, typeable }: { n: number; onStep: (d: number) => void; size?: "md" | "lg"; label: string; typeable?: boolean }) {
-  const b = size === "lg" ? "h-11 w-11" : "h-10 w-10";
+export function Stepper({ n, onStep, size = "md", label, typeable }: { n: number; onStep: (d: number) => void; size?: "sm" | "md" | "lg"; label: string; typeable?: boolean }) {
+  const b = size === "lg" ? "h-11 w-11" : size === "sm" ? "h-9 w-9" : "h-10 w-10";
   if (n === 0) {
     return (
       <button type="button" aria-label={`${label} ekle`} onClick={() => onStep(1)}
@@ -110,7 +110,8 @@ function useLongPress(onLong: () => void) {
   };
 }
 
-function ItemCard({ item, n, onStep, edit, plain, compact }: { item: ShopItem; n: number; onStep: (d: number) => void; edit?: ShopEdit; plain?: boolean; compact?: boolean }) {
+/** dense: sipariş ekranı — küçük görsel, az boşluk (kart sütunu ekrana göre otomatik) */
+function ItemCard({ item, n, onStep, edit, plain, compact, dense }: { item: ShopItem; n: number; onStep: (d: number) => void; edit?: ShopEdit; plain?: boolean; compact?: boolean; dense?: boolean }) {
   const name = shortName(item);
   const lp = useLongPress(() => edit?.onPress(item, "long"));
   const selected = edit?.selectedId === item.unitId;
@@ -118,13 +119,13 @@ function ItemCard({ item, n, onStep, edit, plain, compact }: { item: ShopItem; n
     <div
       {...(edit ? lp.handlers : {})}
       onClick={edit ? () => { if (!lp.fired.current) edit.onPress(item, "tap"); } : undefined}
-      className={`flex h-full select-none flex-col items-center rounded-xl border bg-surface p-3 text-center transition [-webkit-touch-callout:none] ${
+      className={`flex h-full select-none flex-col items-center rounded-xl border bg-surface ${dense ? "p-1.5" : "p-3"} text-center transition [-webkit-touch-callout:none] ${
         selected ? "border-warn ring-4 ring-warn/40" : n ? "border-brand" : "border-border hover:border-gray-300"} ${edit ? "cursor-pointer active:scale-[0.98]" : ""}`}
     >
-      <ItemImage item={item} className={`pointer-events-none w-full ${compact ? "h-20" : "h-28"}`} />
-      <div className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-[15px] font-semibold leading-tight">{name}</div>
+      <ItemImage item={item} className={`pointer-events-none w-full ${dense ? "h-14" : compact ? "h-20" : "h-28"}`} />
+      <div className={dense ? "mt-1 line-clamp-2 min-h-[2.25rem] text-sm font-semibold leading-tight" : "mt-1.5 line-clamp-2 min-h-[2.5rem] text-[15px] font-semibold leading-tight"}>{name}</div>
       <div className="mt-0.5 text-xs text-muted">{unitLabel(item)}</div>
-      <div className={`num mt-0.5 font-semibold text-text ${item.note ? "" : "mb-2"}`}>{formatTRY(item.price)}</div>
+      <div className={`num mt-0.5 font-semibold text-text ${item.note ? "" : dense ? "mb-1" : "mb-2"}`}>{formatTRY(item.price)}</div>
       {item.note ? <div className={`num mb-2 text-[11px] ${item.noteDanger ? "font-medium text-danger" : "text-muted"}`}>{item.note}</div> : null}
       <div className="mt-auto">
         {plain ? null : edit ? (
@@ -133,8 +134,8 @@ function ItemCard({ item, n, onStep, edit, plain, compact }: { item: ShopItem; n
           </span>
         ) : compact ? (
           // Personel (satış / sipariş): adede dokunup yazılabilir, +10 ile hızlı ekleme (kurumsal 15–75 damacana)
-          <span className="flex flex-col items-center gap-1.5">
-            <Stepper n={n} onStep={onStep} label={name} typeable />
+          <span className={`flex flex-col items-center ${dense ? "gap-1" : "gap-1.5"}`}>
+            <Stepper n={n} onStep={onStep} label={name} typeable size={dense ? "sm" : "md"} />
             <button type="button" onClick={() => onStep(10)} aria-label={`${name} 10 ekle`}
               className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted hover:border-brand hover:text-brand active:scale-95">+10</button>
           </span>
@@ -144,13 +145,18 @@ function ItemCard({ item, n, onStep, edit, plain, compact }: { item: ShopItem; n
   );
 }
 
+/** Sipariş ekranı ızgarası: kart en az 8,75 rem (≈140 px; adet kutusu ve +/− sığar, 320 px ekranda 2 sütun), sütun sayısı kullanılabilir genişliğe göre */
+const DENSE_GRID = "grid grid-cols-[repeat(auto-fill,minmax(8.75rem,1fr))] gap-2";
+
 /** Marka bölümleri + yatay kaydırmalı kartlar (W-08). "›" ile bölüm ızgara olarak açılır. */
-export function ShopCatalog({ items, qty, onStep, edit, staff }: {
+export function ShopCatalog({ items, qty, onStep, edit, staff, dense }: {
   items: ShopItem[]; qty: Qty; onStep: (unitId: string, d: number) => void;
   /** Yönetici düzenleme modu: bölüm başlığında ↑ ↓; çok satanların ürünleri otomatiktir (yalnızca bölüm taşınır) */
   edit?: ShopEdit;
   /** Satış / sipariş ekranı (W-13): karşılama yok, kartlar daha sıkı */
   staff?: boolean;
+  /** Sipariş ekranı: kartlar yatay kaydırma yerine genişliğe göre sütunlara dizilir, alt satıra geçer */
+  dense?: boolean;
 }) {
   const sections = useMemo(() => buildSections(items), [items]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -182,7 +188,7 @@ export function ShopCatalog({ items, qty, onStep, edit, staff }: {
                     <ArrowDown className="h-5 w-5" />
                   </button>
                 </span>
-              ) : s.items.length > 2 ? (
+              ) : s.items.length > 2 && !dense ? (
                 <button type="button" onClick={() => setOpen((o) => ({ ...o, [s.key]: !expanded }))}
                   aria-expanded={expanded} aria-label={expanded ? "Daralt" : "Tümünü göster"}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-muted hover:text-text">
@@ -190,13 +196,13 @@ export function ShopCatalog({ items, qty, onStep, edit, staff }: {
                 </button>
               ) : null}
             </div>
-            <ul className={expanded
+            <ul className={dense ? DENSE_GRID : expanded
               ? "grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4"
               : "-mx-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}>
               {s.items.map((i) => (
-                <li key={i.unitId} className={expanded ? "" : "w-[42%] shrink-0 snap-start sm:w-44"}>
+                <li key={i.unitId} className={dense || expanded ? "" : "w-[42%] shrink-0 snap-start sm:w-44"}>
                   <ItemCard item={i} n={qty[i.unitId] ?? 0} onStep={(d) => onStep(i.unitId, d)}
-                    edit={edit && s.key !== "top" ? edit : undefined} plain={!!edit && s.key === "top"} compact={staff} />
+                    edit={edit && s.key !== "top" ? edit : undefined} plain={!!edit && s.key === "top"} compact={staff} dense={dense} />
                 </li>
               ))}
             </ul>
@@ -208,13 +214,13 @@ export function ShopCatalog({ items, qty, onStep, edit, staff }: {
 }
 
 /** Arama sonucu: bölümsüz ızgara (W-13) */
-export function ShopGrid({ items, qty, onStep, empty = "Ürün bulunamadı" }: { items: ShopItem[]; qty: Qty; onStep: (unitId: string, d: number) => void; empty?: string }) {
+export function ShopGrid({ items, qty, onStep, empty = "Ürün bulunamadı", dense }: { items: ShopItem[]; qty: Qty; onStep: (unitId: string, d: number) => void; empty?: string; dense?: boolean }) {
   if (!items.length) return <p className="py-10 text-center text-muted">{empty}</p>;
   return (
-    <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+    <ul className={dense ? DENSE_GRID : "grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4"}>
       {items.map((i) => (
         <li key={i.unitId}>
-          <ItemCard item={i} n={qty[i.unitId] ?? 0} onStep={(d) => onStep(i.unitId, d)} compact />
+          <ItemCard item={i} n={qty[i.unitId] ?? 0} onStep={(d) => onStep(i.unitId, d)} compact dense={dense} />
         </li>
       ))}
     </ul>
