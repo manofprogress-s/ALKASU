@@ -214,7 +214,7 @@ function DeliverDialog({
   items: DeliverItem[];
   balance: number;
   creditLimit: number | null;
-  containers: { productId: string; qty: number; amount: number }[];
+  containers: { productId: string; qty: number; amount: number; free?: number }[];
   businessId: string;
   onClose: () => void;
   onDone: (saleNo: number) => void;
