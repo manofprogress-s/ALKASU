@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { canPrice, requirePermission } from "@/lib/session";
+import { canPrice, canProduct, requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Badge, PageHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
@@ -38,7 +38,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const stock = new Map((levels ?? []).map((l: { product_id: string; qty: number }): [string, number] => [l.product_id, l.qty]));
   const rows = (data ?? []) as unknown as Row[];
   const admin = can(ctx.role, "productEdit");
-  const toggler = await canPrice();   // aktif/pasif: yönetici veya özel fiyat yetkilisi (F-41)
+  const [toggler, editor] = await Promise.all([canPrice(), canProduct()]);   // aktif/pasif (F-41), ürün kartı (F-42)
 
   return (
     <div>
@@ -66,7 +66,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       <DataTable
         rows={rows}
         rowKey={(r) => r.id}
-        onRowClick={admin ? (r) => `/urunler/${r.id}` : undefined}
+        onRowClick={editor ? (r) => `/urunler/${r.id}` : undefined}
         mobileTitle={(r) => <span className="flex items-center gap-2">{r.name}{!r.active ? <Badge>Pasif</Badge> : null}</span>}
         columns={[
           { key: "code", label: "Kod", render: (r) => r.code },

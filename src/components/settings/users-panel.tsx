@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, History, KeyRound, Tag } from "lucide-react";
+import { BadgeCheck, History, KeyRound, Package, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, Badge, Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
@@ -25,6 +25,7 @@ export interface MemberRow {
   can_backdate: boolean;
   /** F-39: özel fiyat girme/güncelleme */
   can_price: boolean;
+  can_product?: boolean;
 }
 
 export interface DealerOption {
@@ -101,6 +102,12 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
                 <Button size="sm" variant={m.can_price ? "secondary" : "ghost"} title="Müşteri ve bayilere özel fiyat girer, günceller"
                   onClick={() => call("set_member_price_perm", { p_membership: m.id, p_on: !m.can_price }, { success: m.can_price ? "Özel fiyat yetkisi kaldırıldı" : "Özel fiyat yetkisi verildi" })}>
                   <Tag className="h-4 w-4" /> Özel fiyat: {m.can_price ? "Açık" : "Kapalı"}
+                </Button>
+              ) : null}
+              {m.role === "satis" || m.role === "sevkiyat" ? (
+                <Button size="sm" variant={m.can_product ? "secondary" : "ghost"} title="Ürün kartında ad, birim ve satış fiyatını değiştirir"
+                  onClick={() => call("set_member_product_perm", { p_membership: m.id, p_on: !m.can_product }, { success: m.can_product ? "Ürün düzenleme yetkisi kaldırıldı" : "Ürün düzenleme yetkisi verildi" })}>
+                  <Package className="h-4 w-4" /> Ürün düzenleme: {m.can_product ? "Açık" : "Kapalı"}
                 </Button>
               ) : null}
               {m.role !== "musteri" ? (

@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
-import { requirePermission } from "@/lib/session";
+import { notFound, redirect } from "next/navigation";
+import { canProduct, requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Card, PageHeader } from "@/components/ui/card";
 import { ProductForm, type ProductFormValue } from "@/components/products/product-form";
@@ -7,7 +7,10 @@ import { formatDateTime, formatTRY } from "@/lib/format";
 import { ProductImage } from "@/components/products/product-image";
 
 export default async function ProductEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const ctx = await requirePermission("productEdit");
+  // Yönetici veya ürün düzenleme yetkilisi (F-42)
+  const ctx = await requirePermission("catalog");
+  if (!(await canProduct())) redirect("/?yetki=yok");
+  const admin = ctx.role === "yonetici";
   const { id } = await params;
   const isNew = id === "yeni";
   const supabase = await supabaseServer();
@@ -69,7 +72,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
         categories={(cats.data ?? []) as { id: string; name: string }[]}
         containers={((containers.data ?? []) as { id: string; name: string }[]).filter((c) => c.id !== value?.id)}
       />
-      {!isNew && !value!.kind.startsWith("bos") ? <ProductImage productId={value!.id!} path={imagePath} /> : null}
+      {admin && !isNew && !value!.kind.startsWith("bos") ? <ProductImage productId={value!.id!} path={imagePath} /> : null}
       {history.length > 0 ? (
         <Card>
           <h2 className="mb-2 font-semibold">Fiyat ve maliyet geçmişi</h2>

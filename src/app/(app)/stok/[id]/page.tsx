@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { requirePermission } from "@/lib/session";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
+import { canProduct, requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { PageHeader, Stat } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
@@ -18,11 +20,17 @@ export default async function StockHistory({ params }: { params: Promise<{ id: s
     supabase.from("memberships").select("user_id, display_name").eq("business_id", ctx.businessId),
   ]);
   if (!p) notFound();
+  const editor = await canProduct();
   const names = new Map((members ?? []).map((m: { user_id: string; display_name: string }): [string, string] => [m.user_id, m.display_name]));
   const rows = (mv ?? []) as { id: number; qty: number; type: string; note: string | null; created_at: string; created_by: string | null }[];
   return (
     <div className="space-y-4">
-      <PageHeader title={p.name} subtitle={`${p.code} · stok hareketleri`} />
+      <PageHeader title={p.name} subtitle={`${p.code} · stok hareketleri`}
+        actions={editor ? (
+          <Link href={`/urunler/${id}`} className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-4 font-medium text-white">
+            <Pencil className="h-4 w-4" /> Ürün bilgilerini düzenle
+          </Link>
+        ) : null} />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Güncel stok" value={`${formatNumber(lvl?.qty ?? 0)} ${p.base_unit_name.toLocaleLowerCase("tr-TR")}`} />
       </div>
