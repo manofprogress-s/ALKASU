@@ -18,8 +18,9 @@ export async function signInWithUsername(login: string, password: string): Promi
     const { data: rows } = await admin.from("memberships").select("user_id")
       .eq("username", username).eq("active", true).neq("role", "musteri").limit(2);
     const ids = [...new Set((rows ?? []).map((r: { user_id: string }) => r.user_id))];
-    if (ids.length !== 1) return fail;
-    const { data: u } = await admin.auth.admin.getUserById(ids[0]);
+    const id = ids[0];
+    if (ids.length !== 1 || !id) return fail;
+    const { data: u } = await admin.auth.admin.getUserById(id);
     const email = u?.user?.email;
     // Sentetik e-postalı hesap (kullanici.alkasu.app) zaten tarayıcıdaki ilk denemede kullanıldı
     if (!email || isSyntheticEmail(email)) return fail;
