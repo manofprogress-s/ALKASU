@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { canPrice, requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Card, PageHeader, Stat } from "@/components/ui/card";
-import { DataTable } from "@/components/ui/table";
 import { formatDateTime, formatTRY } from "@/lib/format";
 import { CustomerForm, type AssigneeOption } from "@/components/customers/customer-form";
 import { Badge } from "@/components/ui/card";
