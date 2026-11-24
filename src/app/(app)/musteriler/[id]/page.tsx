@@ -17,6 +17,7 @@ import { toLatLng } from "@/lib/geo";
 import { ExportButton } from "@/components/reports/export-button";
 import { PrivacyCard, type PrivacyEvent } from "@/components/customers/privacy";
 import { OpeningBalance } from "@/components/customers/opening-balance";
+import { StatementTable, type StatementRow } from "@/components/customers/statement-table";
 import { BillingCard } from "@/components/invoices/billing-card";
 import { FieldHistory, type CallRow } from "@/components/customers/field-history";
 import { ProposeCustomer, RequestList, type CardValues, type CustomerRequest } from "@/components/customers/dealer-requests";
@@ -71,7 +72,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
   const requests = (reqs?.data ?? []) as CustomerRequest[];
   const cardOf = (x: CardValues) => ({ name: x.name, phone: x.phone, address: x.address, note: x.note, latitude: x.latitude, longitude: x.longitude });
   const summary = sum as { balance: number; containers: { product_id: string; product_name: string; qty: number; amount: number }[] };
-  const statement = ((st ?? []) as { at: string; description: string; debit: number | null; credit: number | null; balance: number }[]).reverse();
+  const statement = ((st ?? []) as StatementRow[]).reverse();
 
   return (
     <div className="space-y-4">
@@ -148,14 +149,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
             Tarih: formatDateTime(s.at), Açıklama: s.description, Borç: s.debit === null ? null : Number(s.debit), Alacak: s.credit === null ? null : Number(s.credit), Bakiye: Number(s.balance),
           }))} />
         </div>
-        <DataTable rows={statement} rowKey={(r) => `${r.at}${r.description}${r.balance}`} mobileTitle={(r) => r.description}
-          columns={[
-            { key: "t", label: "Tarih", render: (r) => formatDateTime(r.at) },
-            { key: "d", label: "Açıklama", hideOnMobile: true, render: (r) => r.description },
-            { key: "b", label: "Borç", align: "right", render: (r) => (r.debit ? formatTRY(r.debit) : "") },
-            { key: "a", label: "Alacak", align: "right", render: (r) => (r.credit ? formatTRY(r.credit) : "") },
-            { key: "s", label: "Bakiye", align: "right", render: (r) => formatTRY(r.balance) },
-          ]} empty="Hareket yok" />
+        <StatementTable rows={statement} />
       </Card>
       {c.channel === "bayi" ? (
         <Card className="space-y-3">
