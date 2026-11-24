@@ -16,7 +16,7 @@ export default async function CustomerPricesPage({ params }: { params: Promise<{
   const [{ data: c }, { data: cp }, products, { data: peers }, editable] = await Promise.all([
     supabase.from("customers").select("id, code, name, channel, price_list").eq("id", id).maybeSingle(),
     supabase.from("customer_prices").select("unit_id, price").eq("customer_id", id),
-    loadOrderProducts(supabase, ctx.businessId),
+    loadOrderProducts(supabase, ctx.businessId, { includeUnpriced: true }),
     // Hızlı geçiş ve kopyalama için bayi + kurumsal kartlar
     supabase.from("customers").select("id, code, name, channel").eq("business_id", ctx.businessId).eq("active", true)
       .in("channel", ["bayi", "kurumsal"]).order("channel").order("name").limit(500),

@@ -44,7 +44,8 @@ interface ProductRow {
 }
 
 /** Sipariş formu için ürünler (fiyat listeleriyle). Satış ekranından hafiftir; stok raporu gerektirmez (bayi de kullanır). */
-export async function loadOrderProducts(supabase: SupabaseClient, businessId: string): Promise<OrderProduct[]> {
+/** includeUnpriced: hiç fiyatı olmayan ürünler de gelir (özel fiyat ekranı, D-116); sipariş ekranı fiyatsızı göstermez. */
+export async function loadOrderProducts(supabase: SupabaseClient, businessId: string, opts: { includeUnpriced?: boolean } = {}): Promise<OrderProduct[]> {
   const [prod, lp, layout] = await Promise.all([
     supabase
       .from("products")
@@ -81,7 +82,7 @@ export async function loadOrderProducts(supabase: SupabaseClient, businessId: st
           layout: layout[u.id],
         })),
     }))
-    .filter((p) => p.units.some((u) => u.price !== null || Object.keys(u.listPrices).length > 0));
+    .filter((p) => p.units.length > 0 && (opts.includeUnpriced || p.units.some((u) => u.price !== null || Object.keys(u.listPrices).length > 0)));
 }
 
 /**
