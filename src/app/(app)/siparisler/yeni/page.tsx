@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePermission } from "@/lib/session";
+import { requirePermission, canBackdate } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/card";
 import { OrderForm, type OrderFormValue } from "@/components/orders/order-form";
@@ -37,6 +37,7 @@ export default async function NewOrderPage({ searchParams }: { searchParams: Pro
     const items = catalog.map((i) => ({ ...i, price: fixed.specialPrices[i.unitId] ?? i.price }));
     return <CustomerShop items={items} customerId={fixed.id} address={fixed.address} />;
   }
+  const backdate = await canBackdate();   // O-30: geçmiş tarihli sipariş (en fazla 14 gün)
   return (
     <div>
       <PageHeader title="Yeni sipariş" />
@@ -47,6 +48,7 @@ export default async function NewOrderPage({ searchParams }: { searchParams: Pro
         initial={initial}
         fixedCustomer={fixed}
         dealerMode={dealer?.dealerMode}
+        backdate={backdate}
         isNew
       />
       {isCustomer ? (

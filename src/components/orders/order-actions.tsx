@@ -13,6 +13,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { computeCart, type CartLine, type ContainerBalances, type PaymentMethod } from "@/lib/cart";
 import { formatTRY, fromKurus, parseAmount, toKurus } from "@/lib/format";
+import { backdateBounds, toLocalInput } from "@/lib/backdate";
 import { cn } from "@/lib/cn";
 import type { Assignee, Dealer } from "@/lib/orders";
 
@@ -56,6 +57,8 @@ export function OrderActions(props: {
   customerChannel?: string;
   ownerDealerId?: string | null;
   canCancel?: boolean;
+  /** O-31/O-32: geçmiş tarihli teslimat ve başkası adına kapatma yetkisi */
+  backdate?: boolean;
 }) {
   const ctx = useAppContext();
   const router = useRouter();
@@ -181,6 +184,7 @@ export function OrderActions(props: {
             router.refresh();
           }}
           businessId={ctx.businessId}
+          assigneeName={props.assignee && props.assignee !== ctx.userId ? props.assignees.find((a) => a.user_id === props.assignee)?.display_name ?? null : null}
         />
       ) : null}
     </Card>
@@ -198,6 +202,8 @@ function DeliverDialog({
   businessId,
   onClose,
   onDone,
+  backdate,
+  assigneeName,
 }: {
   orderId: string;
   orderNo: number;
@@ -209,8 +215,14 @@ function DeliverDialog({
   businessId: string;
   onClose: () => void;
   onDone: (saleNo: number) => void;
+  backdate?: boolean;
+  /** Başkası adına kapatılıyorsa teslim eden (atanan kişi) */
+  assigneeName: string | null;
 }) {
   const [saleId] = useState(() => crypto.randomUUID());
+  const [when, setWhen] = useState("");   // boş = şimdi (O-31)
+  const [bounds] = useState(() => backdateBounds(new Date()));
+  const past = when !== "" && new Date(when).getTime() < bounds.max.getTime() - 10 * 60 * 1000;
   const [qty, setQty] = useState<Record<string, string>>(() => Object.fromEntries(items.map((i) => [i.id, String(i.qty)])));
   const [empties, setEmpties] = useState<Record<string, string>>({});
   const [method, setMethod] = useState<PaymentMethod | "bolunmus">("veresiye");
@@ -274,6 +286,7 @@ function DeliverDialog({
         })),
         payments: payments.filter((p) => toKurus(p.amount) > 0).map((p) => ({ method: p.method, amount: fromKurus(toKurus(p.amount)) })),
         note: note.trim() || null,
+        delivered_at: when ? new Date(when).toISOString() : null,
       },
     });
     setSaving(false);
@@ -297,6 +310,17 @@ function DeliverDialog({
       }
     >
       <div className="space-y-4">
+        {backdate || assigneeName ? (
+          <div className="space-y-2 rounded-xl bg-surface-2 p-3">
+            {backdate ? (
+              <Field label="Teslim zamanı" hint="Boş bırakırsanız şimdi. En fazla 14 gün geriye.">
+                <Input type="datetime-local" min={toLocalInput(bounds.min)} max={toLocalInput(bounds.max)} value={when} onChange={(e) => setWhen(e.target.value)} />
+              </Field>
+            ) : null}
+            {past ? <p className="text-xs text-warn">Geçmiş tarihli teslimat: satış ve cari bu tarihle yazılır; nakit/POS tahsilatı bugünkü kasaya “geç kayıt” olarak girer.</p> : null}
+            {assigneeName ? <p className="text-xs text-muted">Teslim eden <b>{assigneeName}</b> olarak kaydedilir; kaydeden siz.</p> : null}
+          </div>
+        ) : null}
         <div>
           <h3 className="mb-2 text-sm font-semibold">Teslim edilen miktar</h3>
           <div className="space-y-2">
@@ -434,6 +458,35 @@ export function DealerActions({ orderId, orderNo }: { orderId: string; orderNo: 
           if (ok) setRelease(false);
         }}>Geri bırak</Button>}>
         <Field label="Neden" hint="Merkez siparişi başka bayiye veya kendi aracına verir"><Input value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+      </Dialog>
+    </Card>
+  );
+}
+
+/** O-33: bayiye verilmiş siparişi bayi adına "teslim edildi" kapatma (geriye dönük kayıt yetkilisi). Bizde stok/kasa/cari oluşmaz. */
+export function DealerCloseForStaff({ orderId, orderNo, dealerName }: { orderId: string; orderNo: number; dealerName: string }) {
+  const { call, busy } = useRpc();
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const [when, setWhen] = useState("");
+  const [bounds] = useState(() => backdateBounds(new Date()));
+  return (
+    <Card className="space-y-2">
+      <Button variant="ok" className="w-full" onClick={() => setOpen(true)}>
+        <CheckCircle2 className="h-4 w-4" /> {dealerName} adına teslim edildi
+      </Button>
+      <p className="text-xs text-muted">Bayi teslim etti ama uygulamadan kapatmadıysa. Teslim eden bayi, kaydeden siz olarak yazılır.</p>
+      <Dialog open={open} onClose={() => setOpen(false)} title={`Sipariş #${orderNo} · ${dealerName} adına teslim`}
+        footer={<Button variant="ok" className="w-full" loading={busy} onClick={async () => {
+          const ok = await call("complete_dealer_order_for", { p_order: orderId, p_note: note || null, p_delivered_at: when ? new Date(when).toISOString() : null }, { success: "Bayi adına teslim edildi" });
+          if (ok) setOpen(false);
+        }}>Kaydet</Button>}>
+        <div className="space-y-3">
+          <Field label="Teslim zamanı" hint="Boş bırakırsanız şimdi. En fazla 14 gün geriye.">
+            <Input type="datetime-local" min={toLocalInput(bounds.min)} max={toLocalInput(bounds.max)} value={when} onChange={(e) => setWhen(e.target.value)} />
+          </Field>
+          <Field label="Not (isteğe bağlı)" hint="Örn. Hüseyin telefonla teyit etti"><Input value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+        </div>
       </Dialog>
     </Card>
   );

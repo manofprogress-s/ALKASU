@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, KeyRound } from "lucide-react";
+import { BadgeCheck, History, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, Badge, Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
@@ -21,6 +21,8 @@ export interface MemberRow {
   username: string | null;
   customer_id: string | null;
   must_change_password: boolean;
+  /** O-30..O-33: geriye dönük sipariş/teslimat ve bayi adına kapatma */
+  can_backdate: boolean;
 }
 
 export interface DealerOption {
@@ -86,6 +88,12 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
                 <Select className="h-9 w-44" value={m.customer_id ?? ""} onChange={(e) => call("update_member", { p_membership: m.id, p_role: m.role, p_name: m.display_name, p_active: m.active, p_customer: e.target.value }, { success: "Bayi kartı güncellendi" })}>
                   {dealers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </Select>
+              ) : null}
+              {m.role === "satis" || m.role === "sevkiyat" ? (
+                <Button size="sm" variant={m.can_backdate ? "secondary" : "ghost"} title="En fazla 14 gün geriye sipariş/teslimat girer, başkası ve bayi adına sipariş kapatır"
+                  onClick={() => call("set_member_backdate", { p_membership: m.id, p_on: !m.can_backdate }, { success: m.can_backdate ? "Geriye dönük kayıt yetkisi kaldırıldı" : "Geriye dönük kayıt yetkisi verildi" })}>
+                  <History className="h-4 w-4" /> Geriye dönük: {m.can_backdate ? "Açık" : "Kapalı"}
+                </Button>
               ) : null}
               {m.role !== "musteri" ? (
                 <Button size="sm" variant="ghost" onClick={() => { setTitleFor(m); setTitle(m.title ?? ""); }}>

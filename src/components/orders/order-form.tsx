@@ -9,7 +9,7 @@ import { useAppContext } from "@/components/shell/context";
 import { useToast } from "@/components/ui/toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
-import { formatTRY, fromKurus, parseAmount, todayISO, toKurus } from "@/lib/format";
+import { formatTRY, fromKurus, parseAmount, todayISO, toKurus, addDaysISO } from "@/lib/format";
 import { orderList, priceFor, searchKey } from "@/lib/catalog";
 import { PRICE_LISTS, type PriceList } from "@/lib/roles";
 import type { Assignee, Dealer, OrderCustomer, OrderProduct } from "@/lib/orders";
@@ -46,6 +46,7 @@ export function OrderForm({
   fixedCustomer,
   isNew,
   dealerMode,
+  backdate,
 }: {
   products: OrderProduct[];
   customers: OrderCustomer[];
@@ -56,6 +57,8 @@ export function OrderForm({
   isNew: boolean;
   /** Bayi: kendi alımı veya kendi müşterisine sipariş; teslim eden seçilir (D-060) */
   dealerMode?: { me: OrderCustomer; dealers: Dealer[] };
+  /** O-30: geriye dönük kayıt yetkisi (en fazla 14 gün geriye) */
+  backdate?: boolean;
 }) {
   const ctx = useAppContext();
   const router = useRouter();
@@ -376,8 +379,11 @@ export function OrderForm({
       <div className="space-y-4">
         <Card className="space-y-3">
           <Field label="Teslim tarihi">
-            <Input type="date" min={isDealer ? todayISO() : undefined} value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+            <Input type="date" min={backdate && !isDealer ? addDaysISO(todayISO(), -14) : todayISO()} value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
           </Field>
+          {deliveryDate < todayISO() ? (
+            <p className="-mt-1 text-xs text-warn">Geçmiş tarihli sipariş (en fazla 14 gün). Teslimatı da geçmiş tarihle kapatabilirsiniz.</p>
+          ) : null}
           {!isDealer ? (
             <Field label="Teslim edecek kişi" hint="Siparişi yalnızca bu kişi veya yönetici kapatabilir">
               <Select value={assignee ?? ""} onChange={(e) => { setAssignee(e.target.value || null); setAssigneeTouched(true); }}>

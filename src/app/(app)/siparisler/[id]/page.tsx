@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requirePermission } from "@/lib/session";
+import { canBackdate, requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Badge, Card, PageHeader } from "@/components/ui/card";
 import { formatDate, formatDateTime, formatTRY } from "@/lib/format";
 import { loadAssignees, loadDealerNames, loadDealers, ORDER_STATUS, type OrderStatus, type Assignee, type Dealer } from "@/lib/orders";
 import { can, PRICE_LISTS, type PriceList } from "@/lib/roles";
-import { ApprovalActions, DealerActions, OrderActions, type DeliverItem } from "@/components/orders/order-actions";
+import { ApprovalActions, DealerActions, DealerCloseForStaff, OrderActions, type DeliverItem } from "@/components/orders/order-actions";
 import { LocationView } from "@/components/geo/location-view";
 import { toLatLng } from "@/lib/geo";
 
@@ -24,6 +24,7 @@ interface OrderRow {
   created_at: string;
   delivered_by: string | null;
   delivered_at: string | null;
+  recorded_by: string | null;
   sale_id: string | null;
   dealer_customer_id: string | null;
   dealer_note: string | null;
@@ -81,7 +82,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const names = new Map(assignees.map((a) => [a.user_id, a.display_name]));
   const items = [...o.order_items].sort((a, b) => a.line_no - b.line_no);
   const total = items.reduce((s, i) => s + Number(i.qty) * Number(i.unit_price), 0);
-  const canDeliver = o.status === "acik" && !o.dealer_customer_id && can(ctx.role, "deliver") && (ctx.role === "yonetici" || o.assignee === ctx.userId);
+  // O-31..O-33: geriye dönük kayıt yetkilisi başkasının siparişini (teslim eden atanan kişi olarak) ve bayi siparişini bayi adına kapatır
+  const backdate = isStaff ? await canBackdate() : false;
+  const canDeliver = o.status === "acik" && !o.dealer_customer_id && can(ctx.role, "deliver") && (ctx.role === "yonetici" || o.assignee === ctx.userId || backdate);
   const notTakenByOther = !o.dealer_customer_id || o.dealer_customer_id === ctx.customerId;
   const canEdit = open && (isStaff || (isMine && notTakenByOther));
   const dealerName = dealers.find((d) => d.id === o.dealer_customer_id)?.name;
@@ -177,7 +180,10 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             {o.dealer_note && (isStaff || isMyDelivery) ? <Alert tone="neutral">Bayi notu: {o.dealer_note}</Alert> : null}
             <div className="flex justify-between gap-2"><span className="text-muted">Oluşturma</span><span>{formatDateTime(o.created_at)}</span></div>
             {o.delivered_at ? (
-              <div className="flex justify-between gap-2"><span className="text-muted">Teslim</span><span>{formatDateTime(o.delivered_at)}{o.delivered_by ? ` · ${names.get(o.delivered_by) ?? ""}` : ""}</span></div>
+              <div className="flex justify-between gap-2"><span className="text-muted">Teslim</span><span>{formatDateTime(o.delivered_at)}{o.delivered_by ? ` · ${names.get(o.delivered_by) ?? (dealerName ? `Bayi: ${dealerName}` : "")}` : ""}</span></div>
+            ) : null}
+            {o.recorded_by && isStaff ? (
+              <div className="flex justify-between gap-2"><span className="text-muted">Kaydeden</span><span>{names.get(o.recorded_by) ?? "—"} <span className="text-xs text-muted">(sonradan / başkası adına)</span></span></div>
             ) : null}
             {o.sale_id && isStaff ? (
               <div className="flex justify-between gap-2"><span className="text-muted">Satış fişi</span><Link className="text-brand" href={`/satislar/${o.sale_id}`}>Görüntüle →</Link></div>
@@ -210,6 +216,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <Alert tone="warn">Onay bekliyor · teslim edecek: {requestedName ?? "Merkez (Alay Ticaret)"}</Alert>
           ) : null}
           {o.status === "acik" && isMyDelivery ? <DealerActions orderId={o.id} orderNo={o.no} /> : null}
+          {o.status === "acik" && isStaff && backdate && o.dealer_customer_id ? (
+            <DealerCloseForStaff orderId={o.id} orderNo={o.no} dealerName={dealerName ?? "Bayi"} />
+          ) : null}
           {open && (isStaff ? o.status === "acik" : isMine) ? (
             <OrderActions
               orderId={o.id}
@@ -219,6 +228,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               assignees={assignees}
               canAssign={isStaff && can(ctx.role, "orderAssign")}
               canDeliver={canDeliver}
+              backdate={backdate}
               canAssignDealer={isStaff && can(ctx.role, "orderAssign")}
               canSpecial={ctx.role === "yonetici" || ctx.role === "sevkiyat"}
               customerChannel={o.customers?.channel}
@@ -236,7 +246,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <Alert tone="warn">Siparişiniz alındı. İlk siparişinizi telefonla teyit edip yola çıkaracağız.</Alert>
           ) : null}
           {o.status === "acik" && !canDeliver && isStaff && !o.dealer_customer_id ? (
-            <div className="text-xs text-muted">Teslimatı yalnızca atanan kişi veya yönetici kaydedebilir.</div>
+            <div className="text-xs text-muted">Teslimatı yalnızca atanan kişi, yönetici veya geriye dönük kayıt yetkilisi kaydedebilir.</div>
           ) : null}
         </div>
       </div>

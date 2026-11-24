@@ -58,6 +58,16 @@ export const getContext = cache(async (): Promise<AppContext> => {
   };
 });
 
+/** O-30..O-33: geriye dönük sipariş/teslimat ve bayi adına kapatma yetkisi (yönetici her zaman) */
+export const canBackdate = cache(async (): Promise<boolean> => {
+  const ctx = await getContext();
+  if (ctx.role === "yonetici") return true;
+  if (ctx.role !== "satis" && ctx.role !== "sevkiyat") return false;
+  const supabase = await supabaseServer();
+  const { data } = await supabase.from("memberships").select("can_backdate").eq("id", ctx.membershipId).maybeSingle();
+  return !!(data as { can_backdate?: boolean } | null)?.can_backdate;
+});
+
 /** Sayfa yetkisi: yoksa ana sayfaya döner. */
 export async function requirePermission(p: Permission): Promise<AppContext> {
   const ctx = await getContext();

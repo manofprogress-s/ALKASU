@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { requirePermission } from "@/lib/session";
+import { requirePermission, canBackdate } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/card";
 import { OrderForm } from "@/components/orders/order-form";
@@ -32,6 +32,7 @@ export default async function EditOrderPage({ params }: { params: Promise<{ id: 
   const items = ((o.order_items ?? []) as { product_id: string; unit_id: string; qty: number; unit_price: number; line_no: number }[])
     .sort((a, b) => a.line_no - b.line_no)
     .map((i) => ({ productId: i.product_id, unitId: i.unit_id, qty: i.qty, unitPrice: Number(i.unit_price) }));
+  const backdate = await canBackdate();   // O-30: geçmiş tarihli sipariş (en fazla 14 gün)
   return (
     <div>
       <PageHeader title={`Sipariş #${o.no} düzenle`} />
@@ -41,6 +42,7 @@ export default async function EditOrderPage({ params }: { params: Promise<{ id: 
         assignees={assignees}
         fixedCustomer={ctx.role === "musteri" ? customers.find((c) => c.id === ctx.customerId) ?? null : null}
         dealerMode={dealer?.dealerMode}
+        backdate={backdate}
         isNew={false}
         initial={{
           id: o.id,
