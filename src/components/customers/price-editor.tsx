@@ -12,7 +12,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { formatTRY, parseAmount } from "@/lib/format";
 import { searchKey, unitPrice } from "@/lib/catalog";
-import { applyDiscount, priceChanges, priceDiff, type DiscountMode } from "@/lib/special-price";
+import { applyDiscount, editableUnits, priceChanges, priceDiff, type DiscountMode } from "@/lib/special-price";
 import type { OrderProduct } from "@/lib/orders";
 import type { PriceList } from "@/lib/roles";
 import { cn } from "@/lib/cn";
@@ -45,11 +45,9 @@ export function PriceEditor({ customer, prices, products, peers, canEdit }: {
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
     for (const p of products)
-      for (const u of p.units) {
-        const normal = unitPrice(u, customer.priceList);
-        if (normal === null && prices[u.id] === undefined) continue;   // fiyatı olmayan birim (ör. adet) listelenmez
+      // Fiyatsız ek birim (ör. adet) listelenmez; hiç fiyatı olmayan ürünün ana birimi listelenir (D-116)
+      for (const { unit: u, normal } of editableUnits(p.units, (x) => unitPrice(x, customer.priceList), prices))
         out.push({ unitId: u.id, product: p.name, unit: u.name, brand: p.shopBrand ?? "Diğer", normal, key: searchKey(`${p.name} ${p.code} ${u.name}`) });
-      }
     return out.sort((a, b) => a.product.localeCompare(b.product, "tr") || a.unit.localeCompare(b.unit, "tr"));
   }, [products, customer.priceList, prices]);
   const brands = useMemo(() => [...new Set(rows.map((r) => r.brand))].sort((a, b) => a.localeCompare(b, "tr")), [rows]);

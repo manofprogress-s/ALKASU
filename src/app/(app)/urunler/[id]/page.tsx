@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
-import { Card, PageHeader } from "@/components/ui/card";
+import { Alert, Card, PageHeader } from "@/components/ui/card";
 import { ProductForm, type ProductFormValue } from "@/components/products/product-form";
 import { formatDateTime, formatTRY } from "@/lib/format";
 import { ProductImage } from "@/components/products/product-image";
@@ -60,6 +60,9 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
   return (
     <div className="space-y-4">
       <PageHeader title={isNew ? "Yeni ürün" : value!.name} subtitle={avgCost !== null ? `Ortalama maliyet: ${formatTRY(avgCost)} / ${value!.base_unit_name.toLocaleLowerCase("tr-TR")}` : undefined} />
+      {!isNew && !value!.active ? (
+        <Alert tone="warn">Bu ürün pasif: satış, sipariş, mağaza ve özel fiyat ekranlarında görünmez. Kullanılacaksa aşağıdan &quot;Aktif&quot; işaretleyip kaydedin.</Alert>
+      ) : null}
       <ProductForm
         initial={value}
         brands={(brands.data ?? []) as { id: string; name: string }[]}

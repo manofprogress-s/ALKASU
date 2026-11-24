@@ -25,9 +25,15 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     .select("id, code, name, image_path, active, is_container, deposit_amount, base_unit_name, brands(name), categories(name), product_units(name, factor, price, active, is_base)")
     .eq("business_id", ctx.businessId)
     .order("name");
-  if (!sp.pasif) q = q.eq("active", true);
+  // Arama yapılırken pasif ürünler de (Pasif rozetiyle) bulunur (D-116)
+  if (!sp.pasif && !sp.q) q = q.eq("active", true);
   if (sp.q) q = q.or(`name.ilike.%${sp.q.replace(/[%,()]/g, "")}%,code.ilike.%${sp.q.replace(/[%,()]/g, "")}%`);
-  const [{ data }, { data: levels }] = await Promise.all([q, supabase.from("stock_levels").select("product_id, qty").eq("business_id", ctx.businessId)]);
+  const [{ data }, { data: levels }, { count: passive }] = await Promise.all([
+    q,
+    supabase.from("stock_levels").select("product_id, qty").eq("business_id", ctx.businessId),
+    // Pasif ürünler listede gizli; sayısı görünür olsun ki yanlışlıkla pasif kalan ürün fark edilsin (D-116)
+    supabase.from("products").select("id", { count: "exact", head: true }).eq("business_id", ctx.businessId).eq("active", false),
+  ]);
   const stock = new Map((levels ?? []).map((l: { product_id: string; qty: number }): [string, number] => [l.product_id, l.qty]));
   const rows = (data ?? []) as unknown as Row[];
   const admin = can(ctx.role, "productEdit");
@@ -47,11 +53,19 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         ) : null}
       />
       <SearchBox placeholder="Ürün adı veya kodu" />
+      {passive ? (
+        <p className="mb-3 text-sm">
+          {sp.pasif
+            ? <Link href="/urunler" className="text-brand underline">Yalnızca aktif ürünleri göster</Link>
+            : <Link href="/urunler?pasif=1" className="text-brand underline">Pasif ürünler dahil göster ({passive} pasif)</Link>}
+          <span className="text-muted"> · Pasif ürün satış, sipariş ve özel fiyat ekranlarında görünmez.</span>
+        </p>
+      ) : null}
       <DataTable
         rows={rows}
         rowKey={(r) => r.id}
         onRowClick={admin ? (r) => `/urunler/${r.id}` : undefined}
-        mobileTitle={(r) => r.name}
+        mobileTitle={(r) => <span className="flex items-center gap-2">{r.name}{!r.active ? <Badge>Pasif</Badge> : null}</span>}
         columns={[
           { key: "code", label: "Kod", render: (r) => r.code },
           { key: "name", label: "Ürün", hideOnMobile: true, render: (r) => (

@@ -80,7 +80,7 @@ export function ProductForm({ initial, brands, categories, containers }: {
         critical_level: v.critical_level, is_container: v.kind === "bos_kap",
         deposit_amount: v.kind === "depozitolu" ? parseAmount(dep) : null,
         empty_product_id: v.kind === "depozitolu" ? v.empty_product_id : null,
-        active: v.active,
+        active: v.id ? v.active : true,
         units: v.kind === "bos_kap" ? [] : units,
         barcodes: v.barcodes.filter((b) => b.barcode.trim()),
       },
@@ -135,9 +135,15 @@ export function ProductForm({ initial, brands, categories, containers }: {
         <Field label="Kritik stok (temel birim)" hint="Bu seviyeye inince uyarı verilir">
           <Input inputMode="numeric" value={v.critical_level ?? ""} onChange={(e) => set("critical_level", e.target.value === "" ? null : parseInt(e.target.value.replace(/\D/g, ""), 10))} />
         </Field>
-        <label className="flex items-center gap-2 self-end pb-3">
-          <input type="checkbox" className="h-5 w-5" checked={v.active} onChange={(e) => set("active", e.target.checked)} /> Aktif
-        </label>
+        {v.id ? (
+          // Yeni ürün her zaman aktif açılır (D-116); pasife alma yalnızca var olan üründe
+          <div className="self-end pb-3">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" className="h-5 w-5" checked={v.active} onChange={(e) => set("active", e.target.checked)} /> Aktif
+            </label>
+            {!v.active ? <p className="mt-1 text-xs text-warn">Pasif ürün satış, sipariş, mağaza ve özel fiyat ekranlarında görünmez.</p> : null}
+          </div>
+        ) : null}
       </Card>
 
       <Card className="space-y-3">

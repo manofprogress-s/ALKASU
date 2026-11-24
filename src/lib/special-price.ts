@@ -23,3 +23,16 @@ export function priceChanges(original: Record<string, number>, draft: Record<str
   }
   return out;
 }
+
+/**
+ * Özel fiyat ekranında listelenecek birimler (D-116).
+ * Fiyatı olan ya da özel fiyatı olan birim listelenir; hiçbir birimi fiyatlı olmayan ürünün
+ * ana birimi de listelenir (ör. yeni eklenmiş, henüz satış fiyatı girilmemiş ürün) ki özel fiyatı verilebilsin.
+ */
+export function editableUnits<U extends { id: string; isBase: boolean }>(
+  units: U[], normalOf: (u: U) => number | null, special: Record<string, number>,
+): { unit: U; normal: number | null }[] {
+  const withNormal = units.map((u) => ({ unit: u, normal: normalOf(u) }));
+  const anyPriced = withNormal.some((x) => x.normal !== null);
+  return withNormal.filter((x) => x.normal !== null || special[x.unit.id] !== undefined || (!anyPriced && x.unit.isBase));
+}
