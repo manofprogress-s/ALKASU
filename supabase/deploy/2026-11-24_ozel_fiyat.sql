@@ -73,7 +73,13 @@ end $$;
 select app.apply_grants();
 
 update public.memberships set can_price = true where username = 'htopal' and role = 'sevkiyat';
+
+-- Kullanıcı isteği (24.11): Ayhan Alay ve Selin Alay hesapları şimdilik pasif (update_member ile, yönetici Enes adına; işlem geçmişine yazılır)
+select set_config('request.jwt.claims', json_build_object('sub', (select user_id from public.memberships where role = 'yonetici' and active and display_name = 'Enes Karakaya' limit 1))::text, true);
+select public.update_member(m.id, m.role, m.display_name, false, m.customer_id)
+  from public.memberships m where m.username in ('aalay', 'salay') and m.active;
 select 'SONUC: ozel_fiyat_yetkili=' || coalesce((select string_agg(display_name, ',') from public.memberships where can_price), '-')
     || ' | fonksiyon=' || (select count(*) from pg_proc where proname in ('set_customer_prices','set_member_price_perm','can_price'))
-    || ' | ozel_fiyat_satir=' || (select count(*) from public.customer_prices) as sonuc;
+    || ' | ozel_fiyat_satir=' || (select count(*) from public.customer_prices)
+    || ' | aktif_personel=' || (select string_agg(display_name || '/' || role, ', ') from public.memberships where active and role not in ('bayi', 'musteri')) as sonuc;
 commit;
