@@ -68,6 +68,16 @@ export const canBackdate = cache(async (): Promise<boolean> => {
   return !!(data as { can_backdate?: boolean } | null)?.can_backdate;
 });
 
+/** F-39: özel fiyat girme/güncelleme yetkisi (yönetici her zaman) */
+export const canPrice = cache(async (): Promise<boolean> => {
+  const ctx = await getContext();
+  if (ctx.role === "yonetici") return true;
+  if (ctx.role !== "satis" && ctx.role !== "sevkiyat") return false;
+  const supabase = await supabaseServer();
+  const { data } = await supabase.from("memberships").select("can_price").eq("id", ctx.membershipId).maybeSingle();
+  return !!(data as { can_price?: boolean } | null)?.can_price;
+});
+
 /** Sayfa yetkisi: yoksa ana sayfaya döner. */
 export async function requirePermission(p: Permission): Promise<AppContext> {
   const ctx = await getContext();

@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
@@ -11,19 +12,19 @@ import type { OrderProduct } from "@/lib/orders";
 import type { PriceList } from "@/lib/roles";
 
 /** Firmaya özel fiyatlar (F-13): yönetici düzenler, satış personeli görür */
-export function CustomerPrices({ customerId, prices, deposits, products, priceList, canEdit }: {
+export function CustomerPrices({ customerId, prices, deposits, products, priceList, canEdit, canEditDeposit }: {
   customerId: string;
   prices: Record<string, number>;
   /** Müşteriye özel depozito (F-37): ürün → kap başına tutar */
   deposits: Record<string, number>;
   products: OrderProduct[];
   priceList: PriceList;
+  /** F-39: özel fiyat yetkisi (yönetici veya yetki verilen personel) */
   canEdit: boolean;
+  /** Özel depozito yalnızca yönetici (F-37) */
+  canEditDeposit: boolean;
 }) {
   const { call, busy } = useRpc();
-  const [productId, setProductId] = useState("");
-  const [unitId, setUnitId] = useState("");
-  const [price, setPrice] = useState("");
 
   const rows = useMemo(() => {
     const out: { unitId: string; product: string; unit: string; price: number; normal: number | null }[] = [];
@@ -33,12 +34,15 @@ export function CustomerPrices({ customerId, prices, deposits, products, priceLi
     return out.sort((a, b) => a.product.localeCompare(b.product, "tr"));
   }, [products, prices, priceList]);
 
-  const product = products.find((p) => p.id === productId);
-  const parsed = parseAmount(price);
 
   return (
     <Card className="space-y-3">
-      <h2 className="font-semibold">Firmaya özel fiyatlar</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-semibold">Firmaya özel fiyatlar</h2>
+        <Link href={`/musteriler/${customerId}/fiyatlar`} className="inline-flex h-9 items-center gap-1 rounded-xl bg-brand px-3 text-sm font-medium text-white">
+          <Pencil className="h-4 w-4" /> {canEdit ? "Özel fiyatları düzenle" : "Tümünü gör"}
+        </Link>
+      </div>
       {rows.length === 0 ? (
         <p className="text-sm text-muted">Özel fiyat yok; {priceList === "perakende" ? "perakende" : priceList} fiyatları uygulanır.</p>
       ) : (
@@ -68,27 +72,7 @@ export function CustomerPrices({ customerId, prices, deposits, products, priceLi
           </table>
         </div>
       )}
-      {canEdit ? (
-        <div className="flex flex-wrap items-end gap-2 rounded-xl bg-surface-2 p-3">
-          <Select className="h-10 min-w-0 flex-1 basis-48" value={productId} onChange={(e) => {
-            const p = products.find((x) => x.id === e.target.value);
-            setProductId(e.target.value);
-            setUnitId(p?.units.find((u) => u.price !== null)?.id ?? p?.units[0]?.id ?? "");
-          }} aria-label="Ürün">
-            <option value="">Ürün seçin…</option>
-            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </Select>
-          <Select className="h-10 w-32" value={unitId} onChange={(e) => setUnitId(e.target.value)} disabled={!product} aria-label="Birim">
-            {(product?.units ?? []).map((u) => <option key={u.id} value={u.id}>{u.name}{u.factor > 1 ? ` (${u.factor})` : ""}</option>)}
-          </Select>
-          <Input className="num h-10 w-28 text-right" inputMode="decimal" placeholder="₺" value={price} onChange={(e) => setPrice(e.target.value)} aria-label="Özel fiyat" />
-          <Button disabled={!unitId || parsed === null || parsed < 0} loading={busy} onClick={async () => {
-            const ok = await call("set_customer_price", { p_customer: customerId, p_unit: unitId, p_price: parsed }, { success: "Özel fiyat kaydedildi" });
-            if (ok) { setPrice(""); setProductId(""); setUnitId(""); }
-          }}>Kaydet</Button>
-        </div>
-      ) : null}
-      <CustomerDeposits customerId={customerId} deposits={deposits} products={products} canEdit={canEdit} />
+      <CustomerDeposits customerId={customerId} deposits={deposits} products={products} canEdit={canEditDeposit} />
     </Card>
   );
 }

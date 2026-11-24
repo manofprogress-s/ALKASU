@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requirePermission } from "@/lib/session";
+import { canPrice, requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Card, PageHeader, Stat } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
@@ -35,6 +35,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
       </div>
     );
   }
+  const priceEditor = await canPrice();   // F-39: özel fiyat yetkisi
   // Tek dalga: tüm okumalar paralel (hız adımı 4)
   const [{ data: c }, { data: sum }, { data: st }, { data: pays }, { data: depProducts }, { data: cprices }, products, { data: pev }, assignees, { data: calls }, opening, { data: cdeps }] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).maybeSingle(),
@@ -113,14 +114,15 @@ export default async function CustomerPage({ params, searchParams }: { params: P
         calls={(calls ?? []) as CallRow[]}
         names={Object.fromEntries(assignees.map((a) => [a.user_id, a.display_name]))}
       />
-      {c.channel !== "perakende" || (cprices ?? []).length || (cdeps ?? []).length ? (
+      {c.channel !== "perakende" || (cprices ?? []).length || (cdeps ?? []).length || priceEditor ? (
         <CustomerPrices
           customerId={c.id}
           prices={Object.fromEntries(((cprices ?? []) as { unit_id: string; price: number }[]).map((r) => [r.unit_id, Number(r.price)]))}
           deposits={Object.fromEntries(((cdeps ?? []) as { product_id: string; amount: number }[]).map((r) => [r.product_id, Number(r.amount)]))}
           products={products}
           priceList={c.price_list}
-          canEdit={ctx.role === "yonetici"}
+          canEdit={priceEditor}
+          canEditDeposit={ctx.role === "yonetici"}
         />
       ) : null}
       {ctx.role === "yonetici" ? (

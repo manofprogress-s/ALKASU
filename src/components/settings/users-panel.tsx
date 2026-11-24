@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, History, KeyRound } from "lucide-react";
+import { BadgeCheck, History, KeyRound, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, Badge, Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
@@ -23,6 +23,8 @@ export interface MemberRow {
   must_change_password: boolean;
   /** O-30..O-33: geriye dönük sipariş/teslimat ve bayi adına kapatma */
   can_backdate: boolean;
+  /** F-39: özel fiyat girme/güncelleme */
+  can_price: boolean;
 }
 
 export interface DealerOption {
@@ -93,6 +95,12 @@ export function UsersPanel({ members, me, dealers }: { members: MemberRow[]; me:
                 <Button size="sm" variant={m.can_backdate ? "secondary" : "ghost"} title="En fazla 14 gün geriye sipariş/teslimat girer, başkası ve bayi adına sipariş kapatır"
                   onClick={() => call("set_member_backdate", { p_membership: m.id, p_on: !m.can_backdate }, { success: m.can_backdate ? "Geriye dönük kayıt yetkisi kaldırıldı" : "Geriye dönük kayıt yetkisi verildi" })}>
                   <History className="h-4 w-4" /> Geriye dönük: {m.can_backdate ? "Açık" : "Kapalı"}
+                </Button>
+              ) : null}
+              {m.role === "satis" || m.role === "sevkiyat" ? (
+                <Button size="sm" variant={m.can_price ? "secondary" : "ghost"} title="Müşteri ve bayilere özel fiyat girer, günceller"
+                  onClick={() => call("set_member_price_perm", { p_membership: m.id, p_on: !m.can_price }, { success: m.can_price ? "Özel fiyat yetkisi kaldırıldı" : "Özel fiyat yetkisi verildi" })}>
+                  <Tag className="h-4 w-4" /> Özel fiyat: {m.can_price ? "Açık" : "Kapalı"}
                 </Button>
               ) : null}
               {m.role !== "musteri" ? (

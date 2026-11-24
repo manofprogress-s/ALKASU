@@ -42,7 +42,7 @@ select test.throws($$select public.complete_sale(test.biz(), jsonb_build_object(
 select test.lives($$select test.sell('SU-005', 'Koli', 1)$$, 'Müşterisiz satış perakende kalır');
 
 -- Yetki ve görünürlük
-select test.throws($$select public.set_customer_price(test.cust('K100'), test.unit('SU-005', 'Koli'), 1)$$, '%yetkiniz yok%', 'Özel fiyatı yalnızca yönetici girer');
+select test.throws($$select public.set_customer_price(test.cust('K100'), test.unit('SU-005', 'Koli'), 1)$$, '%özel fiyat yetkisi%', 'Yetkisiz personel özel fiyat giremez (F-39)');
 select test.eq((select count(*) from public.customer_prices)::int, 2, 'Satış personeli özel fiyatları görür');
 select test.login(test.u_depo());
 select test.eq((select count(*) from public.customer_prices)::int, 0, 'Depo personeli özel fiyatları görmez');
