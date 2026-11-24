@@ -3,6 +3,7 @@ import { AlertTriangle, ClipboardList, PhoneCall, ShoppingCart, Store, Truck } f
 import { getContext } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Card, PageHeader, Stat } from "@/components/ui/card";
+import { ShareApp } from "@/components/share/share-app";
 import { formatDate, formatTRY } from "@/lib/format";
 import { can } from "@/lib/roles";
 import { CustomerHome } from "@/components/orders/customer-home";
@@ -56,7 +57,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   return (
     <div className="space-y-4">
-      <PageHeader title={`Merhaba, ${ctx.displayName}`} subtitle={formatDate(d.today ?? new Date())} />
+      <PageHeader title={`Merhaba, ${ctx.displayName}`} subtitle={formatDate(d.today ?? new Date())} actions={<ShareApp />} />
       {sp.yetki === "yok" ? <Alert tone="warn">Bu sayfa için yetkiniz yok.</Alert> : null}
       {error ? <Alert>{error.message}</Alert> : null}
       {pendingCount ? (
