@@ -10,7 +10,8 @@ import { Alert, Card } from "@/components/ui/card";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { SITE_URL } from "@/lib/env";
-import { loginEmail, normalizePhone } from "@/lib/username";
+import { loginEmail, normalizePhone, usernameOf } from "@/lib/username";
+import { signInWithUsername } from "./actions";
 
 /** musteri = ev müşterisi (telefonla), kurumsal = firma (telefon veya kullanıcı adı), calisan = personel ve bayi */
 type Mode = "musteri" | "kurumsal" | "calisan";
@@ -33,8 +34,11 @@ function LoginForm({ mode }: { mode: Mode }) {
     if (isCustomer && !normalizePhone(login)) return setError("Cep telefonu numaranızı 05xx xxx xx xx biçiminde yazın.");
     setLoading(true);
     const { error } = await supabaseBrowser().auth.signInWithPassword({ email: loginEmail(login), password });
+    // E-postayla açılmış personel hesabı kullanıcı adıyla da girebilir (D-120): e-posta sunucuda bulunur
+    const viaUsername = error && /invalid login/i.test(error.message) && !isCustomer && usernameOf(login)
+      ? (await signInWithUsername(login, password)).ok : false;
     setLoading(false);
-    if (error) {
+    if (error && !viaUsername) {
       setError(/invalid login/i.test(error.message) ? (isCustomer ? "Telefon veya şifre hatalı." : isCorporate ? "Telefon / kullanıcı adı veya şifre hatalı." : "Kullanıcı adı veya şifre hatalı.") : errorMessage(error));
       return;
     }

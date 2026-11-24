@@ -46,3 +46,12 @@ export function loginEmail(input: string): string {
 export function isSyntheticEmail(email: string | null | undefined): boolean {
   return !!email && email.toLowerCase().endsWith(`@${USERNAME_DOMAIN}`);
 }
+
+/** Girişte yazılan değer bir kullanıcı adı mı (e-posta ya da cep telefonu değil)? E-postayla açılmış hesaba kullanıcı adıyla giriş için (D-120). */
+export function usernameOf(input: string): string | null {
+  const v = input.trim();
+  if (v.includes("@")) return null;
+  if (/^[\d\s()+-]+$/.test(v) && normalizePhone(v)) return null;
+  const u = normalizeUsername(v);
+  return u.length >= 3 ? u : null;
+}

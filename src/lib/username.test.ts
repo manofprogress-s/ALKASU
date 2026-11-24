@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPhone, isSyntheticEmail, loginEmail, normalizePhone, normalizeUsername } from "./username";
+import { formatPhone, isSyntheticEmail, loginEmail, normalizePhone, normalizeUsername, usernameOf } from "./username";
 
 describe("kullanıcı adı", () => {
   it("Türkçe karakterleri sadeleştirir", () => {
@@ -23,5 +23,15 @@ describe("kullanıcı adı", () => {
     expect(loginEmail("0532 111 22 33")).toBe("5321112233@musteri.alkasu.app");
     expect(loginEmail("HTopal")).toBe("htopal@kullanici.alkasu.app");
     expect(formatPhone("5321112233")).toBe("0532 111 22 33");
+  });
+});
+
+describe("usernameOf (D-120)", () => {
+  it("kullanıcı adını sadeleştirir, e-posta ve telefonu ayırır", () => {
+    expect(usernameOf("EKA")).toBe("eka");
+    expect(usernameOf(" HTopal ")).toBe("htopal");
+    expect(usernameOf("me@example.com")).toBeNull();
+    expect(usernameOf("0532 111 22 33")).toBeNull();
+    expect(usernameOf("ab")).toBeNull();
   });
 });
