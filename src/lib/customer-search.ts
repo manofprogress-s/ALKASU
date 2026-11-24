@@ -51,7 +51,7 @@ export interface CustomerSearchRow {
   price_list: PriceList | null; default_assignee: string | null; owner_dealer_id: string | null;
   credit_limit: number | string; unlimited_credit: boolean; balance: number | string;
   special_prices: Record<string, number | string> | null; deposits: Record<string, number | string> | null;
-  containers: { product_id: string; qty: number; amount: number | string }[] | null;
+  containers: { product_id: string; qty: number; amount: number | string; free?: number }[] | null;
   dealer_hint: DealerHint | null; match_rank: number; total: number;
 }
 
@@ -85,8 +85,8 @@ export function rowToPosCustomer(r: CustomerSearchRow): PosCustomer {
 }
 
 /** Seçilen müşterinin kap bakiyeleri (satış ekranının depozito hesabı için) */
-export function rowContainers(r: CustomerSearchRow): { customerId: string; productId: string; qty: number; amount: number }[] {
-  return (r.containers ?? []).map((c) => ({ customerId: r.id, productId: c.product_id, qty: Number(c.qty), amount: Number(c.amount) }));
+export function rowContainers(r: CustomerSearchRow): { customerId: string; productId: string; qty: number; amount: number; free: number }[] {
+  return (r.containers ?? []).map((c) => ({ customerId: r.id, productId: c.product_id, qty: Number(c.qty), amount: Number(c.amount), free: Number(c.free ?? 0) }));
 }
 
 /** Çevrimdışı yedek: son seçilen müşterilerde arama (bayi kartları üstte) */

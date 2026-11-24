@@ -26,7 +26,8 @@ function depositOf(p: CatalogProduct, c: PosCustomer | null): number | null {
   return p.deposit === null ? null : c?.deposits?.[p.id] ?? p.deposit;
 }
 
-export function Pos({ initial }: { initial: PosData }) {
+/** freeDeposit: depozitosuz kap bırakma yetkisi (F-40: yönetici / özel fiyat yetkilisi) */
+export function Pos({ initial, freeDeposit = false }: { initial: PosData; freeDeposit?: boolean }) {
   const ctx = useAppContext();
   const toast = useToast();
   const [data, setData] = useState<PosData>(initial);
@@ -34,6 +35,7 @@ export function Pos({ initial }: { initial: PosData }) {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customer, setCustomer] = useState<PosCustomer | null>(null);
   const [empties, setEmpties] = useState<Record<string, number>>({});
+  const [depositFree, setDepositFree] = useState<Record<string, number>>({});   // F-40
   const [billDiscount, setBillDiscount] = useState(0);
   const [pickCustomer, setPickCustomer] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -88,7 +90,7 @@ export function Pos({ initial }: { initial: PosData }) {
 
   const balances: ContainerBalances = useMemo(() => {
     const m: ContainerBalances = {};
-    for (const c of data.containers) if (c.customerId === (customer?.id ?? null)) m[c.productId] = { qty: c.qty, amount: c.amount };
+    for (const c of data.containers) if (c.customerId === (customer?.id ?? null)) m[c.productId] = { qty: c.qty, amount: c.amount, free: c.free ?? 0 };
     return m;
   }, [data.containers, customer]);
 
@@ -141,8 +143,8 @@ export function Pos({ initial }: { initial: PosData }) {
   }
 
   const totals = useMemo(
-    () => computeCart(cart, billDiscount, empties, balances, { creditCustomer: !!customer }),
-    [cart, billDiscount, empties, balances, customer],
+    () => computeCart(cart, billDiscount, empties, balances, { creditCustomer: !!customer, depositFree }),
+    [cart, billDiscount, empties, balances, customer, depositFree],
   );
   const itemCount = cart.reduce((s, l) => s + l.qty, 0);
 
@@ -220,6 +222,7 @@ export function Pos({ initial }: { initial: PosData }) {
     setCart([]);
     setCustomer(null);
     setEmpties({});
+    setDepositFree({});
     setBillDiscount(0);
     setQuery("");
     setCartOpen(false);
@@ -348,9 +351,25 @@ export function Pos({ initial }: { initial: PosData }) {
                 </Button>
               </div>
             </div>
+            {freeDeposit && customer && d.net > 0 ? (
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <span className="text-sm">Depozitosuz bırakılan <span className="block text-xs text-muted">Sonra geri alınacak fazla kap · 0 TL</span></span>
+                <div className="flex items-center gap-1">
+                  <Button variant="secondary" size="icon" className="h-9 w-9" onClick={() => setDepositFree((x) => ({ ...x, [d.productId]: Math.max(0, d.free - 1) }))} aria-label="Azalt">
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input inputMode="numeric" aria-label={`${d.productName} depozitosuz kap`} className="num h-9 w-14 text-center font-semibold"
+                    value={String(d.free)}
+                    onChange={(e) => setDepositFree((x) => ({ ...x, [d.productId]: Math.max(0, Number.parseInt(e.target.value.replace(/\D/g, "") || "0", 10)) }))} />
+                  <Button variant="secondary" size="icon" className="h-9 w-9" onClick={() => setDepositFree((x) => ({ ...x, [d.productId]: Math.min(d.net, d.free + 1) }))} aria-label="Arttır">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             <div className="mt-1 text-xs">
               {d.net > 0
-                ? `${d.net} depozito satılıyor (kap müşteride kalır) · +${formatTRY(fromKurus(d.amountK))}`
+                ? `${d.net} kap müşteride kalır${d.free ? ` (${d.free} depozitosuz)` : ""} · depozito +${formatTRY(fromKurus(d.amountK))}`
                 : d.net < 0
                   ? `${-d.net} fazla boş geldi · depozito iadesi −${formatTRY(fromKurus(-d.amountK))}`
                   : "Değişim: depozito yok"}

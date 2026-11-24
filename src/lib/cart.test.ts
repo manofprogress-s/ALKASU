@@ -106,3 +106,27 @@ describe("buildSalePayload", () => {
     expect(p.deposits).toEqual([{ product_id: "dm", empty_returned: 2 }]);
   });
 });
+
+describe("depozitosuz kap (F-40)", () => {
+  const dm = (qty: number) => line({ productId: "dm", productName: "Damacana", unitId: "dm", unitName: "Damacana", factor: 1, qty, unitPrice: 120, depositAmount: 250 });
+  it("kalan kaplardan depozitosuz olanlar ücretlendirilmez", () => {
+    const t = computeCart([dm(12)], 0, { dm: 2 }, {}, { creditCustomer: true, depositFree: { dm: 10 } });
+    expect(t.deposits[0]).toMatchObject({ net: 10, free: 10, amountK: 0 });
+    const k = computeCart([dm(5)], 0, { dm: 0 }, {}, { creditCustomer: true, depositFree: { dm: 2 } });
+    expect(k.deposits[0]!.amountK).toBe(75000);
+  });
+  it("kalan kaptan fazla depozitosuz girilemez", () => {
+    const t = computeCart([dm(3)], 0, { dm: 0 }, {}, { depositFree: { dm: 4 } });
+    expect(t.errors.join()).toContain("depozitosuz");
+  });
+  it("iade önce depozitosuz kaplardan, 0 TL (sunucuyla aynı)", () => {
+    const bal = { dm: { qty: 15, amount: 750, free: 10 } };
+    expect(computeCart([dm(2)], 0, { dm: 12 }, bal, { creditCustomer: true }).deposits[0]!.amountK).toBe(0);
+    expect(computeCart([dm(1)], 0, { dm: 13 }, bal, { creditCustomer: true }).deposits[0]!.amountK).toBe(-30000); // 2 ödenmiş kap: 750 × 2/5
+  });
+  it("satış gövdesine depozitosuz sayı eklenir", () => {
+    const p = buildSalePayload({ id: "s", customerId: "c", cart: [dm(12)], billDiscount: 0, emptiesReturned: { dm: 2 }, depositFree: { dm: 10 },
+      payments: [], cashGiven: null, offline: false, clientCreatedAt: "2026-11-24T10:00:00Z" });
+    expect(p.deposits).toEqual([{ product_id: "dm", empty_returned: 2, deposit_free: 10 }]);
+  });
+});

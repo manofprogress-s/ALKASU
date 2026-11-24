@@ -63,7 +63,7 @@ describe("arama satırı dönüşümü (M-29, F-37)", () => {
     expect(c.specialPrices).toEqual({ u1: 78 });
     expect(c.deposits).toEqual({ p1: 400 });
     expect(c.channel).toBe("bayi");
-    expect(rowContainers(row)).toEqual([{ customerId: "c1", productId: "p1", qty: 10, amount: 4000 }]);
+    expect(rowContainers(row)).toEqual([{ customerId: "c1", productId: "p1", qty: 10, amount: 4000, free: 0 }]);
   });
   it("sipariş müşterisi: bayi ipucu taşınır", () => {
     const o = rowToOrderCustomer({ ...row, channel: "perakende", price_list: null, dealer_hint: { id: "d", code: "B001", name: "Sağlam Ticaret" } });

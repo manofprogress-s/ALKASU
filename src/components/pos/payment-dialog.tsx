@@ -101,6 +101,7 @@ export function PaymentDialog({
       cart,
       billDiscount,
       emptiesReturned: empties,
+      depositFree: Object.fromEntries(totals.deposits.filter((d) => d.free > 0 && d.free <= d.net).map((d) => [d.productId, d.free])),
       payments,
       cashGiven: givenN !== null && cashK > 0 ? givenN : null,
       offline,

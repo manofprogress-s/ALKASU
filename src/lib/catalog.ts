@@ -68,7 +68,7 @@ export interface PosCustomer {
 export interface PosData {
   products: CatalogProduct[];
   customers: PosCustomer[];
-  containers: { customerId: string | null; productId: string; qty: number; amount: number }[];
+  containers: { customerId: string | null; productId: string; qty: number; amount: number; free?: number }[];
   loadedAt: string;
 }
 

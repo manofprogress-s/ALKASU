@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { canBackdate, requirePermission } from "@/lib/session";
+import { canBackdate, canPrice, requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Alert, Badge, Card, PageHeader } from "@/components/ui/card";
 import { formatDate, formatDateTime, formatTRY } from "@/lib/format";
@@ -70,7 +70,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     isStaff ? loadAssignees(supabase, ctx.businessId) : Promise.resolve([] as Assignee[]),
     isStaff ? loadDealers(supabase, ctx.businessId) : Promise.resolve([] as Dealer[]),
     supabase.from("customer_balances").select("balance").eq("customer_id", o.customer_id).maybeSingle(),
-    supabase.from("container_balances").select("product_id, qty, amount").eq("customer_id", o.customer_id),
+    supabase.from("container_balances").select("product_id, qty, amount, free").eq("customer_id", o.customer_id),
     // Yönlendirme geçmişi: yalnızca yönetici görür (RLS, G-17)
     ctx.role === "yonetici"
       ? supabase.from("order_routing_log").select("id, from_dealer, to_dealer, special, note, created_by, created_at").eq("order_id", o.id).order("created_at")
@@ -84,6 +84,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const total = items.reduce((s, i) => s + Number(i.qty) * Number(i.unit_price), 0);
   // O-31..O-33: geriye dönük kayıt yetkilisi başkasının siparişini (teslim eden atanan kişi olarak) ve bayi siparişini bayi adına kapatır
   const backdate = isStaff ? await canBackdate() : false;
+  const freeDeposit = isStaff ? await canPrice() : false;   // F-40
   const canDeliver = o.status === "acik" && !o.dealer_customer_id && can(ctx.role, "deliver") && (ctx.role === "yonetici" || o.assignee === ctx.userId || backdate);
   const notTakenByOther = !o.dealer_customer_id || o.dealer_customer_id === ctx.customerId;
   const canEdit = open && (isStaff || (isMine && notTakenByOther));
@@ -229,6 +230,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               canAssign={isStaff && can(ctx.role, "orderAssign")}
               canDeliver={canDeliver}
               backdate={backdate}
+              freeDeposit={freeDeposit}
               canAssignDealer={isStaff && can(ctx.role, "orderAssign")}
               canSpecial={ctx.role === "yonetici" || ctx.role === "sevkiyat"}
               customerChannel={o.customers?.channel}
@@ -239,7 +241,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               items={deliverItems}
               balance={Number(bal.data?.balance ?? 0)}
               creditLimit={o.customers?.unlimited_credit ? null : Number(o.customers?.credit_limit ?? 0)}
-              containers={((cont.data ?? []) as { product_id: string; qty: number; amount: number }[]).map((c) => ({ productId: c.product_id, qty: c.qty, amount: Number(c.amount) }))}
+              containers={((cont.data ?? []) as { product_id: string; qty: number; amount: number; free: number | null }[]).map((c) => ({ productId: c.product_id, qty: c.qty, amount: Number(c.amount), free: c.free ?? 0 }))}
             />
           ) : null}
           {isCustomer && o.status === "onay_bekliyor" ? (

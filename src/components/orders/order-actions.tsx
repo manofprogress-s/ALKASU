@@ -47,7 +47,7 @@ export function OrderActions(props: {
   items: DeliverItem[];
   balance: number;
   creditLimit: number | null;
-  containers: { productId: string; qty: number; amount: number }[];
+  containers: { productId: string; qty: number; amount: number; free?: number }[];
   dealers?: Dealer[];
   dealerId?: string | null;
   /** Sipariş bayiye verilebilir / bayiden alınabilir */
@@ -59,6 +59,8 @@ export function OrderActions(props: {
   canCancel?: boolean;
   /** O-31/O-32: geçmiş tarihli teslimat ve başkası adına kapatma yetkisi */
   backdate?: boolean;
+  /** F-40: depozitosuz kap bırakma yetkisi */
+  freeDeposit?: boolean;
 }) {
   const ctx = useAppContext();
   const router = useRouter();
@@ -204,6 +206,7 @@ function DeliverDialog({
   onDone,
   backdate,
   assigneeName,
+  freeDeposit,
 }: {
   orderId: string;
   orderNo: number;
@@ -218,6 +221,7 @@ function DeliverDialog({
   backdate?: boolean;
   /** Başkası adına kapatılıyorsa teslim eden (atanan kişi) */
   assigneeName: string | null;
+  freeDeposit?: boolean;
 }) {
   const [saleId] = useState(() => crypto.randomUUID());
   const [when, setWhen] = useState("");   // boş = şimdi (O-31)
@@ -225,6 +229,7 @@ function DeliverDialog({
   const past = when !== "" && new Date(when).getTime() < bounds.max.getTime() - 10 * 60 * 1000;
   const [qty, setQty] = useState<Record<string, string>>(() => Object.fromEntries(items.map((i) => [i.id, String(i.qty)])));
   const [empties, setEmpties] = useState<Record<string, string>>({});
+  const [freeStr, setFreeStr] = useState<Record<string, string>>({});   // F-40: depozitosuz kap
   const [method, setMethod] = useState<PaymentMethod | "bolunmus">("veresiye");
   const [split, setSplit] = useState({ nakit: "", pos: "", veresiye: "" });
   const [note, setNote] = useState("");
@@ -249,8 +254,9 @@ function DeliverDialog({
     }));
   const emptiesNum: Record<string, number> = {};
   for (const [pid, v] of Object.entries(empties)) if (v.trim() !== "") emptiesNum[pid] = Math.max(0, Number.parseInt(v, 10) || 0);
-  const balances: ContainerBalances = useMemo(() => Object.fromEntries(containers.map((c) => [c.productId, { qty: c.qty, amount: c.amount }])), [containers]);
-  const totals = computeCart(cart, 0, emptiesNum, balances, { creditCustomer: true });
+  const balances: ContainerBalances = useMemo(() => Object.fromEntries(containers.map((c) => [c.productId, { qty: c.qty, amount: c.amount, free: c.free ?? 0 }])), [containers]);
+  const depositFree = Object.fromEntries(Object.entries(freeStr).filter(([, v]) => v !== "").map(([k, v]) => [k, Number.parseInt(v, 10)]));
+  const totals = computeCart(cart, 0, emptiesNum, balances, { creditCustomer: true, depositFree });
   const total = fromKurus(totals.grandK);
   // D-07: fazla boş iadesi tutarı aşarsa ödeme alınmaz, fark müşterinin carisine alacak yazılır
   const accountCredit = totals.grandK < 0;
@@ -283,6 +289,7 @@ function DeliverDialog({
         deposits: depositProducts.map((pid) => ({
           product_id: pid,
           empty_returned: emptiesNum[pid] ?? cart.filter((l) => l.productId === pid).reduce((s, l) => s + l.qty * l.factor, 0),
+          ...(() => { const d = totals.deposits.find((x) => x.productId === pid); return d && d.free > 0 && d.free <= d.net ? { deposit_free: d.free } : {}; })(),
         })),
         payments: payments.filter((p) => toKurus(p.amount) > 0).map((p) => ({ method: p.method, amount: fromKurus(toKurus(p.amount)) })),
         note: note.trim() || null,
@@ -350,18 +357,29 @@ function DeliverDialog({
                 <span className="text-sm">
                   {d.productName}
                   <span className="block text-xs text-muted">
-                    Verilen {d.sold} · {d.net > 0 ? `müşteride kalan ${d.net} · depozito ${formatTRY(fromKurus(d.amountK))}` : d.net < 0 ? `fazla boş ${-d.net} · iade ${formatTRY(fromKurus(-d.amountK))}` : "değişim"}
+                    Verilen {d.sold} · {d.net > 0 ? `müşteride kalan ${d.net}${d.free ? ` (${d.free} depozitosuz)` : ""} · depozito ${formatTRY(fromKurus(d.amountK))}` : d.net < 0 ? `fazla boş ${-d.net} · iade ${formatTRY(fromKurus(-d.amountK))}` : "değişim"}
                   </span>
                   {d.error ? <span className="block text-xs text-danger">{d.error}</span> : null}
                 </span>
-                <Input
-                  inputMode="numeric"
-                  className="num h-11 w-24 text-center"
-                  placeholder={String(d.sold)}
-                  value={empties[d.productId] ?? ""}
-                  onChange={(e) => setEmpties((x) => ({ ...x, [d.productId]: e.target.value.replace(/\D/g, "") }))}
-                  aria-label={`${d.productName} alınan boş`}
-                />
+                <div className="flex items-end gap-2">
+                  {freeDeposit && d.net > 0 ? (
+                    <label className="text-center text-[11px] text-muted">Depozitosuz
+                      <Input inputMode="numeric" className="num h-11 w-20 text-center" placeholder="0"
+                        value={freeStr[d.productId] ?? ""} onChange={(e) => setFreeStr((x) => ({ ...x, [d.productId]: e.target.value.replace(/\D/g, "") }))}
+                        aria-label={`${d.productName} depozitosuz kap`} />
+                    </label>
+                  ) : null}
+                  <label className="text-center text-[11px] text-muted">Alınan boş
+                    <Input
+                      inputMode="numeric"
+                      className="num h-11 w-24 text-center"
+                      placeholder={String(d.sold)}
+                      value={empties[d.productId] ?? ""}
+                      onChange={(e) => setEmpties((x) => ({ ...x, [d.productId]: e.target.value.replace(/\D/g, "") }))}
+                      aria-label={`${d.productName} alınan boş`}
+                    />
+                  </label>
+                </div>
               </div>
             ))}
           </div>

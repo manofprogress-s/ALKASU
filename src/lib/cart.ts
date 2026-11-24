@@ -17,7 +17,8 @@ export interface CartLine {
 }
 
 /** Müşterinin (veya perakende havuzunun) elindeki kaplar: ürün → { qty, amount } */
-export type ContainerBalances = Record<string, { qty: number; amount: number }>;
+/** free: depozitosuz kap sayısı (F-40); iade önce bunlardan düşer, 0 TL */
+export type ContainerBalances = Record<string, { qty: number; amount: number; free?: number }>;
 
 export interface ComputedLine extends CartLine {
   grossK: number;
@@ -32,6 +33,8 @@ export interface DepositLine {
   sold: number;
   emptyReturned: number;
   net: number; // + müşteride kalan kap
+  /** F-40: müşteride kalan kaplardan depozitosuz olanlar */
+  free: number;
   amountK: number; // + alınan / − iade edilen
   error?: string;
 }
@@ -53,7 +56,7 @@ export function computeCart(
   emptiesReturned: Record<string, number>,
   balances: ContainerBalances = {},
   /** Müşteri seçili: fazla boş iadesi ürün tutarını aşarsa fark carisine alacak yazılır (D-07) */
-  opts: { creditCustomer?: boolean } = {},
+  opts: { creditCustomer?: boolean; depositFree?: Record<string, number> } = {},
 ): CartTotals {
   const errors: string[] = [];
   const computed: ComputedLine[] = lines.map((l) => {
@@ -99,21 +102,30 @@ export function computeCart(
     const net = d.sold - returned;
     let amountK = 0;
     let error: string | undefined;
+    const free = net > 0 ? opts.depositFree?.[productId] ?? 0 : 0;
+    if (free < 0 || free > Math.max(net, 0)) {
+      error = `${d.name}: depozitosuz kap sayısı müşteride kalan kaptan (${Math.max(net, 0)}) fazla olamaz`;
+      errors.push(error);
+    }
     if (net > 0) {
-      amountK = net * toKurus(d.dep);
+      amountK = (net - Math.min(Math.max(free, 0), net)) * toKurus(d.dep);
     } else if (net < 0) {
+      // Sunucudaki app.deposit_refund_amount ile aynı: depozitosuz kaplar önce ve 0 TL ile, kalanı ödenen tutardan orantılı
       const bal = balances[productId] ?? { qty: 0, amount: 0 };
       const excess = -net;
       if (bal.qty < excess) {
         error = `Müşterinin elinde ${bal.qty} kap görünüyor; ${excess} fazla boş kabul edilemez`;
         errors.push(error);
-      } else if (bal.qty === excess) {
-        amountK = -toKurus(bal.amount);
       } else {
-        amountK = -Math.round((toKurus(bal.amount) * excess) / bal.qty + 1e-9);
+        const freeOut = Math.min(bal.free ?? 0, bal.qty);
+        const paidQty = bal.qty - freeOut;
+        const paidRet = Math.max(excess - freeOut, 0);
+        if (paidRet === 0 || paidQty <= 0) amountK = 0;
+        else if (paidRet === paidQty) amountK = -toKurus(bal.amount);
+        else amountK = -Math.round((toKurus(bal.amount) * paidRet) / paidQty + 1e-9);
       }
     }
-    deposits.push({ productId, productName: d.name, sold: d.sold, emptyReturned: returned, net, amountK, error });
+    deposits.push({ productId, productName: d.name, sold: d.sold, emptyReturned: returned, net, free, amountK, error });
   }
   const depositK = deposits.reduce((s, d) => s + d.amountK, 0);
   const grandK = goodsNetK + depositK;
@@ -141,6 +153,8 @@ export function buildSalePayload(args: {
   cart: CartLine[];
   billDiscount: number;
   emptiesReturned: Record<string, number>;
+  /** F-40: ürün başına depozitosuz kap */
+  depositFree?: Record<string, number>;
   payments: Payment[];
   cashGiven: number | null;
   offline: boolean;
@@ -166,6 +180,7 @@ export function buildSalePayload(args: {
     deposits: [...depositProducts].map((pid) => ({
       product_id: pid,
       empty_returned: args.emptiesReturned[pid] ?? args.cart.filter((l) => l.productId === pid).reduce((s, l) => s + l.qty * l.factor, 0),
+      ...(args.depositFree?.[pid] ? { deposit_free: args.depositFree[pid] } : {}),
     })),
     payments: args.payments.filter((p) => toKurus(p.amount) > 0).map((p) => ({ method: p.method, amount: fromKurus(toKurus(p.amount)) })),
     cash_given: args.cashGiven,
