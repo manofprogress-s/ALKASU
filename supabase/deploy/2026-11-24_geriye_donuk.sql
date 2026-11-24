@@ -286,7 +286,7 @@ select app.apply_grants();
 
 -- Kullanıcı isteği: Hüseyin'e geriye dönük kayıt yetkisi (yönetici zaten yetkili)
 update public.memberships set can_backdate = true where username = 'htopal' and role = 'sevkiyat';
-select 'SONUC: yetkili=' || (select string_agg(display_name, ',') from public.memberships where can_backdate)
+select 'SONUC: yetkili=' || coalesce((select string_agg(display_name, ',') from public.memberships where can_backdate), '-')
     || ' | fonksiyon=' || (select count(*) from pg_proc where proname in ('complete_dealer_order_for','set_member_backdate','can_backdate','effective_now'))
     || ' | varsayilan=' || (select column_default from information_schema.columns where table_name = 'customer_ledger' and column_name = 'created_at') as sonuc;
 commit;
