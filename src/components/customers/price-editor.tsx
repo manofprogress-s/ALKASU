@@ -124,11 +124,11 @@ export function PriceEditor({ customer, prices, products, peers, canEdit }: {
             Yalnızca özel fiyatlılar
           </label>
           {peers.length ? (
-            <Select className="h-10 w-auto min-w-0 max-w-64" value="" aria-label="Başka müşteriye geç"
+            <div className="w-64 max-w-full"><Select className="h-10" value="" aria-label="Başka müşteriye geç"
               onChange={(e) => e.target.value && router.push(`/musteriler/${e.target.value}/fiyatlar`)}>
               <option value="">Başka bayi / kurumsal…</option>
               {peers.map((p) => <option key={p.id} value={p.id}>{p.channel === "bayi" ? "Bayi · " : ""}{p.name}</option>)}
-            </Select>
+            </Select></div>
           ) : null}
         </div>
         <ChipBar>
@@ -141,21 +141,21 @@ export function PriceEditor({ customer, prices, products, peers, canEdit }: {
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{sel.size ? `Seçili ${sel.size} ürün` : `Görünen ${visible.length} ürün`}:</span>
               <span>normal fiyattan</span>
-              <Input className="num h-9 w-20 text-right" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="5" aria-label="İndirim" />
-              <Select className="h-9 w-auto" value={mode} onChange={(e) => setMode(e.target.value as DiscountMode)} aria-label="İndirim türü">
+              <div className="w-20"><Input className="num h-9 text-right" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="5" aria-label="İndirim" /></div>
+              <div className="w-32"><Select className="h-9" value={mode} onChange={(e) => setMode(e.target.value as DiscountMode)} aria-label="İndirim türü">
                 <option value="tl">TL düşük</option>
                 <option value="yuzde">% düşük</option>
-              </Select>
+              </Select></div>
               <Button size="sm" onClick={applyBulk} disabled={!targets.length}>Uygula</Button>
               <Button size="sm" variant="ghost" onClick={clearTargets} disabled={!targets.length}>Özel fiyatı temizle</Button>
             </div>
             {peers.length ? (
               <div className="flex flex-wrap items-center gap-2">
                 <span>Fiyatları kopyala:</span>
-                <Select className="h-9 w-auto min-w-0 max-w-64" value={copyFrom} onChange={(e) => setCopyFrom(e.target.value)} aria-label="Kopyalanacak müşteri">
+                <div className="w-64 max-w-full"><Select className="h-9" value={copyFrom} onChange={(e) => setCopyFrom(e.target.value)} aria-label="Kopyalanacak müşteri">
                   <option value="">Müşteri seçin…</option>
                   {peers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </Select>
+                </Select></div>
                 <Button size="sm" variant="secondary" disabled={!copyFrom} loading={busy === "copy"} onClick={() => void copy()}>Kopyala</Button>
               </div>
             ) : null}
@@ -203,8 +203,8 @@ export function PriceEditor({ customer, prices, products, peers, canEdit }: {
                     <td className="px-3 py-1.5 text-right">
                       {canEdit ? (
                         <div className="flex items-center justify-end gap-1">
-                          <Input className={cn("num h-9 w-24 text-right", bad && "border-danger")} inputMode="decimal" placeholder="—"
-                            value={raw} onChange={(e) => setCell(r.unitId, e.target.value)} aria-label={`${r.product} özel fiyat`} />
+                          <div className="w-24"><Input className={cn("num h-9 text-right", bad && "border-danger")} inputMode="decimal" placeholder="—"
+                            value={raw} onChange={(e) => setCell(r.unitId, e.target.value)} aria-label={`${r.product} özel fiyat`} /></div>
                           {raw ? (
                             <button type="button" className="rounded-lg p-1 text-muted hover:text-danger" aria-label="Temizle" onClick={() => setCell(r.unitId, "")}>
                               <X className="h-4 w-4" />
