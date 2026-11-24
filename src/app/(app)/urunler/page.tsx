@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePermission } from "@/lib/session";
+import { canPrice, requirePermission } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Badge, PageHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
@@ -7,6 +7,7 @@ import { formatNumber, formatTRY } from "@/lib/format";
 import { can } from "@/lib/roles";
 import { SearchBox } from "@/components/ui/search-box";
 import { ProductImageQuick } from "@/components/products/product-image";
+import { ProductActiveToggle } from "@/components/products/product-active";
 
 export const metadata = { title: "Ürünler" };
 
@@ -37,6 +38,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const stock = new Map((levels ?? []).map((l: { product_id: string; qty: number }): [string, number] => [l.product_id, l.qty]));
   const rows = (data ?? []) as unknown as Row[];
   const admin = can(ctx.role, "productEdit");
+  const toggler = await canPrice();   // aktif/pasif: yönetici veya özel fiyat yetkilisi (F-41)
 
   return (
     <div>
@@ -78,6 +80,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             const s = stock.get(r.id) ?? 0;
             return <span className={s < 0 ? "text-danger" : ""}>{formatNumber(s)} {r.base_unit_name.toLocaleLowerCase("tr-TR")}</span>;
           } },
+          ...(toggler ? [{ key: "active", label: "Durum", align: "center" as const, interactive: true, className: "w-28 py-1",
+            render: (r: Row) => <ProductActiveToggle productId={r.id} active={r.active} /> }] : []),
           ...(admin ? [{ key: "image", label: "Görsel", align: "center" as const, interactive: true, className: "w-12 py-1",
             render: (r: Row) => <ProductImageQuick productId={r.id} productName={r.name} path={r.image_path} /> }] : []),
         ]}
